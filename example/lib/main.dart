@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_instagram_stories/flutter_instagram_stories.dart';
+import 'package:stories_lib/stories_component.dart';
 import 'style.dart';
 
 void main() => runApp(MyApp());
@@ -42,7 +42,7 @@ class _HomeState extends State<Home> {
       ),
       body: Column(
         children: <Widget>[
-          FlutterInstagramStories(
+          StoriesComponent(
             collectionDbName: collectionDbName,
             showTitleOnIcon: true,
             backFromStories: () {

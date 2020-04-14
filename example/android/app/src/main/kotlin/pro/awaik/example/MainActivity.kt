@@ -1,4 +1,4 @@
-package pro.awaik.flutter_instagram_stories_example
+package com.magno.flutter.app.stories_lib_example
 
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity

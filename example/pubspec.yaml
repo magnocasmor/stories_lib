@@ -1,4 +1,4 @@
-name: flutter_instagram_stories_example
+name: stories_lib_example
 description: A new Flutter application.
 
 version: 1.0.0+1
@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^0.1.2
-  flutter_instagram_stories:
+  stories_lib:
     path: ../
 
 dev_dependencies:

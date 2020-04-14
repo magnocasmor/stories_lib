@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'stories.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
-import 'package:flutter_instagram_stories/story_view.dart';
+import 'package:stories_lib/story_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class StoriesData {
