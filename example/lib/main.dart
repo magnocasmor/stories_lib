@@ -85,9 +85,9 @@ class _HomeState extends State<Home> {
             ),
             closeButtonBackgroundColor: Color(0x11000000),
             sortingOrderDesc: true,
-            lastIconHighlight: true,
-            lastIconHighlightColor: Colors.deepOrange,
-            lastIconHighlightRadius: const Radius.circular(15.0),
+            recentHighlight: true,
+            recentHighlightColor: Colors.deepOrange,
+            recentHighlightRadius: const Radius.circular(15.0),
           ),
           Center(
             child: Padding(
