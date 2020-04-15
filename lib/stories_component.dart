@@ -46,12 +46,12 @@ class StoriesComponent extends StatefulWidget {
     this.closeButtonBackgroundColor,
     this.repeat = false,
     this.inline = false,
+    this.languageCode = 'en',
     this.recentHighlight = false,
     this.sortingOrderDesc = true,
     this.storyItemPadding = EdgeInsets.zero,
     this.progressPosition = ProgressPosition.top,
     this.backgroundBetweenStories = Colors.black,
-    this.languageCode = 'en',
   }) : assert(listPadding is EdgeInsets);
 
   @override
@@ -59,16 +59,12 @@ class StoriesComponent extends StatefulWidget {
 }
 
 class _StoriesComponentState extends State<StoriesComponent> {
-  StoriesData _storiesData;
-  final _firestore = Firestore.instance;
   bool _backStateAdditional = false;
+  final _firestore = Firestore.instance;
 
-  @override
-  void initState() {
-    _storiesData = StoriesData(languageCode: widget.languageCode);
+  StoriesData get storiesData => StoriesData(languageCode: widget.languageCode);
 
-    super.initState();
-  }
+  List<String> get storyIds => storiesData.storiesIdsList;
 
   @override
   Widget build(BuildContext context) {
@@ -78,11 +74,9 @@ class _StoriesComponentState extends State<StoriesComponent> {
         if (snapshot.hasData) {
           final stories = snapshot.data.documents;
 
-          final storyIds = _storiesData.storiesIdsList;
+          final storyWidgets = storiesData.parseStoriesPreview(stories);
 
-          final storyWidgets = _storiesData.parseStoriesPreview(stories);
-
-          _buildFuture(ModalRoute.of(context).settings.arguments);
+          _buildFuture();
 
           if (storyWidgets.isNotEmpty)
             return _storiesList(
@@ -176,7 +170,8 @@ class _StoriesComponentState extends State<StoriesComponent> {
       .orderBy('date', descending: widget.sortingOrderDesc)
       .snapshots();
 
-  Future<void> _buildFuture(String res) async {
+  Future<void> _buildFuture() async {
+    final res = ModalRoute.of(context).settings.arguments;
     await Future.delayed(const Duration(seconds: 1));
     if (res == 'back_from_stories_view' && !_backStateAdditional) {
       widget.onStoriesFinish();
