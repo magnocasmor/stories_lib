@@ -72,34 +72,85 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
         return Future.value(false);
       },
       child: Scaffold(
-        body: Container(
-          color: Colors.black,
-          child: StreamBuilder(
-            stream: _firestore
-                .collection(widget.collectionDbName)
-                .document(storiesListWithPressed.pressedStoryId)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return Center(
-                  child: CircularProgressIndicator(
-                    backgroundColor: Colors.lightBlueAccent,
-                  ),
-                );
-              }
+        body: StreamBuilder(
+          stream: _firestore
+              .collection(widget.collectionDbName)
+              .document(storiesListWithPressed.pressedStoryId)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Center(
+                child: CircularProgressIndicator(
+                  backgroundColor: Colors.lightBlueAccent,
+                ),
+              );
+            }
 
-              Map<String, dynamic> toPass = {
-                'snapshotData': snapshot.data,
-                'pressedStoryId': storiesListWithPressed.pressedStoryId
-              };
-              _storiesData.parseStories(toPass, widget.imageStoryDuration);
-              storyItemList.add(_storiesData.storyItems);
+            Map<String, dynamic> toPass = {
+              'snapshotData': snapshot.data,
+              'pressedStoryId': storiesListWithPressed.pressedStoryId
+            };
+            _storiesData.parseStories(toPass, widget.imageStoryDuration);
+            storyItemList.add(_storiesData.storyItems);
 
-              return Dismissible(
-                  resizeDuration: Duration(milliseconds: 200),
-                  key: UniqueKey(),
-                  onDismissed: (DismissDirection direction) {
-                    if (direction == DismissDirection.endToStart) {
+            return Dismissible(
+                resizeDuration: Duration(milliseconds: 200),
+                key: UniqueKey(),
+                onDismissed: (DismissDirection direction) {
+                  if (direction == DismissDirection.endToStart) {
+                    String nextStoryId =
+                        storiesListWithPressed.nextElementStoryId();
+                    if (nextStoryId == null) {
+                      _navigateBack();
+                    } else {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => _groupedStoriesView(),
+                          settings: RouteSettings(
+                            arguments: StoriesListWithPressed(
+                                pressedStoryId: nextStoryId,
+                                storiesIdsList:
+                                    storiesListWithPressed.storiesIdsList),
+                          ),
+                        ),
+                      );
+                    }
+                  } else {
+                    String previousStoryId =
+                        storiesListWithPressed.previousElementStoryId();
+                    if (previousStoryId == null) {
+                      _navigateBack();
+                    } else {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => _groupedStoriesView(),
+                          settings: RouteSettings(
+                            arguments: StoriesListWithPressed(
+                                pressedStoryId: previousStoryId,
+                                storiesIdsList:
+                                    storiesListWithPressed.storiesIdsList),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: GestureDetector(
+                  child: StoryView(
+                    widget.sortingOrderDesc
+                        ? storyItemList[0].reversed.toList()
+                        : storyItemList[0],
+                    controller: storyController,
+                    progressPosition: widget.progressPosition,
+                    repeat: widget.repeat,
+                    inline: widget.inline,
+                    onStoryShow: (StoryItem s) {
+                      _onStoryShow(s);
+                    },
+                    goForward: () {},
+                    onComplete: () {
                       String nextStoryId =
                           storiesListWithPressed.nextElementStoryId();
                       if (nextStoryId == null) {
@@ -111,77 +162,23 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                             builder: (context) => _groupedStoriesView(),
                             settings: RouteSettings(
                               arguments: StoriesListWithPressed(
-                                  pressedStoryId: nextStoryId,
-                                  storiesIdsList:
-                                      storiesListWithPressed.storiesIdsList),
-                            ),
-                          ),
-                        );
-                      }
-                    } else {
-                      String previousStoryId =
-                          storiesListWithPressed.previousElementStoryId();
-                      if (previousStoryId == null) {
-                        _navigateBack();
-                      } else {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => _groupedStoriesView(),
-                            settings: RouteSettings(
-                              arguments: StoriesListWithPressed(
-                                  pressedStoryId: previousStoryId,
-                                  storiesIdsList:
-                                      storiesListWithPressed.storiesIdsList),
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: GestureDetector(
-                    child: StoryView(
-                      widget.sortingOrderDesc
-                          ? storyItemList[0].reversed.toList()
-                          : storyItemList[0],
-                      controller: storyController,
-                      progressPosition: widget.progressPosition,
-                      repeat: widget.repeat,
-                      inline: widget.inline,
-                      onStoryShow: (StoryItem s) {
-                        _onStoryShow(s);
-                      },
-                      goForward: () {},
-                      onComplete: () {
-                        String nextStoryId =
-                            storiesListWithPressed.nextElementStoryId();
-                        if (nextStoryId == null) {
-                          _navigateBack();
-                        } else {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => _groupedStoriesView(),
-                              settings: RouteSettings(
-                                arguments: StoriesListWithPressed(
-                                  pressedStoryId: nextStoryId,
-                                  storiesIdsList:
-                                      storiesListWithPressed.storiesIdsList,
-                                ),
+                                pressedStoryId: nextStoryId,
+                                storiesIdsList:
+                                    storiesListWithPressed.storiesIdsList,
                               ),
                             ),
-                          );
-                        }
-                      },
-                    ),
-                    onVerticalDragUpdate: (details) {
-                      if (details.delta.dy > 0) {
-                        _navigateBack();
+                          ),
+                        );
                       }
                     },
-                  ));
-            },
-          ),
+                  ),
+                  onVerticalDragUpdate: (details) {
+                    if (details.delta.dy > 0) {
+                      _navigateBack();
+                    }
+                  },
+                ));
+          },
         ),
         floatingActionButton: Align(
           alignment: Alignment(1.0, -0.84),

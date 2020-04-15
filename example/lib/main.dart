@@ -45,7 +45,7 @@ class _HomeState extends State<Home> {
           StoriesComponent(
             collectionDbName: collectionDbName,
             showTitleOnIcon: true,
-            backFromStories: () {
+            onStoriesFinish: () {
               _backFromStoriesAlert();
             },
             iconTextStyle: TextStyle(
@@ -77,7 +77,7 @@ class _HomeState extends State<Home> {
             repeat: true,
             inline: false,
             languageCode: 'en',
-            backgroundColorBetweenStories: Colors.black,
+            backgroundBetweenStories: Colors.black,
             closeButtonIcon: Icon(
               Icons.close,
               color: Colors.white,
