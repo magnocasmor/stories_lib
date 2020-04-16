@@ -59,12 +59,17 @@ class StoriesComponent extends StatefulWidget {
 }
 
 class _StoriesComponentState extends State<StoriesComponent> {
+  StoriesData storiesData;
   bool _backStateAdditional = false;
   final _firestore = Firestore.instance;
 
-  StoriesData get storiesData => StoriesData(languageCode: widget.languageCode);
-
   List<String> get storyIds => storiesData.storiesIdsList;
+
+  @override
+  void initState() {
+    storiesData = StoriesData(languageCode: widget.languageCode);
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +89,7 @@ class _StoriesComponentState extends State<StoriesComponent> {
               builder: (context, index) {
                 final story = storyWidgets[index];
 
-                return _storyItem(story, context, storyIds);
+                return _storyItem(story, context);
               },
             );
           else
@@ -104,7 +109,7 @@ class _StoriesComponentState extends State<StoriesComponent> {
     );
   }
 
-  Widget _storyItem(Stories story, BuildContext context, List<String> storiesIds) {
+  Widget _storyItem(Stories story, BuildContext context) {
     return Padding(
       padding: widget.storyItemPadding,
       child: GestureDetector(
@@ -123,6 +128,7 @@ class _StoriesComponentState extends State<StoriesComponent> {
         ),
         onTap: () async {
           _backStateAdditional = true;
+
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
@@ -141,7 +147,7 @@ class _StoriesComponentState extends State<StoriesComponent> {
               settings: RouteSettings(
                 arguments: StoriesListWithPressed(
                   pressedStoryId: story.storyId,
-                  storiesIdsList: storiesIds,
+                  storiesIdsList: storyIds,
                 ),
               ),
             ),

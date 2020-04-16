@@ -50,11 +50,12 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
   List<List<StoryItem>> storyItemList = [];
   StoriesData _storiesData;
 
-  @override
-  void dispose() {
-    storyController.dispose();
-    super.dispose();
-  }
+  StoriesListWithPressed get storiesListWithPressed => ModalRoute.of(context).settings.arguments;
+
+  Stream<DocumentSnapshot> get streamStories => _firestore
+      .collection(widget.collectionDbName)
+      .document(storiesListWithPressed.pressedStoryId)
+      .snapshots();
 
   @override
   void initState() {
@@ -63,34 +64,31 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
   }
 
   @override
+  void dispose() {
+    storyController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final StoriesListWithPressed storiesListWithPressed =
-        ModalRoute.of(context).settings.arguments;
     return WillPopScope(
       onWillPop: () {
         _navigateBack();
         return Future.value(false);
       },
       child: Scaffold(
-        body: StreamBuilder(
-          stream: _firestore
-              .collection(widget.collectionDbName)
-              .document(storiesListWithPressed.pressedStoryId)
-              .snapshots(),
+        body: StreamBuilder<DocumentSnapshot>(
+          stream: streamStories,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return Center(
-                child: CircularProgressIndicator(
-                  backgroundColor: Colors.lightBlueAccent,
-                ),
-              );
+              return Center(child: CircularProgressIndicator());
             }
 
-            Map<String, dynamic> toPass = {
-              'snapshotData': snapshot.data,
-              'pressedStoryId': storiesListWithPressed.pressedStoryId
-            };
-            _storiesData.parseStories(toPass, widget.imageStoryDuration);
+            _storiesData.parseStories(
+              snapshot.data,
+              storiesListWithPressed.pressedStoryId,
+              widget.imageStoryDuration,
+            );
             storyItemList.add(_storiesData.storyItems);
 
             return Dismissible(
@@ -98,8 +96,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                 key: UniqueKey(),
                 onDismissed: (DismissDirection direction) {
                   if (direction == DismissDirection.endToStart) {
-                    String nextStoryId =
-                        storiesListWithPressed.nextElementStoryId();
+                    String nextStoryId = storiesListWithPressed.nextElementStoryId();
                     if (nextStoryId == null) {
                       _navigateBack();
                     } else {
@@ -110,15 +107,13 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                           settings: RouteSettings(
                             arguments: StoriesListWithPressed(
                                 pressedStoryId: nextStoryId,
-                                storiesIdsList:
-                                    storiesListWithPressed.storiesIdsList),
+                                storiesIdsList: storiesListWithPressed.storiesIdsList),
                           ),
                         ),
                       );
                     }
                   } else {
-                    String previousStoryId =
-                        storiesListWithPressed.previousElementStoryId();
+                    String previousStoryId = storiesListWithPressed.previousElementStoryId();
                     if (previousStoryId == null) {
                       _navigateBack();
                     } else {
@@ -129,8 +124,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                           settings: RouteSettings(
                             arguments: StoriesListWithPressed(
                                 pressedStoryId: previousStoryId,
-                                storiesIdsList:
-                                    storiesListWithPressed.storiesIdsList),
+                                storiesIdsList: storiesListWithPressed.storiesIdsList),
                           ),
                         ),
                       );
@@ -139,9 +133,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                 },
                 child: GestureDetector(
                   child: StoryView(
-                    widget.sortingOrderDesc
-                        ? storyItemList[0].reversed.toList()
-                        : storyItemList[0],
+                    widget.sortingOrderDesc ? storyItemList[0].reversed.toList() : storyItemList[0],
                     controller: storyController,
                     progressPosition: widget.progressPosition,
                     repeat: widget.repeat,
@@ -151,8 +143,8 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                     },
                     goForward: () {},
                     onComplete: () {
-                      String nextStoryId =
-                          storiesListWithPressed.nextElementStoryId();
+                      String nextStoryId = storiesListWithPressed.nextElementStoryId();
+
                       if (nextStoryId == null) {
                         _navigateBack();
                       } else {
@@ -163,8 +155,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                             settings: RouteSettings(
                               arguments: StoriesListWithPressed(
                                 pressedStoryId: nextStoryId,
-                                storiesIdsList:
-                                    storiesListWithPressed.storiesIdsList,
+                                storiesIdsList: storiesListWithPressed.storiesIdsList,
                               ),
                             ),
                           ),
