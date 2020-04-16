@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:stories_lib/utils/stories_parser.dart';
 import 'story_controller.dart';
 import 'story_view.dart';
 import 'models/stories_list_with_pressed.dart';
@@ -11,8 +12,6 @@ export 'story_video.dart';
 export 'story_controller.dart';
 export 'story_view.dart';
 export 'settings.dart';
-
-import 'models/stories_data.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -48,7 +47,6 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
   final _firestore = Firestore.instance;
   final storyController = StoryController();
   List<List<StoryItem>> storyItemList = [];
-  StoriesData _storiesData;
 
   StoriesListWithPressed get storiesListWithPressed => ModalRoute.of(context).settings.arguments;
 
@@ -56,12 +54,6 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
       .collection(widget.collectionDbName)
       .document(storiesListWithPressed.pressedStoryId)
       .snapshots();
-
-  @override
-  void initState() {
-    _storiesData = StoriesData(languageCode: widget.languageCode);
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -84,12 +76,13 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
               return Center(child: CircularProgressIndicator());
             }
 
-            _storiesData.parseStories(
-              snapshot.data,
-              storiesListWithPressed.pressedStoryId,
-              widget.imageStoryDuration,
+            storyItemList.add(
+              parseStories(
+                widget.languageCode,
+                snapshot.data,
+                widget.imageStoryDuration,
+              ),
             );
-            storyItemList.add(_storiesData.storyItems);
 
             return Dismissible(
                 resizeDuration: Duration(milliseconds: 200),

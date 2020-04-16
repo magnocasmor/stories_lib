@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:stories_lib/story_controller.dart';
+import 'package:stories_lib/utils/load_state.dart';
 import 'story_view.dart';
 import 'package:video_player/video_player.dart';
 
-import 'utils.dart';
 
 class VideoLoader {
   //TODO: for now video lasts 10 seconds - add video length detection
@@ -156,7 +156,7 @@ class StoryVideoState extends State<StoryVideo> {
   }
 
   void checkIfVideoFinished() {
-    print('~~~~~~~~~~~~~~ -- ${playerController.value.duration.inSeconds} ');
+    print('~~~~~~~~~~~~~~ -- ${playerController.value.duration?.inSeconds} ');
     try {
       if (playerController.value.position.inSeconds ==
           playerController.value.duration.inSeconds) {

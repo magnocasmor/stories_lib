@@ -1,6 +1,7 @@
+import 'package:stories_lib/utils/stories_parser.dart';
+
 import 'settings.dart';
 import 'models/stories.dart';
-import 'models/stories_data.dart';
 import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
 import 'models/stories_list_with_pressed.dart';
@@ -59,17 +60,8 @@ class StoriesComponent extends StatefulWidget {
 }
 
 class _StoriesComponentState extends State<StoriesComponent> {
-  StoriesData storiesData;
   bool _backStateAdditional = false;
   final _firestore = Firestore.instance;
-
-  List<String> get storyIds => storiesData.storiesIdsList;
-
-  @override
-  void initState() {
-    storiesData = StoriesData(languageCode: widget.languageCode);
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +71,7 @@ class _StoriesComponentState extends State<StoriesComponent> {
         if (snapshot.hasData) {
           final stories = snapshot.data.documents;
 
-          final storyWidgets = storiesData.parseStoriesPreview(stories);
+          final storyWidgets = parseStoriesPreview(widget.languageCode, stories);
 
           _buildFuture();
 
@@ -89,7 +81,7 @@ class _StoriesComponentState extends State<StoriesComponent> {
               builder: (context, index) {
                 final story = storyWidgets[index];
 
-                return _storyItem(story, context);
+                return _storyItem(context, story, storyIds(stories));
               },
             );
           else
@@ -109,7 +101,11 @@ class _StoriesComponentState extends State<StoriesComponent> {
     );
   }
 
-  Widget _storyItem(Stories story, BuildContext context) {
+  Widget _storyItem(
+    BuildContext context,
+    Stories story,
+    List<String> storyIds,
+  ) {
     return Padding(
       padding: widget.storyItemPadding,
       child: GestureDetector(

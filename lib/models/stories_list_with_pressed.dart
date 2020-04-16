@@ -1,10 +1,11 @@
 class StoriesListWithPressed {
-  String pressedStoryId;
-  List<String> storiesIdsList;
+  final String pressedStoryId;
+  final List<String> storiesIdsList;
+
+  StoriesListWithPressed({this.pressedStoryId, this.storiesIdsList});
 
   String nextElementStoryId() {
-    int position =
-        storiesIdsList.indexWhere((id) => id.startsWith(pressedStoryId));
+    int position = storiesIdsList.indexWhere((id) => id.startsWith(pressedStoryId));
     if (storiesIdsList.length == position + 1 || position == -1) {
       return null;
     }
@@ -13,14 +14,11 @@ class StoriesListWithPressed {
   }
 
   String previousElementStoryId() {
-    int position =
-        storiesIdsList.indexWhere((id) => id.startsWith(pressedStoryId));
+    int position = storiesIdsList.indexWhere((id) => id.startsWith(pressedStoryId));
     if (position - 1 < 0) {
       return null;
     }
     position--;
     return storiesIdsList[position];
   }
-
-  StoriesListWithPressed({this.pressedStoryId, this.storiesIdsList});
 }

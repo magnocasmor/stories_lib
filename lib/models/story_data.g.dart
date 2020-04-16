@@ -9,16 +9,17 @@ part of 'story_data.dart';
 StoryData _$StoryDataFromJson(Map<String, dynamic> json) {
   return StoryData(
     filetype: json['filetype'] as String,
-    url: (json['url'] as Map<String, dynamic>)?.map(
+    data: (json['url'] as Map<String, dynamic>)?.map(
       (k, e) => MapEntry(k, e as String),
     ),
-  )..fileTitle = (json['fileTitle'] as Map<String, dynamic>)?.map(
+    fileTitle: (json['fileTitle'] as Map<String, dynamic>)?.map(
       (k, e) => MapEntry(k, e as String),
-    );
+    ),
+  );
 }
 
 Map<String, dynamic> _$StoryDataToJson(StoryData instance) => <String, dynamic>{
       'filetype': instance.filetype,
-      'url': instance.url,
+      'url': instance.data,
       'fileTitle': instance.fileTitle,
     };

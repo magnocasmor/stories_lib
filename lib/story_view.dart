@@ -100,7 +100,7 @@ class StoryItem {
   /// You can provide any image provider for [image].
   static StoryItem pageImage(
     ImageProvider image, {
-    BoxFit imageFit = BoxFit.fitWidth,
+    BoxFit imageFit = BoxFit.fitHeight,
     String caption,
     bool shown = false,
     Duration duration = const Duration(seconds: 3),

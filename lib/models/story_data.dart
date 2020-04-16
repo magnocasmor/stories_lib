@@ -4,13 +4,17 @@ part 'story_data.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class StoryData {
-  String filetype;
-  Map<String, String> url;
-  Map<String, String> fileTitle;
+  final String filetype;
+  final Map<String, String> data;
+  final Map<String, String> fileTitle;
 
-  StoryData({this.filetype, this.url});
+  StoryData({
+    this.data,
+    this.filetype,
+    this.fileTitle,
+  });
 
-  factory StoryData.fromJson(Map<String, dynamic> json) =>
-      _$StoryDataFromJson(json);
+  factory StoryData.fromJson(Map<String, dynamic> json) => _$StoryDataFromJson(json);
+  
   Map<String, dynamic> toJson() => _$StoryDataToJson(this);
 }
