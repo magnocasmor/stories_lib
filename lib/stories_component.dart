@@ -1,7 +1,7 @@
 import 'package:stories_lib/utils/stories_parser.dart';
 
 import 'settings.dart';
-import 'models/stories.dart';
+import 'models/stories_collection.dart';
 import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -102,20 +102,20 @@ class _StoriesComponentState extends State<StoriesComponent> {
 
   Widget _storyItem(
     BuildContext context,
-    Stories story,
+    StoriesCollection story,
     List<String> storyIds,
   ) {
     return Padding(
       padding: widget.storyItemPadding,
       child: GestureDetector(
         child: CachedNetworkImage(
-          imageUrl: story.previewImage,
+          imageUrl: story.coverImg,
           placeholder: (context, url) => widget.previewPlaceholder,
           imageBuilder: (context, image) {
             return widget.storyPreviewBuilder(
               context,
               image,
-              story.previewTitle[widget.languageCode],
+              story.title[widget.languageCode],
               widget.recentHighlight,
             );
           },

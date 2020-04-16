@@ -1,30 +1,28 @@
-
 import 'package:flutter/material.dart';
 import 'package:stories_lib/story_view.dart';
-import 'package:stories_lib/models/stories.dart';
-import 'package:stories_lib/models/story_data.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stories_lib/models/stories_collection.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 List<String> storyIds(List<DocumentSnapshot> stories) {
   return stories
-      .where((story) => _storiesFromDocument(story).file != null)
+      .where((story) => _storiesCollectionFromDocument(story).stories != null)
       .map((story) => story.documentID)
       .toList();
 }
 
-List<Stories> parseStoriesPreview(String languageCode, List<DocumentSnapshot> stories) {
+List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSnapshot> stories) {
   final _cacheDepth = 4;
 
   return stories.map((story) {
-    final Stories storyData = _storiesFromDocument(story);
+    final StoriesCollection storyData = _storiesCollectionFromDocument(story);
 
-    if (storyData.file != null) {
+    if (storyData.stories != null) {
       var i = 0;
-      for (var file in storyData.file) {
-        if (file.filetype == 'image' && i < _cacheDepth) {
-          DefaultCacheManager().getSingleFile(file.data[languageCode]);
+      for (var file in storyData.stories) {
+        if (file.type == 'image' && i < _cacheDepth) {
+          DefaultCacheManager().getSingleFile(file.media[languageCode]);
           i += 1;
         }
       }
@@ -38,26 +36,26 @@ List<StoryItem> parseStories(
   DocumentSnapshot data,
   int storyDuration,
 ) {
-  final stories = _storiesFromDocument(data);
+  final storiesCollection = _storiesCollectionFromDocument(data);
 
   final storyItems = <StoryItem>[];
 
   final storyController = StoryController();
 
-  stories.file.asMap().forEach(
+  storiesCollection.stories.asMap().forEach(
     (index, storyData) {
-      switch (storyData.filetype) {
+      switch (storyData.type) {
         case 'text':
           storyItems.add(
             StoryItem.text(
-              storyData.data[languageCode],
-              Colors.purple,
+              storyData.caption[languageCode],
+              storyData.backgroundColor ?? Colors.black,
               duration: Duration(seconds: storyDuration),
             ),
           );
           break;
         case 'image':
-          final storyImage = CachedNetworkImageProvider(storyData.data[languageCode]);
+          final storyImage = CachedNetworkImageProvider(storyData.media[languageCode]);
           storyItems.add(
             StoryItem.pageImage(
               storyImage,
@@ -68,7 +66,7 @@ List<StoryItem> parseStories(
         case 'gif':
           storyItems.add(
             StoryItem.pageGif(
-              storyData.data[languageCode],
+              storyData.media[languageCode],
               controller: storyController,
               duration: Duration(seconds: storyDuration),
             ),
@@ -77,7 +75,7 @@ List<StoryItem> parseStories(
         case 'video':
           storyItems.add(
             StoryItem.pageVideo(
-              storyData.data[languageCode],
+              storyData.media[languageCode],
               controller: storyController,
             ),
           );
@@ -85,21 +83,14 @@ List<StoryItem> parseStories(
         default:
       }
 
-      // cache images inside story
-      if (index < stories.file.length - 1) {
-        DefaultCacheManager().getSingleFile(stories.file[index + 1].data[languageCode]);
+      if (index < storiesCollection.stories.length - 1 &&  storiesCollection.stories[index + 1].media != null) {
+        DefaultCacheManager()
+            .getSingleFile(storiesCollection.stories[index + 1].media[languageCode]);
       }
     },
   );
   return storyItems;
 }
 
-Stories _storiesFromDocument(DocumentSnapshot document) => Stories(
-      storyId: document.documentID,
-      date: DateTime.fromMillisecondsSinceEpoch(document.data['date'].seconds),
-      file: document.data['file']?.map<StoryData>((e) => StoryData.fromJson(e))?.toList(),
-      previewImage: document.data['previewImage'],
-      previewTitle: (document.data['previewTitle'] as Map<String, dynamic>)?.map(
-        (k, e) => MapEntry(k, e as String),
-      ),
-    );
+StoriesCollection _storiesCollectionFromDocument(DocumentSnapshot document) =>
+    StoriesCollection.fromJson(document.data..addAll({"story_id": document.documentID}));
