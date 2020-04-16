@@ -76,7 +76,7 @@ class _HomeState extends State<Home> {
             progressPosition: ProgressPosition.top,
             repeat: true,
             inline: false,
-            languageCode: 'en',
+            languageCode: 'pt',
             backgroundBetweenStories: Colors.black,
             closeButtonIcon: Icon(
               Icons.close,

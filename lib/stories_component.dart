@@ -4,7 +4,6 @@ import 'settings.dart';
 import 'models/stories.dart';
 import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
-import 'models/stories_list_with_pressed.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -129,6 +128,8 @@ class _StoriesComponentState extends State<StoriesComponent> {
             context,
             MaterialPageRoute(
               builder: (context) => GroupedStoriesView(
+                storiesIds: storyIds,
+                selectedStoryId: story.storyId,
                 collectionDbName: widget.collectionDbName,
                 languageCode: widget.languageCode,
                 imageStoryDuration: widget.imageStoryDuration,
@@ -141,10 +142,7 @@ class _StoriesComponentState extends State<StoriesComponent> {
                 sortingOrderDesc: widget.sortingOrderDesc,
               ),
               settings: RouteSettings(
-                arguments: StoriesListWithPressed(
-                  pressedStoryId: story.storyId,
-                  storiesIdsList: storyIds,
-                ),
+                arguments: story.storyId,
               ),
             ),
             ModalRoute.withName('/'),

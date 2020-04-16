@@ -156,7 +156,7 @@ class StoryVideoState extends State<StoryVideo> {
   }
 
   void checkIfVideoFinished() {
-    print('~~~~~~~~~~~~~~ -- ${playerController.value.duration?.inSeconds} ');
+    // print('~~~~~~~~~~~~~~ -- ${playerController.value.duration?.inSeconds} ');
     try {
       if (playerController.value.position.inSeconds ==
           playerController.value.duration.inSeconds) {
