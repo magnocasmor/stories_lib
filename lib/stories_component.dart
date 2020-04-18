@@ -173,7 +173,7 @@ class _StoriesComponentState extends State<StoriesComponent> {
     final res = ModalRoute.of(context).settings.arguments;
     await Future.delayed(const Duration(seconds: 1));
     if (res == 'back_from_stories_view' && !_backStateAdditional) {
-      widget.onStoriesFinish();
+      widget.onStoriesFinish?.call();
     }
   }
 }

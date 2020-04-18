@@ -32,6 +32,7 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
 }
 
 List<StoryItem> parseStories(
+  StoryController storyController,
   String languageCode,
   DocumentSnapshot data,
   int storyDuration,
@@ -39,8 +40,6 @@ List<StoryItem> parseStories(
   final storiesCollection = _storiesCollectionFromDocument(data);
 
   final storyItems = <StoryItem>[];
-
-  final storyController = StoryController();
 
   storiesCollection.stories.asMap().forEach(
     (index, storyData) {
@@ -83,7 +82,8 @@ List<StoryItem> parseStories(
         default:
       }
 
-      if (index < storiesCollection.stories.length - 1 &&  storiesCollection.stories[index + 1].media != null) {
+      if (index < storiesCollection.stories.length - 1 &&
+          storiesCollection.stories[index + 1].media != null) {
         DefaultCacheManager()
             .getSingleFile(storiesCollection.stories[index + 1].media[languageCode]);
       }

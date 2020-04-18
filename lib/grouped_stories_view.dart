@@ -141,6 +141,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
             }
 
             final stories = parseStories(
+              storyController,
               widget.languageCode,
               snapshot.data,
               widget.imageStoryDuration,

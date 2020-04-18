@@ -8,7 +8,6 @@ import 'package:stories_lib/utils/load_state.dart';
 import 'story_view.dart';
 import 'package:video_player/video_player.dart';
 
-
 class VideoLoader {
   //TODO: for now video lasts 10 seconds - add video length detection
   //TODO: for now while downloading timer is going. Stop timer while loading, display video after first 3 seconds load.
@@ -29,8 +28,7 @@ class VideoLoader {
       onComplete();
     }
 
-    final fileStream =
-        DefaultCacheManager().getFile(this.url, headers: this.requestHeaders);
+    final fileStream = DefaultCacheManager().getFile(this.url, headers: this.requestHeaders);
 
     fileStream.listen((fileInfo) {
       if (this.videoFile == null) {
@@ -46,8 +44,7 @@ class StoryVideo extends StatefulWidget {
   final StoryController storyController;
   final VideoLoader videoLoader;
 
-  StoryVideo(this.videoLoader, {this.storyController, Key key})
-      : super(key: key ?? UniqueKey());
+  StoryVideo(this.videoLoader, {this.storyController, Key key}) : super(key: key ?? UniqueKey());
 
   static StoryVideo url(
     String url, {
@@ -82,8 +79,7 @@ class StoryVideoState extends State<StoryVideo> {
     widget.videoLoader.loadVideo(
       () {
         if (widget.videoLoader.state == LoadState.success) {
-          this.playerController =
-              VideoPlayerController.file(widget.videoLoader.videoFile);
+          this.playerController = VideoPlayerController.file(widget.videoLoader.videoFile);
 
           playerController.initialize().then((v) {
             setState(() {});
@@ -92,8 +88,7 @@ class StoryVideoState extends State<StoryVideo> {
 
           if (widget.storyController != null) {
             playerController.addListener(checkIfVideoFinished);
-            _streamSubscription =
-                widget.storyController.playbackNotifier.listen((playbackState) {
+            _streamSubscription = widget.storyController.playbackNotifier.listen((playbackState) {
               if (playbackState == PlaybackState.pause) {
                 playerController.pause();
               } else {
@@ -119,8 +114,7 @@ class StoryVideoState extends State<StoryVideo> {
   }
 
   Widget getContentView() {
-    if (widget.videoLoader.state == LoadState.success &&
-        playerController.value.initialized) {
+    if (widget.videoLoader.state == LoadState.success && playerController.value.initialized) {
       return Center(
         child: AspectRatio(
           aspectRatio: playerController.value.aspectRatio,
@@ -158,8 +152,7 @@ class StoryVideoState extends State<StoryVideo> {
   void checkIfVideoFinished() {
     // print('~~~~~~~~~~~~~~ -- ${playerController.value.duration?.inSeconds} ');
     try {
-      if (playerController.value.position.inSeconds ==
-          playerController.value.duration.inSeconds) {
+      if (playerController.value.position.inSeconds == playerController.value.duration.inSeconds) {
         playerController.removeListener(checkIfVideoFinished);
       }
     } catch (e) {}
