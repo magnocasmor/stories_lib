@@ -1,10 +1,9 @@
-import 'package:stories_lib/utils/stories_parser.dart';
-
 import 'settings.dart';
-import 'models/stories_collection.dart';
 import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
+import 'models/stories_collection.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stories_lib/utils/stories_parser.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 export 'grouped_stories_view.dart';
@@ -52,7 +51,7 @@ class StoriesComponent extends StatefulWidget {
     this.storyItemPadding = EdgeInsets.zero,
     this.progressPosition = ProgressPosition.top,
     this.backgroundBetweenStories = Colors.black,
-  }) : assert(listPadding is EdgeInsets);
+  });
 
   @override
   _StoriesComponentState createState() => _StoriesComponentState();

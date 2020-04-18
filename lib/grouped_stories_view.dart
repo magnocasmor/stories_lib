@@ -1,18 +1,16 @@
 import 'dart:ui';
-
-import 'package:flutter/material.dart';
-import 'package:stories_lib/utils/stories_parser.dart';
-import 'story_controller.dart';
-import 'story_view.dart';
 import 'settings.dart';
+import 'story_view.dart';
+import 'story_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stories_lib/utils/stories_parser.dart';
 
+export 'settings.dart';
+export 'story_view.dart';
 export 'story_image.dart';
 export 'story_video.dart';
 export 'story_controller.dart';
-export 'story_view.dart';
-export 'settings.dart';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GroupedStoriesView extends StatefulWidget {
   final bool repeat;

@@ -1,6 +1,6 @@
 import 'package:flutter/painting.dart';
-import 'package:json_annotation/json_annotation.dart';
 import 'package:stories_lib/utils/color_parser.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 @JsonSerializable(explicitToJson: true)
 class Story {
