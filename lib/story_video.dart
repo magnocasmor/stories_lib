@@ -25,7 +25,7 @@ class VideoLoader {
 
   void loadVideo(VoidCallback onComplete) {
     if (this.videoFile != null) {
-      this.state = LoadState.loading;
+      // this.state = LoadState.loading;
       onComplete();
     }
 

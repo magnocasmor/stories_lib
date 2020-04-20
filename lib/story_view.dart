@@ -445,6 +445,12 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     // All pages after the first unshown page should have their shown value as
     // false
 
+    widget.storyItems.forEach((story) {
+      story.addListener(() {
+        beginPlay();
+      });
+    });
+
     final firstPage = widget.storyItems.firstWhere((it) {
       return !it.shown;
     }, orElse: () {
@@ -462,7 +468,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       });
     }
 
-    // play();
+    play();
 
     if (widget.controller != null) {
       this.playbackSubscription = widget.controller.playbackNotifier.listen((playbackStatus) {
@@ -609,130 +615,120 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   StoryItem get currentStory =>
       widget.storyItems.firstWhere((it) => !it.shown, orElse: () => widget.storyItems.last);
 
-  Widget get currentView => currentStory.view;
+  Widget get currentView => ChangeNotifierProvider.value(
+        value: currentStory,
+        child: currentStory.view,
+      );
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      key: UniqueKey(),
-      create: (context) {
-        return currentStory;
-      },
-      child: Consumer<StoryItem>(
-        builder: (context, story, child) {
-          play();
-          return Container(
-            color: Colors.white,
-            child: Stack(
-              children: <Widget>[
-                currentView,
-                Align(
-                  alignment: widget.progressPosition == ProgressPosition.top
-                      ? Alignment.topCenter
-                      : Alignment.bottomCenter,
-                  child: SafeArea(
-                    bottom: widget.inline ? false : true,
-                    // we use SafeArea here for notched and bezeles phones
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: PageBar(
-                        widget.storyItems.map((it) {
-                          return PageData(it.duration, it.shown);
-                        }).toList(),
-                        this.currentAnimation,
-                        key: UniqueKey(),
-                        indicatorHeight:
-                            widget.inline ? IndicatorHeight.small : IndicatorHeight.large,
-                      ),
-                    ),
-                  ),
+    return Container(
+      color: Colors.white,
+      child: Stack(
+        children: <Widget>[
+          currentView,
+          Align(
+            alignment: widget.progressPosition == ProgressPosition.top
+                ? Alignment.topCenter
+                : Alignment.bottomCenter,
+            child: SafeArea(
+              bottom: widget.inline ? false : true,
+              // we use SafeArea here for notched and bezeles phones
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  heightFactor: 1,
-                  child: RawGestureDetector(
-                    gestures: <Type, GestureRecognizerFactory>{
-                      TapGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-                              () => TapGestureRecognizer(), (instance) {
-                        instance
-                          ..onTap = () {
-                            goForward();
-                          }
-                          ..onTapDown = (details) {
-                            print('+++onTapDown');
-                            controlPause();
-                            debouncer?.cancel();
-                            debouncer = Timer(Duration(milliseconds: 500), () {});
-                          }
-                          ..onSecondaryTapUp = (details) {
-                            if (debouncer?.isActive == true) {
-                              print('+++onTapUp11');
-                              debouncer.cancel();
-                              debouncer = null;
-//                        goForward();
-                              controlUnpause();
-                            } else {
-                              print('+++onTapUp21');
-                              debouncer.cancel();
-                              debouncer = null;
-
-                              controlUnpause();
-                            }
-                          }
-                          ..onTapCancel = () {
-                            if (debouncer?.isActive == true) {
-                              print('+++onTapUp12');
-                              debouncer.cancel();
-                              debouncer = null;
-//                        goForward();
-                              controlUnpause();
-                            } else {
-                              print('+++onTapUp22');
-                              debouncer.cancel();
-                              debouncer = null;
-
-                              controlUnpause();
-                            }
-                          }
-                          ..onTapUp = (details) {
-                            if (debouncer?.isActive == true) {
-                              print('+++onTapUp13');
-                              debouncer.cancel();
-                              debouncer = null;
-//                        goForward();
-                              controlUnpause();
-                            } else {
-                              print('+++onTapUp23');
-                              debouncer.cancel();
-                              debouncer = null;
-
-                              controlUnpause();
-                            }
-                          };
-                      })
-                    },
-                  ),
+                child: PageBar(
+                  widget.storyItems.map((it) {
+                    return PageData(it.duration, it.shown);
+                  }).toList(),
+                  this.currentAnimation,
+                  key: UniqueKey(),
+                  indicatorHeight: widget.inline ? IndicatorHeight.small : IndicatorHeight.large,
                 ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  heightFactor: 1,
-                  child: SizedBox(
-                    child: GestureDetector(
-                      onTap: () {
-                        goBack();
-                      },
-                    ),
-                    width: 70,
-                  ),
-                ),
-              ],
+              ),
             ),
-          );
-        },
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            heightFactor: 1,
+            child: RawGestureDetector(
+              gestures: <Type, GestureRecognizerFactory>{
+                TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+                    () => TapGestureRecognizer(), (instance) {
+                  instance
+                    ..onTap = () {
+                      goForward();
+                    }
+                    ..onTapDown = (details) {
+                      print('+++onTapDown');
+                      controlPause();
+                      debouncer?.cancel();
+                      debouncer = Timer(Duration(milliseconds: 500), () {});
+                    }
+                    ..onSecondaryTapUp = (details) {
+                      if (debouncer?.isActive == true) {
+                        print('+++onTapUp11');
+                        debouncer.cancel();
+                        debouncer = null;
+//                        goForward();
+                        controlUnpause();
+                      } else {
+                        print('+++onTapUp21');
+                        debouncer.cancel();
+                        debouncer = null;
+
+                        controlUnpause();
+                      }
+                    }
+                    ..onTapCancel = () {
+                      if (debouncer?.isActive == true) {
+                        print('+++onTapUp12');
+                        debouncer.cancel();
+                        debouncer = null;
+//                        goForward();
+                        controlUnpause();
+                      } else {
+                        print('+++onTapUp22');
+                        debouncer.cancel();
+                        debouncer = null;
+
+                        controlUnpause();
+                      }
+                    }
+                    ..onTapUp = (details) {
+                      if (debouncer?.isActive == true) {
+                        print('+++onTapUp13');
+                        debouncer.cancel();
+                        debouncer = null;
+//                        goForward();
+                        controlUnpause();
+                      } else {
+                        print('+++onTapUp23');
+                        debouncer.cancel();
+                        debouncer = null;
+
+                        controlUnpause();
+                      }
+                    };
+                })
+              },
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            heightFactor: 1,
+            child: SizedBox(
+              child: GestureDetector(
+                onTap: () {
+                  goBack();
+                },
+              ),
+              width: 70,
+            ),
+          ),
+        ],
       ),
     );
   }
