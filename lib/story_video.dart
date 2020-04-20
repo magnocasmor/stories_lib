@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:provider/provider.dart';
 import 'package:stories_lib/story_controller.dart';
 import 'package:stories_lib/utils/load_state.dart';
 import 'story_view.dart';
@@ -82,6 +83,8 @@ class StoryVideoState extends State<StoryVideo> {
           this.playerController = VideoPlayerController.file(widget.videoLoader.videoFile);
 
           playerController.initialize().then((v) {
+            Provider.of<StoryItem>(context, listen: false)
+                .updateDuration(playerController.value.duration);
             setState(() {});
             widget.storyController.play();
           });

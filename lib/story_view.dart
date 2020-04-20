@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'story_video.dart';
 import 'story_image.dart';
 import 'story_controller.dart';
@@ -14,7 +15,7 @@ export 'story_video.dart';
 export 'story_controller.dart';
 
 /// This is a representation of a story item (or page).
-class StoryItem {
+class StoryItem extends ChangeNotifier {
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
   Duration duration;
@@ -31,6 +32,11 @@ class StoryItem {
 
   /// The page content
   final Widget view;
+
+  void updateDuration(Duration d) {
+    duration = d;
+    notifyListeners();
+  }
 
   StoryItem(
     this.view, {
@@ -132,9 +138,7 @@ class StoryItem {
                           horizontal: 24,
                           vertical: 8,
                         ),
-                        color: caption != null
-                            ? Colors.black54
-                            : Colors.transparent,
+                        color: caption != null ? Colors.black54 : Colors.transparent,
                         child: caption != null
                             ? Text(
                                 caption,
@@ -234,9 +238,7 @@ class StoryItem {
                           horizontal: 24,
                           vertical: 8,
                         ),
-                        color: caption != null && caption.length > 0
-                            ? Colors.black54
-                            : Colors.red,
+                        color: caption != null && caption.length > 0 ? Colors.black54 : Colors.red,
                         child: caption != null && caption.length > 0
                             ? Text(
                                 caption,
@@ -434,8 +436,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   StreamSubscription<PlaybackState> playbackSubscription;
 
-  StoryItem get lastShowing =>
-      widget.storyItems.firstWhere((it) => !it.shown, orElse: () => null);
+  StoryItem get lastShowing => widget.storyItems.firstWhere((it) => !it.shown, orElse: () => null);
 
   @override
   void initState() {
@@ -461,11 +462,10 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       });
     }
 
-    play();
+    // play();
 
     if (widget.controller != null) {
-      this.playbackSubscription =
-          widget.controller.playbackNotifier.listen((playbackStatus) {
+      this.playbackSubscription = widget.controller.playbackNotifier.listen((playbackStatus) {
         if (playbackStatus == PlaybackState.play) {
           unpause();
         } else if (playbackStatus == PlaybackState.pause) {
@@ -501,8 +501,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       widget.onStoryShow(storyItem);
     }
 
-    animationController =
-        AnimationController(duration: storyItem.duration, vsync: this);
+    animationController = AnimationController(duration: storyItem.duration, vsync: this);
 
     animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -607,122 +606,133 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     }
   }
 
-  Widget get currentView => widget.storyItems
-      .firstWhere((it) => !it.shown, orElse: () => widget.storyItems.last)
-      .view;
+  StoryItem get currentStory =>
+      widget.storyItems.firstWhere((it) => !it.shown, orElse: () => widget.storyItems.last);
+
+  Widget get currentView => currentStory.view;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Stack(
-        children: <Widget>[
-          currentView,
-          Align(
-            alignment: widget.progressPosition == ProgressPosition.top
-                ? Alignment.topCenter
-                : Alignment.bottomCenter,
-            child: SafeArea(
-              bottom: widget.inline ? false : true,
-              // we use SafeArea here for notched and bezeles phones
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+    return ChangeNotifierProvider(
+      key: UniqueKey(),
+      create: (context) {
+        return currentStory;
+      },
+      child: Consumer<StoryItem>(
+        builder: (context, story, child) {
+          play();
+          return Container(
+            color: Colors.white,
+            child: Stack(
+              children: <Widget>[
+                currentView,
+                Align(
+                  alignment: widget.progressPosition == ProgressPosition.top
+                      ? Alignment.topCenter
+                      : Alignment.bottomCenter,
+                  child: SafeArea(
+                    bottom: widget.inline ? false : true,
+                    // we use SafeArea here for notched and bezeles phones
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: PageBar(
+                        widget.storyItems.map((it) {
+                          return PageData(it.duration, it.shown);
+                        }).toList(),
+                        this.currentAnimation,
+                        key: UniqueKey(),
+                        indicatorHeight:
+                            widget.inline ? IndicatorHeight.small : IndicatorHeight.large,
+                      ),
+                    ),
+                  ),
                 ),
-                child: PageBar(
-                  widget.storyItems
-                      .map((it) => PageData(it.duration, it.shown))
-                      .toList(),
-                  this.currentAnimation,
-                  key: UniqueKey(),
-                  indicatorHeight: widget.inline
-                      ? IndicatorHeight.small
-                      : IndicatorHeight.large,
+                Align(
+                  alignment: Alignment.centerRight,
+                  heightFactor: 1,
+                  child: RawGestureDetector(
+                    gestures: <Type, GestureRecognizerFactory>{
+                      TapGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+                              () => TapGestureRecognizer(), (instance) {
+                        instance
+                          ..onTap = () {
+                            goForward();
+                          }
+                          ..onTapDown = (details) {
+                            print('+++onTapDown');
+                            controlPause();
+                            debouncer?.cancel();
+                            debouncer = Timer(Duration(milliseconds: 500), () {});
+                          }
+                          ..onSecondaryTapUp = (details) {
+                            if (debouncer?.isActive == true) {
+                              print('+++onTapUp11');
+                              debouncer.cancel();
+                              debouncer = null;
+//                        goForward();
+                              controlUnpause();
+                            } else {
+                              print('+++onTapUp21');
+                              debouncer.cancel();
+                              debouncer = null;
+
+                              controlUnpause();
+                            }
+                          }
+                          ..onTapCancel = () {
+                            if (debouncer?.isActive == true) {
+                              print('+++onTapUp12');
+                              debouncer.cancel();
+                              debouncer = null;
+//                        goForward();
+                              controlUnpause();
+                            } else {
+                              print('+++onTapUp22');
+                              debouncer.cancel();
+                              debouncer = null;
+
+                              controlUnpause();
+                            }
+                          }
+                          ..onTapUp = (details) {
+                            if (debouncer?.isActive == true) {
+                              print('+++onTapUp13');
+                              debouncer.cancel();
+                              debouncer = null;
+//                        goForward();
+                              controlUnpause();
+                            } else {
+                              print('+++onTapUp23');
+                              debouncer.cancel();
+                              debouncer = null;
+
+                              controlUnpause();
+                            }
+                          };
+                      })
+                    },
+                  ),
                 ),
-              ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  heightFactor: 1,
+                  child: SizedBox(
+                    child: GestureDetector(
+                      onTap: () {
+                        goBack();
+                      },
+                    ),
+                    width: 70,
+                  ),
+                ),
+              ],
             ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            heightFactor: 1,
-            child: RawGestureDetector(
-              gestures: <Type, GestureRecognizerFactory>{
-                TapGestureRecognizer:
-                    GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-                        () => TapGestureRecognizer(), (instance) {
-                  instance
-                    ..onTap = () {
-                      goForward();
-                    }
-                    ..onTapDown = (details) {
-                      print('+++onTapDown');
-                      controlPause();
-                      debouncer?.cancel();
-                      debouncer = Timer(Duration(milliseconds: 500), () {});
-                    }
-                    ..onSecondaryTapUp = (details) {
-                      if (debouncer?.isActive == true) {
-                        print('+++onTapUp11');
-                        debouncer.cancel();
-                        debouncer = null;
-//                        goForward();
-                        controlUnpause();
-                      } else {
-                        print('+++onTapUp21');
-                        debouncer.cancel();
-                        debouncer = null;
-
-                        controlUnpause();
-                      }
-                    }
-                    ..onTapCancel = () {
-                      if (debouncer?.isActive == true) {
-                        print('+++onTapUp12');
-                        debouncer.cancel();
-                        debouncer = null;
-//                        goForward();
-                        controlUnpause();
-                      } else {
-                        print('+++onTapUp22');
-                        debouncer.cancel();
-                        debouncer = null;
-
-                        controlUnpause();
-                      }
-                    }
-                    ..onTapUp = (details) {
-                      if (debouncer?.isActive == true) {
-                        print('+++onTapUp13');
-                        debouncer.cancel();
-                        debouncer = null;
-//                        goForward();
-                        controlUnpause();
-                      } else {
-                        print('+++onTapUp23');
-                        debouncer.cancel();
-                        debouncer = null;
-
-                        controlUnpause();
-                      }
-                    };
-                })
-              },
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            heightFactor: 1,
-            child: SizedBox(
-              child: GestureDetector(
-                onTap: () {
-                  goBack();
-                },
-              ),
-              width: 70,
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -780,8 +790,7 @@ class PageBarState extends State<PageBar> {
   }
 
   bool isPlaying(PageData page) {
-    return widget.pages.firstWhere((it) => !it.shown, orElse: () => null) ==
-        page;
+    return widget.pages.firstWhere((it) => !it.shown, orElse: () => null) == page;
   }
 
   @override
@@ -790,13 +799,15 @@ class PageBarState extends State<PageBar> {
       children: widget.pages.map((it) {
         return Expanded(
           child: Container(
-            padding: EdgeInsets.only(
-                right: widget.pages.last == it ? 0 : this.spacing),
-            child: StoryProgressIndicator(
-              isPlaying(it) ? widget.animation.value : it.shown ? 1 : 0,
-              indicatorHeight:
-                  widget.indicatorHeight == IndicatorHeight.large ? 5 : 3,
-            ),
+            padding: EdgeInsets.only(right: widget.pages.last == it ? 0 : this.spacing),
+            child: AnimatedBuilder(
+                animation: widget.animation,
+                builder: (context, snapshot) {
+                  return StoryProgressIndicator(
+                    isPlaying(it) ? widget.animation.value : it.shown ? 1 : 0,
+                    indicatorHeight: widget.indicatorHeight == IndicatorHeight.large ? 5 : 3,
+                  );
+                }),
           ),
         );
       }).toList(),
@@ -846,8 +857,7 @@ class IndicatorOval extends CustomPainter {
     final paint = Paint()..color = this.color;
     canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(0, 0, size.width * this.widthFactor, size.height),
-            Radius.circular(3)),
+            Rect.fromLTWH(0, 0, size.width * this.widthFactor, size.height), Radius.circular(3)),
         paint);
   }
 
@@ -862,16 +872,13 @@ class ContrastHelper {
   static double luminance(int r, int g, int b) {
     final a = [r, g, b].map((it) {
       double value = it.toDouble() / 255.0;
-      return value <= 0.03928
-          ? value / 12.92
-          : pow((value + 0.055) / 1.055, 2.4);
+      return value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
     }).toList();
 
     return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
   }
 
   static double contrast(rgb1, rgb2) {
-    return luminance(rgb2[0], rgb2[1], rgb2[2]) /
-        luminance(rgb1[0], rgb1[1], rgb1[2]);
+    return luminance(rgb2[0], rgb2[1], rgb2[2]) / luminance(rgb1[0], rgb1[1], rgb1[2]);
   }
 }
