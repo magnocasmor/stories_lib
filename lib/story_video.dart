@@ -1,18 +1,14 @@
-import 'dart:async';
 import 'dart:io';
-
+import 'dart:async';
+import 'story_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 import 'package:stories_lib/story_controller.dart';
 import 'package:stories_lib/utils/load_state.dart';
-import 'story_view.dart';
-import 'package:video_player/video_player.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class VideoLoader {
-  //TODO: for now video lasts 10 seconds - add video length detection
-  //TODO: for now while downloading timer is going. Stop timer while loading, display video after first 3 seconds load.
-
   String url;
 
   File videoFile;
@@ -42,22 +38,32 @@ class VideoLoader {
 }
 
 class StoryVideo extends StatefulWidget {
-  final StoryController storyController;
+  final BoxFit videoFit;
+
   final VideoLoader videoLoader;
 
-  StoryVideo(this.videoLoader, {this.storyController, Key key}) : super(key: key ?? UniqueKey());
+  final StoryController storyController;
+
+  StoryVideo(
+    this.videoLoader, {
+    this.videoFit,
+    this.storyController,
+    Key key,
+  }) : super(key: key ?? UniqueKey());
 
   static StoryVideo url(
     String url, {
+    Key key,
+    BoxFit videoFit,
     StoryController controller,
     Map<String, dynamic> requestHeaders,
     VoidCallback adjustDuration,
-    Key key,
   }) {
     return StoryVideo(
       VideoLoader(url, requestHeaders: requestHeaders),
-      storyController: controller,
       key: key,
+      videoFit: videoFit,
+      storyController: controller,
     );
   }
 
@@ -108,20 +114,26 @@ class StoryVideoState extends State<StoryVideo> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      height: double.infinity,
-      width: double.infinity,
+    return DecoratedBox(
+      decoration: BoxDecoration(color: Colors.black),
       child: getContentView(),
     );
   }
 
   Widget getContentView() {
     if (widget.videoLoader.state == LoadState.success && playerController.value.initialized) {
-      return Center(
-        child: AspectRatio(
-          aspectRatio: playerController.value.aspectRatio,
-          child: VideoPlayer(playerController),
+      return SafeArea(
+        child: SizedBox.expand(
+          child: FittedBox(
+            // If your background video doesn't look right, try changing the BoxFit property.
+            // BoxFit.fill created the look I was going for.
+            fit: widget.videoFit,
+            child: SizedBox(
+              width: playerController.value.size?.width ?? 0,
+              height: playerController.value.size?.height ?? 0,
+              child: VideoPlayer(playerController),
+            ),
+          ),
         ),
       );
     }

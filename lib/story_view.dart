@@ -2,7 +2,6 @@ import 'dart:math';
 import 'dart:ui';
 import 'dart:async';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'story_video.dart';
@@ -322,14 +321,13 @@ class StoryItem extends ChangeNotifier {
   static StoryItem pageVideo(
     String url, {
     StoryController controller,
-    //TODO: adjust duration to video length
     Duration duration = const Duration(seconds: 10),
-    BoxFit imageFit = BoxFit.fitWidth,
+    BoxFit videoFit = BoxFit.fitHeight,
     String caption,
     bool shown = false,
     Map<String, dynamic> requestHeaders,
   }) {
-    assert(imageFit != null, "[imageFit] should not be null");
+    assert(videoFit != null, "[videoFit] should not be null");
     return StoryItem(
       Container(
         color: Colors.black,
@@ -337,6 +335,7 @@ class StoryItem extends ChangeNotifier {
           children: <Widget>[
             StoryVideo.url(
               url,
+              videoFit: videoFit,
               controller: controller,
               requestHeaders: requestHeaders,
             ),
