@@ -29,15 +29,13 @@ class ImageLoader {
       final file =
           await DefaultCacheManager().getSingleFile(this.url, headers: this.requestHeaders);
 
-      if (_frames == null) {
-        final imageBytes = file.readAsBytesSync();
+      final imageBytes = file.readAsBytesSync();
 
-        this.state.add(LoadState.success);
+      this.state.add(LoadState.success);
 
-        final codec = await PaintingBinding.instance.instantiateImageCodec(imageBytes);
+      final codec = await PaintingBinding.instance.instantiateImageCodec(imageBytes);
 
-        this._frames = codec;
-      }
+      this._frames = codec;
 
       this.state.add(LoadState.success);
     } catch (e) {
