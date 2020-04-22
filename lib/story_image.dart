@@ -4,63 +4,50 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:rxdart/subjects.dart';
 import 'package:stories_lib/utils/load_state.dart';
 
 import 'story_controller.dart';
 
-
 /// Utitlity to load image (gif, png, jpg, etc) media just once. Resource is
 /// cached to disk with default configurations of [DefaultCacheManager].
 class ImageLoader {
-  ui.Codec frames;
+  ui.Codec _frames;
 
   String url;
 
   Map<String, dynamic> requestHeaders;
 
-  LoadState state = LoadState.loading; // by default
+  final state = BehaviorSubject<LoadState>()..add(LoadState.loading); // by default
 
   ImageLoader(this.url, {this.requestHeaders});
 
   /// Load image from disk cache first, if not found then load from network.
   /// `onComplete` is called when [imageBytes] become available.
-  void loadImage(VoidCallback onComplete) {
-    if (this.frames != null) {
-      this.state = LoadState.success;
-      onComplete();
+  Future<void> loadImage() async {
+    try {
+      final file =
+          await DefaultCacheManager().getSingleFile(this.url, headers: this.requestHeaders);
+
+      if (_frames == null) {
+        final imageBytes = file.readAsBytesSync();
+
+        this.state.add(LoadState.success);
+
+        final codec = await PaintingBinding.instance.instantiateImageCodec(imageBytes);
+
+        this._frames = codec;
+      }
+
+      this.state.add(LoadState.success);
+    } catch (e) {
+      this.state.add(LoadState.failure);
+
+      rethrow;
     }
-
-    final fileStream =
-        DefaultCacheManager().getFile(this.url, headers: this.requestHeaders);
-
-    fileStream.listen(
-      (fileInfo) {
-        // the reason for this is that, when the cache manager fetches
-        // the image again from network, the provided `onComplete` should
-        // not be called again
-        if (this.frames != null) {
-          return;
-        }
-
-        final imageBytes = fileInfo.file.readAsBytesSync();
-
-        this.state = LoadState.success;
-
-        PaintingBinding.instance.instantiateImageCodec(imageBytes).then(
-            (codec) {
-          this.frames = codec;
-          onComplete();
-        }, onError: (error) {
-          this.state = LoadState.failure;
-          onComplete();
-        });
-      },
-      onError: (error) {
-        this.state = LoadState.failure;
-        onComplete();
-      },
-    );
   }
+
+  Future<ui.FrameInfo> get nextFrame => this._frames.getNextFrame();
 }
 
 /// Widget to display animated gifs or still images. Shows a loader while image
@@ -103,7 +90,7 @@ class StoryImage extends StatefulWidget {
 }
 
 class StoryImageState extends State<StoryImage> {
-  ui.Image currentFrame;
+  final streamFrame = BehaviorSubject<ui.Image>();
 
   Timer _timer;
 
@@ -114,10 +101,9 @@ class StoryImageState extends State<StoryImage> {
     super.initState();
 
     if (widget.controller != null) {
-      this._streamSubscription =
-          widget.controller.playbackNotifier.listen((playbackState) {
+      this._streamSubscription = widget.controller.playbackNotifier.listen((playbackState) {
         // for the case of gifs we need to pause/play
-        if (widget.imageLoader.frames == null) {
+        if (widget.imageLoader._frames == null) {
           return;
         }
 
@@ -129,34 +115,67 @@ class StoryImageState extends State<StoryImage> {
       });
     }
 
-    widget.controller?.pause();
-
-    widget.imageLoader.loadImage(() async {
-      if (mounted) {
-        if (widget.imageLoader.state == LoadState.success) {
-          widget.controller?.play();
-          forward();
-        } else {
-          // refresh to show error
-          setState(() {});
-        }
-      }
-    });
+    initializeImage();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    streamFrame.close();
     _streamSubscription?.cancel();
 
     super.dispose();
   }
 
   @override
-  void setState(fn) {
-    if (mounted) {
-      super.setState(fn);
-    }
+  Widget build(BuildContext context) {
+    return Center(child: contentView());
+  }
+
+  Widget contentView() {
+    return StreamBuilder<Object>(
+      stream: streamFrame.stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Text(
+            "Image failed to load.",
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          );
+        } else if (snapshot.hasData) {
+          return SizedBox.expand(
+            child: RawImage(
+              image: snapshot.data,
+              fit: widget.fit,
+            ),
+          );
+        } else {
+          return SizedBox(
+            width: 70,
+            height: 70,
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              strokeWidth: 3,
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> initializeImage() async {
+    widget.controller?.pause();
+
+    await widget.imageLoader.loadImage().catchError((e, s) {
+      print(e);
+      print(s);
+
+      streamFrame.addError(e);
+    });
+
+    widget.controller?.play();
+    forward();
   }
 
   void forward() async {
@@ -167,52 +186,12 @@ class StoryImageState extends State<StoryImage> {
       return;
     }
 
-    final nextFrame = await widget.imageLoader.frames.getNextFrame();
+    final nextFrame = await widget.imageLoader.nextFrame;
 
-    this.currentFrame = nextFrame.image;
+    this.streamFrame.add(nextFrame.image);
 
     if (nextFrame.duration > Duration(milliseconds: 0)) {
       this._timer = Timer(nextFrame.duration, forward);
     }
-
-    setState(() {});
-  }
-
-  Widget getContentView() {
-    switch (widget.imageLoader.state) {
-      case LoadState.success:
-        return RawImage(
-          image: this.currentFrame,
-          fit: BoxFit.fitHeight,
-        );
-      case LoadState.failure:
-        return Center(
-            child: Text(
-          "Image failed to load.",
-          style: TextStyle(
-            color: Colors.white,
-          ),
-        ));
-      default:
-        return Center(
-          child: Container(
-            width: 70,
-            height: 70,
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              strokeWidth: 3,
-            ),
-          ),
-        );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      child: getContentView(),
-    );
   }
 }
