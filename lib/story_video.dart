@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:rxdart/subjects.dart';
+
 import 'story_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -9,31 +11,37 @@ import 'package:stories_lib/utils/load_state.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class VideoLoader {
-  String url;
+  final String url;
 
-  File videoFile;
+  final Map<String, dynamic> requestHeaders;
 
-  Map<String, dynamic> requestHeaders;
+  File _videoFile;
 
-  LoadState state = LoadState.loading;
+  final state = BehaviorSubject<LoadState>()..add(LoadState.loading);
 
   VideoLoader(this.url, {this.requestHeaders});
 
-  void loadVideo(VoidCallback onComplete) {
-    if (this.videoFile != null) {
-      // this.state = LoadState.loading;
-      onComplete();
-    }
-
-    final fileStream = DefaultCacheManager().getFile(this.url, headers: this.requestHeaders);
-
-    fileStream.listen((fileInfo) {
-      if (this.videoFile == null) {
-        this.state = LoadState.success;
-        this.videoFile = fileInfo.file;
-        onComplete();
+  Future<File> loadVideo() async {
+    try {
+      if (this._videoFile == null) {
+        final file = await DefaultCacheManager().getSingleFile(
+          this.url,
+          headers: this.requestHeaders,
+        );
+        this._videoFile = file;
       }
-    });
+
+      state.add(LoadState.success);
+
+      return _videoFile;
+    } catch (e, s) {
+      print(e);
+      print(s);
+
+      state.add(LoadState.failure);
+
+      rethrow;
+    }
   }
 }
 
@@ -44,11 +52,11 @@ class StoryVideo extends StatefulWidget {
 
   final StoryController storyController;
 
-  StoryVideo(
-    this.videoLoader, {
-    this.videoFit,
-    this.storyController,
+  StoryVideo({
+    @required this.videoLoader,
     Key key,
+    this.storyController,
+    this.videoFit = BoxFit.cover,
   }) : super(key: key ?? UniqueKey());
 
   static StoryVideo url(
@@ -60,10 +68,10 @@ class StoryVideo extends StatefulWidget {
     VoidCallback adjustDuration,
   }) {
     return StoryVideo(
-      VideoLoader(url, requestHeaders: requestHeaders),
       key: key,
       videoFit: videoFit,
       storyController: controller,
+      videoLoader: VideoLoader(url, requestHeaders: requestHeaders),
     );
   }
 
@@ -81,80 +89,60 @@ class StoryVideoState extends State<StoryVideo> {
   VideoPlayerController playerController;
 
   @override
-  void initState() {
-    super.initState();
-    widget.videoLoader.loadVideo(
-      () {
-        if (widget.videoLoader.state == LoadState.success) {
-          this.playerController = VideoPlayerController.file(widget.videoLoader.videoFile);
-
-          playerController.initialize().then((v) {
-            Provider.of<StoryItem>(context, listen: false)
-                .updateDuration(playerController.value.duration);
-            setState(() {});
-            widget.storyController.play();
-          });
-
-          if (widget.storyController != null) {
-            playerController.addListener(checkIfVideoFinished);
-            _streamSubscription = widget.storyController.playbackNotifier.listen((playbackState) {
-              if (playbackState == PlaybackState.pause) {
-                playerController.pause();
-              } else {
-                playerController.play();
-              }
-            });
-          }
-        } else {
-          setState(() {});
-        }
-      },
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(color: Colors.black),
-      child: getContentView(),
+      child: contentView(),
     );
   }
 
-  Widget getContentView() {
-    if (widget.videoLoader.state == LoadState.success && playerController.value.initialized) {
-      return SafeArea(
-        child: SizedBox.expand(
-          child: FittedBox(
-            // If your background video doesn't look right, try changing the BoxFit property.
-            // BoxFit.fill created the look I was going for.
-            fit: widget.videoFit,
-            child: SizedBox(
-              width: playerController.value.size?.width ?? 0,
-              height: playerController.value.size?.height ?? 0,
-              child: VideoPlayer(playerController),
-            ),
-          ),
-        ),
-      );
-    }
-    return widget.videoLoader.state == LoadState.loading
-        ? Center(
-            child: Container(
-              width: 70,
-              height: 70,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                strokeWidth: 3,
+  Widget contentView() {
+    return FutureBuilder<void>(
+      future: initializeController(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              "Media failed to load.",
+              style: TextStyle(
+                color: Colors.white,
               ),
             ),
-          )
-        : Center(
-            child: Text(
-            "Media failed to load.",
-            style: TextStyle(
-              color: Colors.grey,
-            ),
-          ));
+          );
+        }
+
+        final state = snapshot.connectionState;
+
+        switch (state) {
+          case ConnectionState.done:
+            return SafeArea(
+              child: SizedBox.expand(
+                child: FittedBox(
+                  fit: widget.videoFit,
+                  child: SizedBox(
+                    width: playerController.value.size?.width ?? 0,
+                    height: playerController.value.size?.height ?? 0,
+                    child: VideoPlayer(playerController),
+                  ),
+                ),
+              ),
+            );
+            break;
+          default:
+            return Center(
+              child: SizedBox(
+                width: 70,
+                height: 70,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 3,
+                ),
+              ),
+            );
+            break;
+        }
+      },
+    );
   }
 
   @override
@@ -164,8 +152,32 @@ class StoryVideoState extends State<StoryVideo> {
     super.dispose();
   }
 
+  Future<void> initializeController() async {
+    if (playerController is VideoPlayerController && playerController.value.initialized) return;
+
+    final videoFile = await widget.videoLoader.loadVideo();
+
+    this.playerController = VideoPlayerController.file(videoFile);
+
+    await playerController.initialize();
+
+    Provider.of<StoryItem>(context, listen: false).updateDuration(playerController.value.duration);
+
+    widget.storyController.play();
+
+    if (widget.storyController != null) {
+      playerController.addListener(checkIfVideoFinished);
+      _streamSubscription = widget.storyController.playbackNotifier.listen((playbackState) {
+        if (playbackState == PlaybackState.pause) {
+          playerController.pause();
+        } else {
+          playerController.play();
+        }
+      });
+    }
+  }
+
   void checkIfVideoFinished() {
-    // print('~~~~~~~~~~~~~~ -- ${playerController.value.duration?.inSeconds} ');
     try {
       if (playerController.value.position.inSeconds == playerController.value.duration.inSeconds) {
         playerController.removeListener(checkIfVideoFinished);
