@@ -206,7 +206,7 @@ class StoryItem extends ChangeNotifier {
   static StoryItem pageGif(
     String url, {
     StoryController controller,
-    BoxFit imageFit = BoxFit.fitWidth,
+    BoxFit imageFit = BoxFit.fitHeight,
     String caption,
     bool shown = false,
     Duration duration = const Duration(seconds: 3),
@@ -656,30 +656,32 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
           controlUnpause();
         }
       },
-      child: Stack(
-        children: <Widget>[
-          currentView,
-          Align(
-            alignment: widget.progressPosition == ProgressPosition.top
-                ? Alignment.topCenter
-                : Alignment.bottomCenter,
-            child: SafeArea(
-              bottom: widget.inline ? false : true,
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: PageBar(
-                  widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
-                  this.currentAnimation,
-                  key: UniqueKey(),
-                  indicatorHeight: widget.inline ? IndicatorHeight.small : IndicatorHeight.large,
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: Colors.black),
+        child: SafeArea(
+          child: Stack(
+            children: <Widget>[
+              currentView,
+              Align(
+                alignment: widget.progressPosition == ProgressPosition.top
+                    ? Alignment.topCenter
+                    : Alignment.bottomCenter,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: PageBar(
+                    widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
+                    this.currentAnimation,
+                    key: UniqueKey(),
+                    indicatorHeight: widget.inline ? IndicatorHeight.small : IndicatorHeight.large,
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

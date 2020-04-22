@@ -90,10 +90,7 @@ class StoryVideoState extends State<StoryVideo> {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(color: Colors.black),
-      child: contentView(),
-    );
+    return contentView();
   }
 
   Widget contentView() {
