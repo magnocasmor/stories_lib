@@ -155,6 +155,8 @@ class StoryVideoState extends State<StoryVideo> {
   Future<void> initializeController() async {
     if (playerController is VideoPlayerController && playerController.value.initialized) return;
 
+    widget.storyController?.pause();
+
     final videoFile = await widget.videoLoader.loadVideo();
 
     this.playerController = VideoPlayerController.file(videoFile);
