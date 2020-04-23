@@ -77,10 +77,10 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
       widget.selectedStoryId,
       widget.storiesIds,
     );
-    if (storyId == null) {
-      _finishStoriesView();
-    } else {
+    if (storyId != null) {
       _navigateToStories(storyId);
+    } else {
+      _finishStoriesView();
     }
   }
 
@@ -89,10 +89,10 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
       widget.selectedStoryId,
       widget.storiesIds,
     );
-    if (storyId == null) {
-      _finishStoriesView();
-    } else {
+    if (storyId != null) {
       _navigateToStories(storyId);
+    } else {
+      // _finishStoriesView();
     }
   }
 
@@ -159,7 +159,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                 },
                 child: GestureDetector(
                   child: StoryView(
-                    widget.sortingOrderDesc ? stories.reversed.toList() : stories,
+                    storyItems: widget.sortingOrderDesc ? stories.reversed.toList() : stories,
                     controller: storyController,
                     progressPosition: widget.progressPosition,
                     repeat: widget.repeat,
