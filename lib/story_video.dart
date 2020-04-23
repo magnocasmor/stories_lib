@@ -1,8 +1,7 @@
 import 'dart:io';
 import 'dart:async';
-import 'package:rxdart/subjects.dart';
-
 import 'story_view.dart';
+import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
@@ -15,9 +14,9 @@ class VideoLoader {
 
   final Map<String, dynamic> requestHeaders;
 
-  File _videoFile;
+  final _state = BehaviorSubject<LoadState>()..add(LoadState.loading);
 
-  final state = BehaviorSubject<LoadState>()..add(LoadState.loading);
+  File _videoFile;
 
   VideoLoader(this.url, {this.requestHeaders});
 
@@ -31,14 +30,14 @@ class VideoLoader {
         this._videoFile = file;
       }
 
-      state.add(LoadState.success);
+      _state.add(LoadState.success);
 
       return _videoFile;
     } catch (e, s) {
       print(e);
       print(s);
 
-      state.add(LoadState.failure);
+      _state.add(LoadState.failure);
 
       rethrow;
     }
@@ -47,30 +46,35 @@ class VideoLoader {
 
 class StoryVideo extends StatefulWidget {
   final BoxFit videoFit;
-
+  final Widget mediaErrorWidget;
   final VideoLoader videoLoader;
-
+  final Widget mediaLoadingWidget;
   final StoryController storyController;
 
   StoryVideo({
-    @required this.videoLoader,
     Key key,
+    @required this.videoLoader,
     this.storyController,
+    this.mediaErrorWidget,
+    this.mediaLoadingWidget,
     this.videoFit = BoxFit.cover,
   }) : super(key: key ?? UniqueKey());
 
-  static StoryVideo url(
-    String url, {
+  static StoryVideo url({
     Key key,
+    String url,
     BoxFit videoFit,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     StoryController controller,
     Map<String, dynamic> requestHeaders,
-    VoidCallback adjustDuration,
   }) {
     return StoryVideo(
       key: key,
       videoFit: videoFit,
       storyController: controller,
+      mediaErrorWidget: mediaErrorWidget,
+      mediaLoadingWidget: mediaLoadingWidget,
       videoLoader: VideoLoader(url, requestHeaders: requestHeaders),
     );
   }
@@ -90,7 +94,7 @@ class StoryVideoState extends State<StoryVideo> {
 
   @override
   Widget build(BuildContext context) {
-    return contentView();
+    return Center(child: contentView());
   }
 
   Widget contentView() {
@@ -98,14 +102,13 @@ class StoryVideoState extends State<StoryVideo> {
       future: initializeController(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              "Media failed to load.",
-              style: TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          );
+          return widget.mediaErrorWidget ??
+              Text(
+                "Media failed to load.",
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              );
         }
 
         final state = snapshot.connectionState;
@@ -126,16 +129,15 @@ class StoryVideoState extends State<StoryVideo> {
             );
             break;
           default:
-            return Center(
-              child: SizedBox(
-                width: 70,
-                height: 70,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
-              ),
-            );
+            return widget.mediaLoadingWidget ??
+                SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 3,
+                  ),
+                );
             break;
         }
       },

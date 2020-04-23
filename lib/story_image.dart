@@ -1,24 +1,22 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-
+import 'story_controller.dart';
+import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:rxdart/subjects.dart';
 import 'package:stories_lib/utils/load_state.dart';
-
-import 'story_controller.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// Utitlity to load image (gif, png, jpg, etc) media just once. Resource is
 /// cached to disk with default configurations of [DefaultCacheManager].
 class ImageLoader {
+  final String url;
+
+  final Map<String, dynamic> requestHeaders;
+
+  final _state = BehaviorSubject<LoadState>()..add(LoadState.loading); // by default
+
   ui.Codec _frames;
-
-  String url;
-
-  Map<String, dynamic> requestHeaders;
-
-  final state = BehaviorSubject<LoadState>()..add(LoadState.loading); // by default
 
   ImageLoader(this.url, {this.requestHeaders});
 
@@ -31,15 +29,15 @@ class ImageLoader {
 
       final imageBytes = file.readAsBytesSync();
 
-      this.state.add(LoadState.success);
+      this._state.add(LoadState.success);
 
       final codec = await PaintingBinding.instance.instantiateImageCodec(imageBytes);
 
       this._frames = codec;
 
-      this.state.add(LoadState.success);
+      this._state.add(LoadState.success);
     } catch (e) {
-      this.state.add(LoadState.failure);
+      this._state.add(LoadState.failure);
 
       rethrow;
     }
@@ -52,35 +50,39 @@ class ImageLoader {
 /// is being loaded. Listens to playback states from [controller] to pause and
 /// forward animated media.
 class StoryImage extends StatefulWidget {
-  final ImageLoader imageLoader;
-
   final BoxFit fit;
-
+  final ImageLoader imageLoader;
+  final Widget mediaErrorWidget;
+  final Widget mediaLoadingWidget;
   final StoryController controller;
 
-  StoryImage(
-    this.imageLoader, {
+  StoryImage({
     Key key,
-    this.controller,
+    @required this.imageLoader,
     this.fit,
+    this.controller,
+    this.mediaErrorWidget,
+    this.mediaLoadingWidget,
   }) : super(key: key ?? UniqueKey());
 
   /// Use this shorthand to fetch images/gifs from the provided [url]
-  static StoryImage url(
-    String url, {
-    StoryController controller,
-    Map<String, dynamic> requestHeaders,
-    BoxFit fit = BoxFit.fitWidth,
+  factory StoryImage.url({
     Key key,
+    String url,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
+    StoryController controller,
+    BoxFit fit = BoxFit.fitWidth,
+    Map<String, dynamic> requestHeaders,
   }) {
     return StoryImage(
-        ImageLoader(
-          url,
-          requestHeaders: requestHeaders,
-        ),
-        controller: controller,
-        fit: fit,
-        key: key);
+      key: key,
+      fit: fit,
+      controller: controller,
+      mediaErrorWidget: mediaErrorWidget,
+      mediaLoadingWidget: mediaLoadingWidget,
+      imageLoader: ImageLoader(url, requestHeaders: requestHeaders),
+    );
   }
 
   @override
@@ -121,6 +123,7 @@ class StoryImageState extends State<StoryImage> {
     _timer?.cancel();
     streamFrame.close();
     _streamSubscription?.cancel();
+    // widget.imageLoader.state.close();
 
     super.dispose();
   }
@@ -135,12 +138,13 @@ class StoryImageState extends State<StoryImage> {
       stream: streamFrame.stream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Text(
-            "Image failed to load.",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          );
+          return widget.mediaErrorWidget ??
+              Text(
+                "Image failed to load.",
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              );
         } else if (snapshot.hasData) {
           return SizedBox.expand(
             child: RawImage(
@@ -149,14 +153,15 @@ class StoryImageState extends State<StoryImage> {
             ),
           );
         } else {
-          return SizedBox(
-            width: 70,
-            height: 70,
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              strokeWidth: 3,
-            ),
-          );
+          return widget.mediaLoadingWidget ??
+              SizedBox(
+                width: 70,
+                height: 70,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 3,
+                ),
+              );
         }
       },
     );

@@ -219,7 +219,7 @@ class StoryItem extends ChangeNotifier {
         child: Stack(
           children: <Widget>[
             StoryImage.url(
-              url,
+              url: url,
               controller: controller,
               fit: imageFit,
               requestHeaders: requestHeaders,
@@ -286,7 +286,7 @@ class StoryItem extends ChangeNotifier {
           child: Stack(
             children: <Widget>[
               StoryImage.url(
-                url,
+                url: url,
                 controller: controller,
                 fit: imageFit,
                 requestHeaders: requestHeaders,
@@ -334,7 +334,7 @@ class StoryItem extends ChangeNotifier {
         child: Stack(
           children: <Widget>[
             StoryVideo.url(
-              url,
+              url: url,
               videoFit: videoFit,
               controller: controller,
               requestHeaders: requestHeaders,
