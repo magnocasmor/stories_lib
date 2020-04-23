@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:stories_lib/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/models/stories_collection.dart';
@@ -43,38 +42,45 @@ List<StoryItem> parseStories(
 
   storiesCollection.stories.asMap().forEach(
     (index, storyData) {
+      final duration = Duration(seconds: storyDuration);
+      final media = storyData.media != null ? storyData.media[languageCode] : null;
+      final caption = storyData.caption != null ? storyData.caption[languageCode] : null;
+
       switch (storyData.type) {
         case 'text':
           storyItems.add(
             StoryItem.text(
-              storyData.caption[languageCode],
-              storyData.backgroundColor ?? Colors.black,
-              duration: Duration(seconds: storyDuration),
+              text: caption,
+              duration: duration,
+              backgroundColor: storyData.backgroundColor,
             ),
           );
           break;
         case 'image':
-          final storyImage = CachedNetworkImageProvider(storyData.media[languageCode]);
+          final storyImage = CachedNetworkImageProvider(media);
           storyItems.add(
             StoryItem.pageImage(
-              storyImage,
-              duration: Duration(seconds: storyDuration),
+              caption: caption,
+              image: storyImage,
+              duration: duration,
             ),
           );
           break;
         case 'gif':
           storyItems.add(
             StoryItem.pageGif(
-              storyData.media[languageCode],
+              url: media,
+              caption: caption,
+              duration: duration,
               controller: storyController,
-              duration: Duration(seconds: storyDuration),
             ),
           );
           break;
         case 'video':
           storyItems.add(
             StoryItem.pageVideo(
-              storyData.media[languageCode],
+              url: media,
+              caption: caption,
               controller: storyController,
             ),
           );

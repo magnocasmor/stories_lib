@@ -1,13 +1,14 @@
-import 'dart:math';
 import 'dart:ui';
+import 'dart:math';
 import 'dart:async';
+import 'package:stories_lib/components/story_widget.dart';
 
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'settings.dart';
 import 'story_video.dart';
 import 'story_image.dart';
 import 'story_controller.dart';
-import 'settings.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 export 'story_image.dart';
 export 'story_video.dart';
@@ -45,22 +46,25 @@ class StoryItem extends ChangeNotifier {
 
   /// Short hand to create text-only page.
   ///
-  /// [title] is the text to be displayed on [backgroundColor]. The text color
+  /// [text] is the text to be displayed on [backgroundColor]. The text color
   /// alternates between [Colors.black] and [Colors.white] depending on the
   /// calculated contrast. This is to ensure readability of text.
   ///
   /// Works for inline and full-page stories. See [StoryView.inline] for more on
   /// what inline/full-page means.
-  static StoryItem text(
-    String title,
-    Color backgroundColor, {
+  static StoryItem text({
+    @required String text,
+    @required Color backgroundColor,
+    TextStyle style,
     bool shown = false,
-    Duration duration = const Duration(seconds: 3),
-    double fontSize = 18,
     bool roundedTop = false,
     bool roundedBottom = false,
+    Duration duration = const Duration(seconds: 3),
   }) {
-    double contrast = ContrastHelper.contrast([
+    assert(text is String, "[title] should not be null");
+    if (backgroundColor == null) backgroundColor = Colors.black;
+
+    final contrast = ContrastHelper.contrast([
       backgroundColor.red,
       backgroundColor.green,
       backgroundColor.blue,
@@ -85,11 +89,9 @@ class StoryItem extends ChangeNotifier {
         ),
         child: Center(
           child: Text(
-            title,
-            style: TextStyle(
-              color: contrast > 1.8 ? Colors.white : Colors.black,
-              fontSize: fontSize,
-            ),
+            text,
+            style: (style ?? TextStyle())
+                .copyWith(color: contrast > 1.8 ? Colors.white : Colors.black),
             textAlign: TextAlign.center,
           ),
         ),
@@ -103,57 +105,21 @@ class StoryItem extends ChangeNotifier {
   /// Shorthand for a full-page image content.
   ///
   /// You can provide any image provider for [image].
-  static StoryItem pageImage(
-    ImageProvider image, {
-    BoxFit imageFit = BoxFit.fitHeight,
+  static StoryItem pageImage({
+    @required ImageProvider image,
     String caption,
     bool shown = false,
+    BoxFit imageFit = BoxFit.fitHeight,
     Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
-      Container(
-        color: Colors.black,
-        child: Stack(
-          children: <Widget>[
-            Center(
-              child: Image(
-                image: image,
-                height: double.infinity,
-                width: double.infinity,
-                fit: imageFit,
-              ),
-            ),
-            caption != null && caption.length > 0
-                ? SafeArea(
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        width: double.infinity,
-                        margin: EdgeInsets.only(
-                          bottom: 24,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 8,
-                        ),
-                        color: caption != null ? Colors.black54 : Colors.transparent,
-                        child: caption != null
-                            ? Text(
-                                caption,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                              )
-                            : SizedBox(),
-                      ),
-                    ),
-                  )
-                : Container(),
-          ],
+      StoryWidget(
+        story: Image(
+          image: image,
+          fit: imageFit,
         ),
+        caption: caption,
       ),
       shown: shown,
       duration: duration,
@@ -161,13 +127,13 @@ class StoryItem extends ChangeNotifier {
   }
 
   /// Shorthand for creating inline image page.
-  static StoryItem inlineImage(
-    ImageProvider image, {
+  static StoryItem inlineImage({
+    @required ImageProvider image,
     Text caption,
     bool shown = false,
-    Duration duration = const Duration(seconds: 3),
     bool roundedTop = true,
-    bool roundedBottom = false,
+    bool roundedBottom = true,
+    Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
       Container(
@@ -203,57 +169,25 @@ class StoryItem extends ChangeNotifier {
     );
   }
 
-  static StoryItem pageGif(
-    String url, {
-    StoryController controller,
-    BoxFit imageFit = BoxFit.fitHeight,
+  static StoryItem pageGif({
+    @required String url,
     String caption,
     bool shown = false,
-    Duration duration = const Duration(seconds: 3),
+    StoryController controller,
+    BoxFit imageFit = BoxFit.fitHeight,
     Map<String, dynamic> requestHeaders,
+    Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
-      Container(
-        color: Colors.black,
-        child: Stack(
-          children: <Widget>[
-            StoryImage.url(
-              url: url,
-              controller: controller,
-              fit: imageFit,
-              requestHeaders: requestHeaders,
-            ),
-            caption != null && caption.length > 0
-                ? SafeArea(
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        width: double.infinity,
-                        margin: EdgeInsets.only(
-                          bottom: 24,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 8,
-                        ),
-                        color: caption != null && caption.length > 0 ? Colors.black54 : Colors.red,
-                        child: caption != null && caption.length > 0
-                            ? Text(
-                                caption,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                              )
-                            : SizedBox(),
-                      ),
-                    ),
-                  )
-                : Container(),
-          ],
+      StoryWidget(
+        story: StoryImage.url(
+          url: url,
+          controller: controller,
+          fit: imageFit,
+          requestHeaders: requestHeaders,
         ),
+        caption: caption,
       ),
       shown: shown,
       duration: duration,
@@ -261,16 +195,16 @@ class StoryItem extends ChangeNotifier {
   }
 
   /// Shorthand for creating inline image page.
-  static StoryItem inlineGif(
-    String url, {
+  static StoryItem inlineGif({
+    @required String url,
     Text caption,
+    bool shown = false,
+    bool roundedTop = true,
+    bool roundedBottom = false,
     StoryController controller,
     BoxFit imageFit = BoxFit.cover,
     Map<String, dynamic> requestHeaders,
-    bool shown = false,
     Duration duration = const Duration(seconds: 3),
-    bool roundedTop = true,
-    bool roundedBottom = false,
   }) {
     return StoryItem(
       Container(
@@ -318,55 +252,25 @@ class StoryItem extends ChangeNotifier {
     );
   }
 
-  static StoryItem pageVideo(
-    String url, {
-    StoryController controller,
-    Duration duration = const Duration(seconds: 10),
-    BoxFit videoFit = BoxFit.fitHeight,
+  static StoryItem pageVideo({
+    @required String url,
     String caption,
     bool shown = false,
+    StoryController controller,
+    BoxFit videoFit = BoxFit.fitHeight,
     Map<String, dynamic> requestHeaders,
+    Duration duration = const Duration(seconds: 10),
   }) {
     assert(videoFit != null, "[videoFit] should not be null");
     return StoryItem(
-      Container(
-        color: Colors.black,
-        child: Stack(
-          children: <Widget>[
-            StoryVideo.url(
-              url: url,
-              videoFit: videoFit,
-              controller: controller,
-              requestHeaders: requestHeaders,
-            ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  width: double.infinity,
-                  margin: EdgeInsets.only(
-                    bottom: 24,
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
-                  color: caption != null ? Colors.black54 : Colors.transparent,
-                  child: caption != null
-                      ? Text(
-                          caption,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                        )
-                      : SizedBox(),
-                ),
-              ),
-            )
-          ],
+      StoryWidget(
+        story: StoryVideo.url(
+          url: url,
+          videoFit: videoFit,
+          controller: controller,
+          requestHeaders: requestHeaders,
         ),
+        caption: caption,
       ),
       shown: shown,
       duration: duration,
@@ -659,6 +563,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       child: DecoratedBox(
         decoration: BoxDecoration(color: Colors.black),
         child: SafeArea(
+          bottom: false,
           child: Stack(
             children: <Widget>[
               currentView,
