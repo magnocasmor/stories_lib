@@ -1,14 +1,13 @@
 import 'dart:ui';
-import 'dart:math';
 import 'dart:async';
-import 'package:stories_lib/components/story_widget.dart';
-
 import 'settings.dart';
 import 'story_video.dart';
 import 'story_image.dart';
 import 'story_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:stories_lib/utils/contrast_helper.dart';
+import 'package:stories_lib/components/story_widget.dart';
 
 export 'story_image.dart';
 export 'story_video.dart';
@@ -18,7 +17,7 @@ export 'story_controller.dart';
 class StoryItem extends ChangeNotifier {
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
-  Duration duration;
+  Duration _duration;
 
   /// Has this page been shown already? This is used to indicate that the page
   /// has been displayed. If some pages are supposed to be skipped in a story,
@@ -33,16 +32,12 @@ class StoryItem extends ChangeNotifier {
   /// The page content
   final Widget view;
 
-  void updateDuration(Duration d) {
-    duration = d;
-    notifyListeners();
-  }
-
-  StoryItem(
-    this.view, {
-    this.duration = const Duration(seconds: 3),
+  StoryItem({
+    @required this.view,
+    Duration duration = const Duration(seconds: 3),
     this.shown = false,
-  }) : assert(duration != null, "[duration] should not be null");
+  })  : assert(duration != null, "[duration] should not be null"),
+        _duration = duration;
 
   /// Short hand to create text-only page.
   ///
@@ -75,7 +70,7 @@ class StoryItem extends ChangeNotifier {
     ] /** white text */);
 
     return StoryItem(
-      Container(
+      view: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.vertical(
@@ -114,7 +109,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
-      StoryWidget(
+      view: StoryWidget(
         story: Image(
           image: image,
           fit: imageFit,
@@ -136,7 +131,7 @@ class StoryItem extends ChangeNotifier {
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
-      Container(
+      view: Container(
         decoration: BoxDecoration(
             color: Colors.grey[100],
             borderRadius: BorderRadius.vertical(
@@ -180,7 +175,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
-      StoryWidget(
+      view: StoryWidget(
         story: StoryImage.url(
           url: url,
           controller: controller,
@@ -207,7 +202,7 @@ class StoryItem extends ChangeNotifier {
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
-      Container(
+      view: Container(
         decoration: BoxDecoration(
           color: Colors.grey[100],
           borderRadius: BorderRadius.vertical(
@@ -263,7 +258,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(videoFit != null, "[videoFit] should not be null");
     return StoryItem(
-      StoryWidget(
+      view: StoryWidget(
         story: StoryVideo.url(
           url: url,
           videoFit: videoFit,
@@ -275,6 +270,14 @@ class StoryItem extends ChangeNotifier {
       shown: shown,
       duration: duration,
     );
+  }
+
+  Duration get duration => _duration;
+
+  /// Whatever duration changes, notify listeners
+  set duration(Duration d) {
+    _duration = d;
+    notifyListeners();
   }
 }
 
@@ -289,8 +292,7 @@ class StoryView extends StatefulWidget {
   /// each time the full story completes when [repeat] is set to `true`.
   final VoidCallback onComplete;
 
-  ///awaik
-  final VoidCallback goForward;
+  final VoidCallback previousOnFirstStory;
 
   /// Callback for when a story is currently being shown.
   final ValueChanged<StoryItem> onStoryShow;
@@ -312,8 +314,8 @@ class StoryView extends StatefulWidget {
     this.storyItems, {
     this.controller,
     this.onComplete,
-    this.goForward,
     this.onStoryShow,
+    this.previousOnFirstStory,
     this.progressPosition = ProgressPosition.top,
     this.repeat = false,
     this.inline = false,
@@ -339,7 +341,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   StreamSubscription<PlaybackState> playbackSubscription;
 
-  StoryItem get lastShowing => widget.storyItems.firstWhere((it) => !it.shown, orElse: () => null);
+  StoryItem get currentStory => widget.storyItems.firstWhere((it) => !it.shown, orElse: () => null);
 
   @override
   void initState() {
@@ -354,17 +356,13 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       });
     });
 
-    final firstPage = widget.storyItems.firstWhere((it) {
-      return !it.shown;
-    }, orElse: () {
-      widget.storyItems.forEach((it2) {
-        it2.shown = false;
+    final firstPage = currentStory;
+
+    if (firstPage == null) {
+      widget.storyItems.forEach((it) {
+        it.shown = false;
       });
-
-      return null;
-    });
-
-    if (firstPage != null) {
+    } else {
       final lastShownPos = widget.storyItems.indexOf(firstPage);
       widget.storyItems.sublist(lastShownPos).forEach((it) {
         it.shown = false;
@@ -402,9 +400,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   void play() {
     animationController?.dispose();
     // get the next playing page
-    final storyItem = widget.storyItems.firstWhere((it) {
-      return !it.shown;
-    });
+    final storyItem = currentStory;
 
     if (widget.onStoryShow != null) {
       widget.onStoryShow(storyItem);
@@ -434,8 +430,9 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   }
 
   void onComplete() {
+    widget.controller?.pause();
+
     if (widget.onComplete != null) {
-      widget.controller?.pause();
       widget.onComplete();
     } else {
       print("Done");
@@ -455,15 +452,16 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
     animationController.stop();
 
-    if (this.lastShowing == null) {
+    if (this.currentStory == null) {
       widget.storyItems.last.shown = false;
     }
 
-    if (this.lastShowing == widget.storyItems.first) {
+    if (this.currentStory == widget.storyItems.first) {
+      widget.previousOnFirstStory?.call();
       // beginPlay();
     } else {
-      this.lastShowing.shown = false;
-      int lastPos = widget.storyItems.indexOf(this.lastShowing);
+      this.currentStory.shown = false;
+      int lastPos = widget.storyItems.indexOf(this.currentStory);
       final previous = widget.storyItems[lastPos - 1];
 
       previous.shown = false;
@@ -473,17 +471,14 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   }
 
   void goForward() {
-    if (this.lastShowing != widget.storyItems.last) {
+    final _current = this.currentStory;
+
+    if (_current != widget.storyItems.last) {
       animationController.stop();
 
-      // get last showing
-      final _last = this.lastShowing;
-
-      if (_last != null) {
-        _last.shown = true;
-        if (_last != widget.storyItems.last) {
-          beginPlay();
-        }
+      if (_current != null) {
+        _current.shown = true;
+        beginPlay();
       }
     } else {
       // this is the last page, progress animation should skip to end
@@ -515,12 +510,9 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     }
   }
 
-  StoryItem get currentStory =>
-      widget.storyItems.firstWhere((it) => !it.shown, orElse: () => widget.storyItems.last);
-
   Widget get currentView => ChangeNotifierProvider.value(
-        value: currentStory,
-        child: currentStory.view,
+        value: currentStory ?? widget.storyItems.last,
+        child: currentStory?.view ?? widget.storyItems.last.view,
       );
 
   @override
@@ -540,20 +532,17 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
         }
       },
       onLongPressStart: (details) {
-        print('+++onTapDown');
         controlPause();
         debouncer?.cancel();
         debouncer = Timer(Duration(milliseconds: 500), () {});
       },
       onLongPressEnd: (details) {
         if (debouncer?.isActive == true) {
-          print('+++onTapUp13');
           debouncer.cancel();
           debouncer = null;
 
           controlUnpause();
         } else {
-          print('+++onTapUp23');
           debouncer.cancel();
           debouncer = null;
 
@@ -718,21 +707,5 @@ class IndicatorOval extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
     return true;
-  }
-}
-
-/// Concept source: https://stackoverflow.com/a/9733420
-class ContrastHelper {
-  static double luminance(int r, int g, int b) {
-    final a = [r, g, b].map((it) {
-      double value = it.toDouble() / 255.0;
-      return value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
-    }).toList();
-
-    return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
-  }
-
-  static double contrast(rgb1, rgb2) {
-    return luminance(rgb2[0], rgb2[1], rgb2[2]) / luminance(rgb1[0], rgb1[1], rgb1[2]);
   }
 }

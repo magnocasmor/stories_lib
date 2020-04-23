@@ -167,7 +167,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                     onStoryShow: (StoryItem s) {
                       _onStoryShow(s);
                     },
-                    goForward: () {},
+                    previousOnFirstStory: _previousGroupedStories,
                     onComplete: _nextGroupedStories,
                   ),
                   onVerticalDragUpdate: (details) {

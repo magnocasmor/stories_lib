@@ -162,7 +162,7 @@ class StoryVideoState extends State<StoryVideo> {
 
     await playerController.initialize();
 
-    Provider.of<StoryItem>(context, listen: false).updateDuration(playerController.value.duration);
+    Provider.of<StoryItem>(context, listen: false).duration = playerController.value.duration;
 
     widget.storyController.play();
 
