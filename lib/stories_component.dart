@@ -1,4 +1,3 @@
-import 'settings.dart';
 import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
 import 'models/stories_collection.dart';
@@ -19,37 +18,39 @@ class StoriesComponent extends StatefulWidget {
   final bool inline;
   final String languageCode;
   final bool recentHighlight;
-  final Icon closeButtonIcon;
+  final Widget closeButtonWidget;
   final bool sortingOrderDesc;
   final int imageStoryDuration;
   final EdgeInsets listPadding;
   final String collectionDbName;
   final Widget previewPlaceholder;
+  final Alignment progressPosition;
   final EdgeInsets storyItemPadding;
   final VoidCallback onStoriesFinish;
+  final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final ItemBuilder placeholderBuilder;
-  final Color closeButtonBackgroundColor;
-  final ProgressPosition progressPosition;
+  final ProgressBuilder progressBuilder;
   final StoryPreviewBuilder storyPreviewBuilder;
 
   StoriesComponent({
     @required this.collectionDbName,
     this.listPadding,
-    this.closeButtonIcon,
+    this.progressBuilder,
     this.onStoriesFinish,
+    this.closeButtonWidget,
     this.placeholderBuilder,
     this.previewPlaceholder,
     this.imageStoryDuration,
     this.storyPreviewBuilder,
-    this.closeButtonBackgroundColor,
     this.repeat = false,
     this.inline = false,
     this.languageCode = 'en',
     this.recentHighlight = false,
     this.sortingOrderDesc = true,
     this.storyItemPadding = EdgeInsets.zero,
-    this.progressPosition = ProgressPosition.top,
+    this.progressPosition = Alignment.topCenter,
+    this.closeButtonPosition = Alignment.topRight,
     this.backgroundBetweenStories = Colors.black,
   });
 
@@ -128,17 +129,18 @@ class _StoriesComponentState extends State<StoriesComponent> {
             MaterialPageRoute(
               builder: (context) => GroupedStoriesView(
                 storiesIds: storyIds,
-                selectedStoryId: story.storyId,
-                collectionDbName: widget.collectionDbName,
-                languageCode: widget.languageCode,
-                imageStoryDuration: widget.imageStoryDuration,
-                progressPosition: widget.progressPosition,
                 repeat: widget.repeat,
                 inline: widget.inline,
-                backgroundColorBetweenStories: widget.backgroundBetweenStories,
-                closeButtonIcon: widget.closeButtonIcon,
-                closeButtonBackgroundColor: widget.closeButtonBackgroundColor,
+                selectedStoryId: story.storyId,
+                languageCode: widget.languageCode,
+                progressBuilder: widget.progressBuilder,
+                progressPosition: widget.progressPosition,
                 sortingOrderDesc: widget.sortingOrderDesc,
+                collectionDbName: widget.collectionDbName,
+                closeButtonWidget: widget.closeButtonWidget,
+                imageStoryDuration: widget.imageStoryDuration,
+                closeButtonPosition: widget.closeButtonPosition,
+                backgroundColorBetweenStories: widget.backgroundBetweenStories,
               ),
               settings: RouteSettings(
                 arguments: story.storyId,

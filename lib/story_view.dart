@@ -13,6 +13,12 @@ export 'story_image.dart';
 export 'story_video.dart';
 export 'story_controller.dart';
 
+typedef ProgressBuilder = Widget Function(
+  List<PageData> pageData,
+  int currentIndex,
+  Animation animation,
+);
+
 /// This is a representation of a story item (or page).
 class StoryItem extends ChangeNotifier {
   /// Specifies how long the page should be displayed. It should be a reasonable
@@ -294,11 +300,13 @@ class StoryView extends StatefulWidget {
 
   final VoidCallback previousOnFirstStory;
 
+  final ProgressBuilder progressBuilder;
+
   /// Callback for when a story is currently being shown.
   final ValueChanged<StoryItem> onStoryShow;
 
   /// Where the progress indicator should be placed.
-  final ProgressPosition progressPosition;
+  final Alignment progressPosition;
 
   /// Should the story be repeated forever?
   final bool repeat;
@@ -315,8 +323,9 @@ class StoryView extends StatefulWidget {
     this.controller,
     this.onComplete,
     this.onStoryShow,
+    this.progressBuilder,
     this.previousOnFirstStory,
-    this.progressPosition = ProgressPosition.top,
+    this.progressPosition = Alignment.topCenter,
     this.repeat = false,
     this.inline = false,
   })  : assert(storyItems != null && storyItems.length > 0,
@@ -421,33 +430,30 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
           controlUnpause();
         }
       },
-      child: DecoratedBox(
-        decoration: BoxDecoration(color: Colors.black),
-        child: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: <Widget>[
-              currentView,
-              Align(
-                alignment: widget.progressPosition == ProgressPosition.top
-                    ? Alignment.topCenter
-                    : Alignment.bottomCenter,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
-                  ),
-                  child: PageBar(
+      child: Stack(
+        children: <Widget>[
+          currentView,
+          Align(
+            alignment: widget.progressPosition,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: widget.progressBuilder?.call(
+                    widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
+                    widget.storyItems.indexOf(currentStory),
+                    this.currentAnimation,
+                  ) ??
+                  PageBar(
                     widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
                     this.currentAnimation,
                     key: UniqueKey(),
                     indicatorHeight: widget.inline ? IndicatorHeight.small : IndicatorHeight.large,
                   ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -541,7 +547,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       }
     } else {
       // this is the last page, progress animation should skip to end
-      animationController.animateTo(1.0, duration: Duration(milliseconds: 10));
+      animationController.forward(from: 1.0);
     }
   }
 
@@ -578,8 +584,8 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 /// Capsule holding the duration and shown property of each story. Passed down
 /// to the pages bar to render the page indicators.
 class PageData {
-  Duration duration;
-  bool shown;
+  final Duration duration;
+  final bool shown;
 
   PageData(this.duration, this.shown);
 }
@@ -613,17 +619,6 @@ class PageBarState extends State<PageBar> {
 
     int count = widget.pages.length;
     spacing = count > 15 ? 1 : count > 10 ? 2 : 4;
-
-    widget.animation.addListener(() {
-      setState(() {});
-    });
-  }
-
-  @override
-  void setState(fn) {
-    if (mounted) {
-      super.setState(fn);
-    }
   }
 
   bool isPlaying(PageData page) {
@@ -633,21 +628,23 @@ class PageBarState extends State<PageBar> {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: widget.pages.map((it) {
-        return Expanded(
-          child: Container(
-            padding: EdgeInsets.only(right: widget.pages.last == it ? 0 : this.spacing),
-            child: AnimatedBuilder(
-                animation: widget.animation,
-                builder: (context, snapshot) {
-                  return StoryProgressIndicator(
-                    isPlaying(it) ? widget.animation.value : it.shown ? 1 : 0,
-                    indicatorHeight: widget.indicatorHeight == IndicatorHeight.large ? 5 : 3,
-                  );
-                }),
-          ),
-        );
-      }).toList(),
+      children: widget.pages.map(
+        (it) {
+          return Expanded(
+            child: Container(
+              padding: EdgeInsets.only(right: widget.pages.last == it ? 0 : this.spacing),
+              child: AnimatedBuilder(
+                  animation: widget.animation,
+                  builder: (context, snapshot) {
+                    return StoryProgressIndicator(
+                      isPlaying(it) ? widget.animation.value : it.shown ? 1 : 0,
+                      indicatorHeight: widget.indicatorHeight == IndicatorHeight.large ? 5 : 3,
+                    );
+                  }),
+            ),
+          );
+        },
+      ).toList(),
     );
   }
 }

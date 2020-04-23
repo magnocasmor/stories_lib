@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'settings.dart';
 import 'story_view.dart';
 import 'story_controller.dart';
 import 'package:flutter/material.dart';
@@ -16,14 +15,15 @@ class GroupedStoriesView extends StatefulWidget {
   final bool repeat;
   final bool inline;
   final String languageCode;
-  final Icon closeButtonIcon;
   final bool sortingOrderDesc;
   final String selectedStoryId;
   final int imageStoryDuration;
   final List<String> storiesIds;
   final String collectionDbName;
-  final Color closeButtonBackgroundColor;
-  final ProgressPosition progressPosition;
+  final Widget closeButtonWidget;
+  final Alignment progressPosition;
+  final Alignment closeButtonPosition;
+  final ProgressBuilder progressBuilder;
   final Color backgroundColorBetweenStories;
 
   GroupedStoriesView({
@@ -32,10 +32,11 @@ class GroupedStoriesView extends StatefulWidget {
     @required this.collectionDbName,
     this.inline,
     this.languageCode,
-    this.closeButtonIcon,
+    this.progressBuilder,
     this.sortingOrderDesc,
     this.progressPosition,
-    this.closeButtonBackgroundColor,
+    this.closeButtonWidget,
+    this.closeButtonPosition,
     this.backgroundColorBetweenStories,
     this.repeat = false,
     this.imageStoryDuration = 3,
@@ -133,63 +134,65 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
         return Future.value(false);
       },
       child: Scaffold(
-        body: StreamBuilder<DocumentSnapshot>(
-          stream: streamStories,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return Center(child: CircularProgressIndicator());
-            }
-
-            final stories = parseStories(
-              storyController,
-              widget.languageCode,
-              snapshot.data,
-              widget.imageStoryDuration,
-            );
-
-            return Dismissible(
-                resizeDuration: Duration(milliseconds: 200),
-                key: UniqueKey(),
-                onDismissed: (DismissDirection direction) {
-                  if (direction == DismissDirection.endToStart) {
-                    _nextGroupedStories();
-                  } else {
-                    _previousGroupedStories();
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: <Widget>[
+              StreamBuilder<DocumentSnapshot>(
+                stream: streamStories,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
                   }
+
+                  final stories = parseStories(
+                    storyController,
+                    widget.languageCode,
+                    snapshot.data,
+                    widget.imageStoryDuration,
+                  );
+
+                  return Dismissible(
+                      resizeDuration: Duration(milliseconds: 200),
+                      key: UniqueKey(),
+                      onDismissed: (DismissDirection direction) {
+                        if (direction == DismissDirection.endToStart) {
+                          _nextGroupedStories();
+                        } else {
+                          _previousGroupedStories();
+                        }
+                      },
+                      child: GestureDetector(
+                        child: StoryView(
+                          storyItems: widget.sortingOrderDesc ? stories.reversed.toList() : stories,
+                          controller: storyController,
+                          repeat: widget.repeat,
+                          inline: widget.inline,
+                          progressBuilder: widget.progressBuilder,
+                          progressPosition: widget.progressPosition,
+                          onStoryShow: (StoryItem s) {
+                            _onStoryShow(s);
+                          },
+                          previousOnFirstStory: _previousGroupedStories,
+                          onComplete: _nextGroupedStories,
+                        ),
+                        onVerticalDragUpdate: (details) {
+                          if (details.delta.dy > 0) {
+                            _finishStoriesView();
+                          }
+                        },
+                      ));
                 },
+              ),
+              Align(
+                alignment: widget.closeButtonPosition,
                 child: GestureDetector(
-                  child: StoryView(
-                    storyItems: widget.sortingOrderDesc ? stories.reversed.toList() : stories,
-                    controller: storyController,
-                    progressPosition: widget.progressPosition,
-                    repeat: widget.repeat,
-                    inline: widget.inline,
-                    onStoryShow: (StoryItem s) {
-                      _onStoryShow(s);
-                    },
-                    previousOnFirstStory: _previousGroupedStories,
-                    onComplete: _nextGroupedStories,
-                  ),
-                  onVerticalDragUpdate: (details) {
-                    if (details.delta.dy > 0) {
-                      _finishStoriesView();
-                    }
-                  },
-                ));
-          },
-        ),
-        floatingActionButton: Align(
-          alignment: Alignment(1.0, -0.84),
-          child: Padding(
-            padding: const EdgeInsets.all(0.0),
-            child: FloatingActionButton(
-              onPressed: () {
-                _finishStoriesView();
-              },
-              child: widget.closeButtonIcon,
-              backgroundColor: widget.closeButtonBackgroundColor,
-              elevation: 0,
-            ),
+                  onTap: _finishStoriesView,
+                  child: widget.closeButtonWidget,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -199,17 +202,18 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
   GroupedStoriesView _groupedStoriesView(String storyId, List<String> storyIds) {
     return GroupedStoriesView(
       storiesIds: storyIds,
-      selectedStoryId: storyId,
-      collectionDbName: widget.collectionDbName,
-      languageCode: widget.languageCode,
-      imageStoryDuration: widget.imageStoryDuration,
-      progressPosition: widget.progressPosition,
       repeat: widget.repeat,
       inline: widget.inline,
-      backgroundColorBetweenStories: widget.backgroundColorBetweenStories,
-      closeButtonIcon: widget.closeButtonIcon,
-      closeButtonBackgroundColor: widget.closeButtonBackgroundColor,
+      selectedStoryId: storyId,
+      languageCode: widget.languageCode,
+      progressBuilder: widget.progressBuilder,
       sortingOrderDesc: widget.sortingOrderDesc,
+      progressPosition: widget.progressPosition,
+      collectionDbName: widget.collectionDbName,
+      closeButtonWidget: widget.closeButtonWidget,
+      imageStoryDuration: widget.imageStoryDuration,
+      closeButtonPosition: widget.closeButtonPosition,
+      backgroundColorBetweenStories: widget.backgroundColorBetweenStories,
     );
   }
 }
