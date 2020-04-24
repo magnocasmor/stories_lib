@@ -172,10 +172,10 @@ class _StoriesState extends State<Stories> {
       .snapshots();
 
   Future<void> _buildFuture() async {
-    final res = ModalRoute.of(context).settings.arguments;
-    await Future.delayed(const Duration(seconds: 1));
-    if (res == 'back_from_stories_view' && !_backStateAdditional) {
-      widget.onStoriesFinish?.call();
-    }
+    // final res = ModalRoute.of(context).settings.arguments;
+    // await Future.delayed(const Duration(seconds: 1));
+    // if (res == 'back_from_stories_view' && !_backStateAdditional) {
+    //   widget.onStoriesFinish?.call();
+    // }
   }
 }

@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   rxdart: ^0.23.1
-  video_player: ^0.10.5
+  video_player: ^0.10.9+1
   skeleton_text: ^1.0.0
   dotted_border: ^1.0.4
   json_annotation: ^3.0.1
