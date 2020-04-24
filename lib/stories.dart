@@ -13,7 +13,7 @@ typedef StoryPreviewBuilder = Widget Function(BuildContext, ImageProvider, Strin
 
 typedef HighlightBuilder = Widget Function(BuildContext, Widget);
 
-class StoriesComponent extends StatefulWidget {
+class Stories extends StatefulWidget {
   final bool repeat;
   final bool inline;
   final String languageCode;
@@ -33,7 +33,7 @@ class StoriesComponent extends StatefulWidget {
   final ProgressBuilder progressBuilder;
   final StoryPreviewBuilder storyPreviewBuilder;
 
-  StoriesComponent({
+  Stories({
     @required this.collectionDbName,
     this.listPadding,
     this.progressBuilder,
@@ -55,10 +55,10 @@ class StoriesComponent extends StatefulWidget {
   });
 
   @override
-  _StoriesComponentState createState() => _StoriesComponentState();
+  _StoriesState createState() => _StoriesState();
 }
 
-class _StoriesComponentState extends State<StoriesComponent> {
+class _StoriesState extends State<Stories> {
   bool _backStateAdditional = false;
   final _firestore = Firestore.instance;
 
