@@ -16,6 +16,7 @@ typedef HighlightBuilder = Widget Function(BuildContext, Widget);
 class Stories extends StatefulWidget {
   final bool repeat;
   final bool inline;
+  final String userId;
   final String languageCode;
   final bool recentHighlight;
   final bool sortingOrderDesc;
@@ -36,6 +37,7 @@ class Stories extends StatefulWidget {
 
   Stories({
     @required this.collectionDbName,
+    this.userId,
     this.listPadding,
     this.progressBuilder,
     this.onStoriesFinish,
@@ -131,6 +133,7 @@ class _StoriesState extends State<Stories> {
                   storiesIds: storyIds,
                   repeat: widget.repeat,
                   inline: widget.inline,
+                  userId: widget.userId,
                   selectedStoryId: story.storyId,
                   languageCode: widget.languageCode,
                   progressBuilder: widget.progressBuilder,

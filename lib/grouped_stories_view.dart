@@ -16,6 +16,7 @@ enum _StoriesDirection { next, previous }
 class GroupedStoriesView extends StatefulWidget {
   final bool repeat;
   final bool inline;
+  final String userId;
   final String languageCode;
   final bool sortingOrderDesc;
   final String selectedStoryId;
@@ -32,6 +33,7 @@ class GroupedStoriesView extends StatefulWidget {
     @required this.storiesIds,
     @required this.selectedStoryId,
     @required this.collectionDbName,
+    this.userId,
     this.inline,
     this.languageCode,
     this.progressBuilder,
@@ -83,17 +85,19 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
             itemBuilder: (context, index) {
               return Stack(
                 children: <Widget>[
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: streamStories(widget.storiesIds[index]),
+                  FutureBuilder<DocumentSnapshot>(
+                    future: streamStories(widget.storiesIds[index]),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return Center(child: CircularProgressIndicator());
                       }
 
+                      final storyData = snapshot.data;
+
                       final stories = parseStories(
                         storyController,
                         widget.languageCode,
-                        snapshot.data,
+                        storyData,
                         widget.imageStoryDuration,
                       );
                       return GestureDetector(
@@ -105,7 +109,31 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                           progressBuilder: widget.progressBuilder,
                           progressPosition: widget.progressPosition,
                           onStoryShow: (StoryItem s) {
-                            _onStoryShow(s);
+                            storyData.reference.get().then(
+                              (ds) async {
+                                final doc = ds.data;
+                                final index = stories.indexOf(s);
+                                final views = doc["stories"][index]["views"];
+                                final currentView = {
+                                  "user_info": widget.userId,
+                                  "date": DateTime.now(),
+                                };
+
+                                if (views is List) {
+                                  final hasView = views.any(
+                                    (v) => v["user_info"] == widget.userId,
+                                  );
+
+                                  if (!hasView) {
+                                    views.add(currentView);
+                                  }
+                                } else {
+                                  doc["stories"][index]["views"] = [currentView];
+                                }
+
+                                ds.reference.updateData(doc);
+                              },
+                            );
                           },
                           previousOnFirstStory: _previousGroupedStories,
                           onComplete: _nextGroupedStories,
@@ -141,8 +169,8 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
     );
   }
 
-  Stream<DocumentSnapshot> streamStories(String storyId) =>
-      _firestore.collection(widget.collectionDbName).document(storyId).snapshots();
+  Future<DocumentSnapshot> streamStories(String storyId) =>
+      _firestore.collection(widget.collectionDbName).document(storyId).get();
 
   void _nextGroupedStories() {
     if (_pageController.page.toInt() != indexOfStory(widget.storiesIds.last)) {
@@ -176,10 +204,8 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
 
   bool _finishStoriesView() {
     storyController?.stop();
-    return Navigator.pop(context, 'back_from_stories_view');
+    return Navigator.pop(context);
   }
-
-  void _onStoryShow(StoryItem s) {}
 
   int indexOfStory(String storyId) => widget.storiesIds.indexOf(storyId);
 }
