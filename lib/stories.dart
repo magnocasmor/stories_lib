@@ -59,7 +59,6 @@ class Stories extends StatefulWidget {
 }
 
 class _StoriesState extends State<Stories> {
-  bool _backStateAdditional = false;
   final _firestore = Firestore.instance;
 
   @override
@@ -71,8 +70,6 @@ class _StoriesState extends State<Stories> {
           final stories = snapshot.data.documents;
 
           final storyWidgets = parseStoriesPreview(widget.languageCode, stories);
-
-          _buildFuture();
 
           if (storyWidgets.isNotEmpty)
             return _storiesList(
@@ -170,12 +167,4 @@ class _StoriesState extends State<Stories> {
       .collection(widget.collectionDbName)
       .orderBy('date', descending: widget.sortingOrderDesc)
       .snapshots();
-
-  Future<void> _buildFuture() async {
-    // final res = ModalRoute.of(context).settings.arguments;
-    // await Future.delayed(const Duration(seconds: 1));
-    // if (res == 'back_from_stories_view' && !_backStateAdditional) {
-    //   widget.onStoriesFinish?.call();
-    // }
-  }
 }

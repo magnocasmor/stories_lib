@@ -496,7 +496,8 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   }
 
   void onComplete() {
-    widget.controller?.pause();
+    // widget.controller?.pause();
+    widget.controller?.stop();
 
     if (widget.onComplete != null) {
       widget.onComplete();
@@ -514,8 +515,6 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   }
 
   void goBack() {
-    widget.controller?.play();
-
     animationController.stop();
 
     if (this.currentStory == null) {
@@ -524,8 +523,11 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
     if (this.currentStory == widget.storyItems.first) {
       widget.previousOnFirstStory?.call();
+      widget.controller?.play();
       // beginPlay();
     } else {
+      widget.controller?.stop();
+
       this.currentStory.shown = false;
       int lastPos = widget.storyItems.indexOf(this.currentStory);
       final previous = widget.storyItems[lastPos - 1];
@@ -538,6 +540,8 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   void goForward() {
     final _current = this.currentStory;
+
+    widget.controller?.stop();
 
     animationController.stop();
     if (_current != widget.storyItems.last) {

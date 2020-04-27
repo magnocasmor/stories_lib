@@ -1,6 +1,6 @@
 import 'package:rxdart/rxdart.dart';
 
-enum PlaybackState { pause, play }
+enum PlaybackState { pause, play, stop }
 
 /// Controller to sync playback between animated child (story) views. This
 /// helps make sure when stories are paused, the animation (gifs/slides) are
@@ -19,6 +19,10 @@ class StoryController {
   /// Notify listeners with a [PlaybackState.play] state
   void play() {
     playbackNotifier.add(PlaybackState.play);
+  }
+
+  void stop() {
+    playbackNotifier.add(PlaybackState.stop);
   }
 
   /// Remember to call dispose when the story screen is disposed to close

@@ -159,7 +159,8 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
   }
 
   Future _navigateToStories(_StoriesDirection direction) {
-    storyController.pause();
+    storyController.stop();
+
     if (direction == _StoriesDirection.next)
       return _pageController.nextPage(
         duration: const Duration(milliseconds: 250),
@@ -174,6 +175,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
   }
 
   bool _finishStoriesView() {
+    storyController?.stop();
     return Navigator.pop(context, 'back_from_stories_view');
   }
 
