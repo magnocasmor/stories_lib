@@ -1,3 +1,5 @@
+import 'package:stories_lib/models/story.dart';
+
 import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
 import 'models/stories_collection.dart';
@@ -106,6 +108,8 @@ class _StoriesState extends State<Stories> {
     StoriesCollection story,
     List<String> storyIds,
   ) {
+    final initialStory = _initialStoryId(story);
+
     return Padding(
       padding: widget.storyItemPadding,
       child: GestureDetector(
@@ -117,13 +121,7 @@ class _StoriesState extends State<Stories> {
               context,
               image,
               story.title[widget.languageCode],
-              story.stories.any(
-                (s) =>
-                    s.views?.every(
-                      (v) => v["user_info"] != widget.userId,
-                    ) ??
-                    true,
-              ),
+              initialStory is Story,
             );
           },
           errorWidget: (context, url, error) => Icon(Icons.error),
@@ -144,11 +142,12 @@ class _StoriesState extends State<Stories> {
                   languageCode: widget.languageCode,
                   progressBuilder: widget.progressBuilder,
                   progressPosition: widget.progressPosition,
-                  sortingOrderDesc: widget.sortingOrderDesc,
+                  // sortingOrderDesc: widget.sortingOrderDesc,
                   collectionDbName: widget.collectionDbName,
                   closeButtonWidget: widget.closeButtonWidget,
-                  imageStoryDuration: widget.imageStoryDuration,
+                  storyDuration: widget.imageStoryDuration,
                   closeButtonPosition: widget.closeButtonPosition,
+                  initialStoryIndex: story.stories.indexOf(initialStory) ?? 0,
                   backgroundColorBetweenStories: widget.backgroundBetweenStories,
                 );
               },
@@ -180,4 +179,11 @@ class _StoriesState extends State<Stories> {
       .collection(widget.collectionDbName)
       .orderBy('date', descending: widget.sortingOrderDesc)
       .snapshots();
+
+  Story _initialStoryId(StoriesCollection collection) {
+    return collection.stories.firstWhere(
+      (s) => s.views?.every((v) => v["user_info"] != widget.userId) ?? true,
+      orElse: () => null,
+    );
+  }
 }

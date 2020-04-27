@@ -18,9 +18,10 @@ class GroupedStoriesView extends StatefulWidget {
   final bool inline;
   final String userId;
   final String languageCode;
+  final int initialStoryIndex;
   final bool sortingOrderDesc;
   final String selectedStoryId;
-  final int imageStoryDuration;
+  final int storyDuration;
   final List<String> storiesIds;
   final String collectionDbName;
   final Widget closeButtonWidget;
@@ -37,13 +38,14 @@ class GroupedStoriesView extends StatefulWidget {
     this.inline,
     this.languageCode,
     this.progressBuilder,
-    this.sortingOrderDesc,
     this.progressPosition,
     this.closeButtonWidget,
     this.closeButtonPosition,
     this.backgroundColorBetweenStories,
     this.repeat = false,
-    this.imageStoryDuration = 3,
+    this.initialStoryIndex = 0,
+    this.storyDuration = 3,
+    this.sortingOrderDesc = false,
   });
 
   @override
@@ -95,10 +97,11 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                       final storyData = snapshot.data;
 
                       final stories = parseStories(
-                        storyController,
-                        widget.languageCode,
                         storyData,
-                        widget.imageStoryDuration,
+                        storyController,
+                        widget.userId,
+                        widget.languageCode,
+                        widget.storyDuration,
                       );
                       return GestureDetector(
                         child: StoryView(
@@ -108,11 +111,11 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                           inline: widget.inline,
                           progressBuilder: widget.progressBuilder,
                           progressPosition: widget.progressPosition,
-                          onStoryShow: (StoryItem s) {
+                          onStoryShow: (StoryItem item) {
                             storyData.reference.get().then(
                               (ds) async {
                                 final doc = ds.data;
-                                final index = stories.indexOf(s);
+                                final index = stories.indexOf(item);
                                 final views = doc["stories"][index]["views"];
                                 final currentView = {
                                   "user_info": widget.userId,

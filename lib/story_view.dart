@@ -498,19 +498,18 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   void onComplete() {
     // widget.controller?.pause();
     widget.controller?.stop();
-
-    if (widget.onComplete != null) {
-      widget.onComplete();
-    } else {
-      print("Done");
-    }
-
     if (widget.repeat) {
       widget.storyItems.forEach((it) {
         it.shown = false;
       });
 
-      beginPlay();
+      return beginPlay();
+    } else {
+      if (widget.onComplete != null) {
+        widget.onComplete();
+      } else {
+        print("Done");
+      }
     }
   }
 

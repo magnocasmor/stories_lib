@@ -1,3 +1,4 @@
+import 'package:stories_lib/models/story.dart';
 import 'package:stories_lib/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/models/stories_collection.dart';
@@ -31,9 +32,10 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
 }
 
 List<StoryItem> parseStories(
-  StoryController storyController,
-  String languageCode,
   DocumentSnapshot data,
+  StoryController storyController,
+  String userId,
+  String languageCode,
   int storyDuration,
 ) {
   final storiesCollection = _storiesCollectionFromDocument(data);
@@ -46,6 +48,8 @@ List<StoryItem> parseStories(
       final media = storyData.media != null ? storyData.media[languageCode] : null;
       final caption = storyData.caption != null ? storyData.caption[languageCode] : null;
 
+      final _shown = isViewed(storyData, userId);
+
       switch (storyData.type) {
         case 'text':
           storyItems.add(
@@ -53,6 +57,7 @@ List<StoryItem> parseStories(
               text: caption,
               duration: duration,
               backgroundColor: storyData.backgroundColor,
+              shown: _shown,
             ),
           );
           break;
@@ -63,6 +68,7 @@ List<StoryItem> parseStories(
               caption: caption,
               image: storyImage,
               duration: duration,
+              shown: _shown,
             ),
           );
           break;
@@ -73,6 +79,7 @@ List<StoryItem> parseStories(
               caption: caption,
               duration: duration,
               controller: storyController,
+              shown: _shown,
             ),
           );
           break;
@@ -82,6 +89,7 @@ List<StoryItem> parseStories(
               url: media,
               caption: caption,
               controller: storyController,
+              shown: _shown,
             ),
           );
           break;
@@ -96,6 +104,10 @@ List<StoryItem> parseStories(
     },
   );
   return storyItems;
+}
+
+bool isViewed(Story story, String userId) {
+  return story.views?.any((v) => v["user_info"] == userId) ?? false;
 }
 
 StoriesCollection _storiesCollectionFromDocument(DocumentSnapshot document) =>

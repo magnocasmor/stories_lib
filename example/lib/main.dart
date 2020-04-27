@@ -72,7 +72,7 @@ class _HomeState extends State<Home> {
             textInIconPadding:
                 EdgeInsets.only(left: 8.0, right: 8.0, bottom: 12.0),
             //how long story lasts in seconds
-            imageStoryDuration: 7,
+            storyDuration: 7,
             progressPosition: ProgressPosition.top,
             repeat: true,
             inline: false,
