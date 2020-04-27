@@ -54,8 +54,8 @@ class Stories extends StatefulWidget {
     this.sortingOrderDesc = true,
     this.storyItemPadding = EdgeInsets.zero,
     this.progressPosition = Alignment.topCenter,
-    this.closeButtonPosition = Alignment.topRight,
     this.backgroundBetweenStories = Colors.black,
+    this.closeButtonPosition = Alignment.topRight,
   });
 
   @override
@@ -85,7 +85,7 @@ class _StoriesState extends State<Stories> {
               },
             );
           else
-            return Container();
+            return LimitedBox();
         } else {
           return _storiesList(
             itemCount: 4,
@@ -117,7 +117,13 @@ class _StoriesState extends State<Stories> {
               context,
               image,
               story.title[widget.languageCode],
-              widget.recentHighlight,
+              story.stories.any(
+                (s) =>
+                    s.views?.every(
+                      (v) => v["user_info"] != widget.userId,
+                    ) ??
+                    true,
+              ),
             );
           },
           errorWidget: (context, url, error) => Icon(Icons.error),
