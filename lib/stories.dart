@@ -18,11 +18,11 @@ class Stories extends StatefulWidget {
   final bool inline;
   final String languageCode;
   final bool recentHighlight;
-  final Widget closeButtonWidget;
   final bool sortingOrderDesc;
   final int imageStoryDuration;
   final EdgeInsets listPadding;
   final String collectionDbName;
+  final Widget closeButtonWidget;
   final Widget previewPlaceholder;
   final Alignment progressPosition;
   final EdgeInsets storyItemPadding;
@@ -32,6 +32,7 @@ class Stories extends StatefulWidget {
   final ItemBuilder placeholderBuilder;
   final ProgressBuilder progressBuilder;
   final StoryPreviewBuilder storyPreviewBuilder;
+  final RouteTransitionsBuilder navigationTransition;
 
   Stories({
     @required this.collectionDbName,
@@ -46,6 +47,7 @@ class Stories extends StatefulWidget {
     this.repeat = false,
     this.inline = false,
     this.languageCode = 'en',
+    this.navigationTransition,
     this.recentHighlight = false,
     this.sortingOrderDesc = true,
     this.storyItemPadding = EdgeInsets.zero,
@@ -119,26 +121,28 @@ class _StoriesState extends State<Stories> {
           errorWidget: (context, url, error) => Icon(Icons.error),
         ),
         onTap: () async {
-          _backStateAdditional = true;
-
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(
-              builder: (context) => GroupedStoriesView(
-                storiesIds: storyIds,
-                repeat: widget.repeat,
-                inline: widget.inline,
-                selectedStoryId: story.storyId,
-                languageCode: widget.languageCode,
-                progressBuilder: widget.progressBuilder,
-                progressPosition: widget.progressPosition,
-                sortingOrderDesc: widget.sortingOrderDesc,
-                collectionDbName: widget.collectionDbName,
-                closeButtonWidget: widget.closeButtonWidget,
-                imageStoryDuration: widget.imageStoryDuration,
-                closeButtonPosition: widget.closeButtonPosition,
-                backgroundColorBetweenStories: widget.backgroundBetweenStories,
-              ),
+            PageRouteBuilder(
+              transitionDuration: const Duration(milliseconds: 250),
+              transitionsBuilder: widget.navigationTransition,
+              pageBuilder: (context, anim, anim2) {
+                return GroupedStoriesView(
+                  storiesIds: storyIds,
+                  repeat: widget.repeat,
+                  inline: widget.inline,
+                  selectedStoryId: story.storyId,
+                  languageCode: widget.languageCode,
+                  progressBuilder: widget.progressBuilder,
+                  progressPosition: widget.progressPosition,
+                  sortingOrderDesc: widget.sortingOrderDesc,
+                  collectionDbName: widget.collectionDbName,
+                  closeButtonWidget: widget.closeButtonWidget,
+                  imageStoryDuration: widget.imageStoryDuration,
+                  closeButtonPosition: widget.closeButtonPosition,
+                  backgroundColorBetweenStories: widget.backgroundBetweenStories,
+                );
+              },
               settings: RouteSettings(
                 arguments: story.storyId,
               ),
