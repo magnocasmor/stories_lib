@@ -1,44 +1,48 @@
 import 'dart:ui';
-
-import 'package:flutter/material.dart';
-import 'story_controller.dart';
 import 'story_view.dart';
-import 'models/stories_list_with_pressed.dart';
-import 'settings.dart';
+import 'story_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stories_lib/utils/stories_parser.dart';
 
+export 'settings.dart';
+export 'story_view.dart';
 export 'story_image.dart';
 export 'story_video.dart';
 export 'story_controller.dart';
-export 'story_view.dart';
-export 'settings.dart';
 
-import 'models/stories_data.dart';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
+enum _StoriesDirection { next, previous }
 
 class GroupedStoriesView extends StatefulWidget {
-  String collectionDbName;
-  String languageCode;
-  int imageStoryDuration;
-  ProgressPosition progressPosition;
-  bool repeat;
-  bool inline;
-  Icon closeButtonIcon;
-  Color closeButtonBackgroundColor;
-  Color backgroundColorBetweenStories;
-  bool sortingOrderDesc;
+  final bool repeat;
+  final bool inline;
+  final String languageCode;
+  final bool sortingOrderDesc;
+  final String selectedStoryId;
+  final int imageStoryDuration;
+  final List<String> storiesIds;
+  final String collectionDbName;
+  final Widget closeButtonWidget;
+  final Alignment progressPosition;
+  final Alignment closeButtonPosition;
+  final ProgressBuilder progressBuilder;
+  final Color backgroundColorBetweenStories;
 
-  GroupedStoriesView(
-      {this.collectionDbName,
-      this.languageCode,
-      this.imageStoryDuration = 3,
-      this.progressPosition,
-      this.repeat,
-      this.inline,
-      this.backgroundColorBetweenStories,
-      this.closeButtonIcon,
-      this.closeButtonBackgroundColor,
-      this.sortingOrderDesc});
+  GroupedStoriesView({
+    @required this.storiesIds,
+    @required this.selectedStoryId,
+    @required this.collectionDbName,
+    this.inline,
+    this.languageCode,
+    this.progressBuilder,
+    this.sortingOrderDesc,
+    this.progressPosition,
+    this.closeButtonWidget,
+    this.closeButtonPosition,
+    this.backgroundColorBetweenStories,
+    this.repeat = false,
+    this.imageStoryDuration = 3,
+  });
 
   @override
   _GroupedStoriesViewState createState() => _GroupedStoriesViewState();
@@ -47,8 +51,13 @@ class GroupedStoriesView extends StatefulWidget {
 class _GroupedStoriesViewState extends State<GroupedStoriesView> {
   final _firestore = Firestore.instance;
   final storyController = StoryController();
-  List<List<StoryItem>> storyItemList = [];
-  StoriesData _storiesData;
+  PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: indexOfStory(widget.selectedStoryId));
+  }
 
   @override
   void dispose() {
@@ -57,173 +66,120 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
   }
 
   @override
-  void initState() {
-    _storiesData = StoriesData(languageCode: widget.languageCode);
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final StoriesListWithPressed storiesListWithPressed =
-        ModalRoute.of(context).settings.arguments;
     return WillPopScope(
       onWillPop: () {
-        _navigateBack();
+        _finishStoriesView();
         return Future.value(false);
       },
       child: Scaffold(
-        body: Container(
-          color: Colors.black,
-          child: StreamBuilder(
-            stream: _firestore
-                .collection(widget.collectionDbName)
-                .document(storiesListWithPressed.pressedStoryId)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return Center(
-                  child: CircularProgressIndicator(
-                    backgroundColor: Colors.lightBlueAccent,
-                  ),
-                );
-              }
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          bottom: false,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: widget.storiesIds.length,
+            physics: NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index) {
+              return Stack(
+                children: <Widget>[
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: streamStories(widget.storiesIds[index]),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return Center(child: CircularProgressIndicator());
+                      }
 
-              Map<String, dynamic> toPass = {
-                'snapshotData': snapshot.data,
-                'pressedStoryId': storiesListWithPressed.pressedStoryId
-              };
-              _storiesData.parseStories(toPass, widget.imageStoryDuration);
-              storyItemList.add(_storiesData.storyItems);
-
-              return Dismissible(
-                  resizeDuration: Duration(milliseconds: 200),
-                  key: UniqueKey(),
-                  onDismissed: (DismissDirection direction) {
-                    if (direction == DismissDirection.endToStart) {
-                      String nextStoryId =
-                          storiesListWithPressed.nextElementStoryId();
-                      if (nextStoryId == null) {
-                        _navigateBack();
-                      } else {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => _groupedStoriesView(),
-                            settings: RouteSettings(
-                              arguments: StoriesListWithPressed(
-                                  pressedStoryId: nextStoryId,
-                                  storiesIdsList:
-                                      storiesListWithPressed.storiesIdsList),
-                            ),
-                          ),
-                        );
-                      }
-                    } else {
-                      String previousStoryId =
-                          storiesListWithPressed.previousElementStoryId();
-                      if (previousStoryId == null) {
-                        _navigateBack();
-                      } else {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => _groupedStoriesView(),
-                            settings: RouteSettings(
-                              arguments: StoriesListWithPressed(
-                                  pressedStoryId: previousStoryId,
-                                  storiesIdsList:
-                                      storiesListWithPressed.storiesIdsList),
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: GestureDetector(
-                    child: StoryView(
-                      widget.sortingOrderDesc
-                          ? storyItemList[0].reversed.toList()
-                          : storyItemList[0],
-                      controller: storyController,
-                      progressPosition: widget.progressPosition,
-                      repeat: widget.repeat,
-                      inline: widget.inline,
-                      onStoryShow: (StoryItem s) {
-                        _onStoryShow(s);
-                      },
-                      goForward: () {},
-                      onComplete: () {
-                        String nextStoryId =
-                            storiesListWithPressed.nextElementStoryId();
-                        if (nextStoryId == null) {
-                          _navigateBack();
-                        } else {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => _groupedStoriesView(),
-                              settings: RouteSettings(
-                                arguments: StoriesListWithPressed(
-                                  pressedStoryId: nextStoryId,
-                                  storiesIdsList:
-                                      storiesListWithPressed.storiesIdsList,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    onVerticalDragUpdate: (details) {
-                      if (details.delta.dy > 0) {
-                        _navigateBack();
-                      }
+                      final stories = parseStories(
+                        storyController,
+                        widget.languageCode,
+                        snapshot.data,
+                        widget.imageStoryDuration,
+                      );
+                      return GestureDetector(
+                        child: StoryView(
+                          storyItems: widget.sortingOrderDesc ? stories.reversed.toList() : stories,
+                          controller: storyController,
+                          repeat: widget.repeat,
+                          inline: widget.inline,
+                          progressBuilder: widget.progressBuilder,
+                          progressPosition: widget.progressPosition,
+                          onStoryShow: (StoryItem s) {
+                            _onStoryShow(s);
+                          },
+                          previousOnFirstStory: _previousGroupedStories,
+                          onComplete: _nextGroupedStories,
+                        ),
+                        onVerticalDragUpdate: (details) {
+                          if (details.delta.dy > 0) {
+                            _finishStoriesView();
+                          }
+                        },
+                        onHorizontalDragUpdate: (details) {
+                          if (details.delta.dx > 0) {
+                            _previousGroupedStories();
+                          } else {
+                            _nextGroupedStories();
+                          }
+                        },
+                      );
                     },
-                  ));
+                  ),
+                  Align(
+                    alignment: widget.closeButtonPosition,
+                    child: GestureDetector(
+                      onTap: _finishStoriesView,
+                      child: widget.closeButtonWidget,
+                    ),
+                  ),
+                ],
+              );
             },
-          ),
-        ),
-        floatingActionButton: Align(
-          alignment: Alignment(1.0, -0.84),
-          child: Padding(
-            padding: const EdgeInsets.all(0.0),
-            child: FloatingActionButton(
-              onPressed: () {
-                _navigateBack();
-              },
-              child: widget.closeButtonIcon,
-              backgroundColor: widget.closeButtonBackgroundColor,
-              elevation: 0,
-            ),
           ),
         ),
       ),
     );
   }
 
-  GroupedStoriesView _groupedStoriesView() {
-    return GroupedStoriesView(
-      collectionDbName: widget.collectionDbName,
-      languageCode: widget.languageCode,
-      imageStoryDuration: widget.imageStoryDuration,
-      progressPosition: widget.progressPosition,
-      repeat: widget.repeat,
-      inline: widget.inline,
-      backgroundColorBetweenStories: widget.backgroundColorBetweenStories,
-      closeButtonIcon: widget.closeButtonIcon,
-      closeButtonBackgroundColor: widget.closeButtonBackgroundColor,
-      sortingOrderDesc: widget.sortingOrderDesc,
-    );
+  Stream<DocumentSnapshot> streamStories(String storyId) =>
+      _firestore.collection(widget.collectionDbName).document(storyId).snapshots();
+
+  void _nextGroupedStories() {
+    if (_pageController.page.toInt() != indexOfStory(widget.storiesIds.last)) {
+      _navigateToStories(_StoriesDirection.next);
+    } else {
+      _finishStoriesView();
+    }
   }
 
-  _navigateBack() {
-    return Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/',
-      (_) => false,
-      arguments: 'back_from_stories_view',
-    );
+  void _previousGroupedStories() {
+    if (_pageController.page.toInt() != indexOfStory(widget.storiesIds.first)) {
+      _navigateToStories(_StoriesDirection.previous);
+    }
+  }
+
+  Future _navigateToStories(_StoriesDirection direction) {
+    storyController.stop();
+
+    if (direction == _StoriesDirection.next)
+      return _pageController.nextPage(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.ease,
+      );
+    else {
+      return _pageController.previousPage(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.ease,
+      );
+    }
+  }
+
+  bool _finishStoriesView() {
+    storyController?.stop();
+    return Navigator.pop(context, 'back_from_stories_view');
   }
 
   void _onStoryShow(StoryItem s) {}
+
+  int indexOfStory(String storyId) => widget.storiesIds.indexOf(storyId);
 }

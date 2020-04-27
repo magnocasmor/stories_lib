@@ -42,10 +42,10 @@ class _HomeState extends State<Home> {
       ),
       body: Column(
         children: <Widget>[
-          StoriesComponent(
+          Stories(
             collectionDbName: collectionDbName,
             showTitleOnIcon: true,
-            backFromStories: () {
+            onStoriesFinish: () {
               _backFromStoriesAlert();
             },
             iconTextStyle: TextStyle(
@@ -76,8 +76,8 @@ class _HomeState extends State<Home> {
             progressPosition: ProgressPosition.top,
             repeat: true,
             inline: false,
-            languageCode: 'en',
-            backgroundColorBetweenStories: Colors.black,
+            languageCode: 'pt',
+            backgroundBetweenStories: Colors.black,
             closeButtonIcon: Icon(
               Icons.close,
               color: Colors.white,
@@ -85,9 +85,9 @@ class _HomeState extends State<Home> {
             ),
             closeButtonBackgroundColor: Color(0x11000000),
             sortingOrderDesc: true,
-            lastIconHighlight: true,
-            lastIconHighlightColor: Colors.deepOrange,
-            lastIconHighlightRadius: const Radius.circular(15.0),
+            recentHighlight: true,
+            recentHighlightColor: Colors.deepOrange,
+            recentHighlightRadius: const Radius.circular(15.0),
           ),
           Center(
             child: Padding(

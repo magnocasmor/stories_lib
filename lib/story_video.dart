@@ -1,65 +1,81 @@
-import 'dart:async';
 import 'dart:io';
-
-import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:stories_lib/story_controller.dart';
+import 'dart:async';
 import 'story_view.dart';
+import 'package:rxdart/subjects.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
-
-import 'utils.dart';
+import 'package:stories_lib/story_controller.dart';
+import 'package:stories_lib/utils/load_state.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class VideoLoader {
-  //TODO: for now video lasts 10 seconds - add video length detection
-  //TODO: for now while downloading timer is going. Stop timer while loading, display video after first 3 seconds load.
+  final String url;
 
-  String url;
+  final Map<String, dynamic> requestHeaders;
 
-  File videoFile;
+  final _state = BehaviorSubject<LoadState>()..add(LoadState.loading);
 
-  Map<String, dynamic> requestHeaders;
-
-  LoadState state = LoadState.loading;
+  File _videoFile;
 
   VideoLoader(this.url, {this.requestHeaders});
 
-  void loadVideo(VoidCallback onComplete) {
-    if (this.videoFile != null) {
-      this.state = LoadState.loading;
-      onComplete();
-    }
-
-    final fileStream =
-        DefaultCacheManager().getFile(this.url, headers: this.requestHeaders);
-
-    fileStream.listen((fileInfo) {
-      if (this.videoFile == null) {
-        this.state = LoadState.success;
-        this.videoFile = fileInfo.file;
-        onComplete();
+  Future<File> loadVideo() async {
+    try {
+      if (this._videoFile == null) {
+        final file = await DefaultCacheManager().getSingleFile(
+          this.url,
+          headers: this.requestHeaders,
+        );
+        this._videoFile = file;
       }
-    });
+
+      _state.add(LoadState.success);
+
+      return _videoFile;
+    } catch (e, s) {
+      print(e);
+      print(s);
+
+      _state.add(LoadState.failure);
+
+      rethrow;
+    }
   }
 }
 
 class StoryVideo extends StatefulWidget {
-  final StoryController storyController;
+  final BoxFit videoFit;
+  final Widget mediaErrorWidget;
   final VideoLoader videoLoader;
+  final Widget mediaLoadingWidget;
+  final StoryController storyController;
 
-  StoryVideo(this.videoLoader, {this.storyController, Key key})
-      : super(key: key ?? UniqueKey());
+  StoryVideo({
+    Key key,
+    @required this.videoLoader,
+    this.storyController,
+    this.mediaErrorWidget,
+    this.mediaLoadingWidget,
+    this.videoFit = BoxFit.cover,
+  }) : super(key: key ?? UniqueKey());
 
-  static StoryVideo url(
-    String url, {
+  static StoryVideo url({
+    Key key,
+    String url,
+    BoxFit videoFit,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     StoryController controller,
     Map<String, dynamic> requestHeaders,
-    VoidCallback adjustDuration,
-    Key key,
   }) {
     return StoryVideo(
-      VideoLoader(url, requestHeaders: requestHeaders),
-      storyController: controller,
       key: key,
+      videoFit: videoFit,
+      storyController: controller,
+      mediaErrorWidget: mediaErrorWidget,
+      mediaLoadingWidget: mediaLoadingWidget,
+      videoLoader: VideoLoader(url, requestHeaders: requestHeaders),
     );
   }
 
@@ -77,75 +93,55 @@ class StoryVideoState extends State<StoryVideo> {
   VideoPlayerController playerController;
 
   @override
-  void initState() {
-    super.initState();
-    widget.videoLoader.loadVideo(
-      () {
-        if (widget.videoLoader.state == LoadState.success) {
-          this.playerController =
-              VideoPlayerController.file(widget.videoLoader.videoFile);
+  Widget build(BuildContext context) {
+    return Center(child: contentView());
+  }
 
-          playerController.initialize().then((v) {
-            setState(() {});
-            widget.storyController.play();
-          });
+  Widget contentView() {
+    return FutureBuilder<void>(
+      future: initializeController(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return widget.mediaErrorWidget ??
+              Text(
+                "Media failed to load.",
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              );
+        }
 
-          if (widget.storyController != null) {
-            playerController.addListener(checkIfVideoFinished);
-            _streamSubscription =
-                widget.storyController.playbackNotifier.listen((playbackState) {
-              if (playbackState == PlaybackState.pause) {
-                playerController.pause();
-              } else {
-                playerController.play();
-              }
-            });
-          }
-        } else {
-          setState(() {});
+        final state = snapshot.connectionState;
+
+        switch (state) {
+          case ConnectionState.done:
+            return SafeArea(
+              child: SizedBox.expand(
+                child: FittedBox(
+                  fit: widget.videoFit,
+                  child: SizedBox(
+                    width: playerController.value.size?.width ?? 0,
+                    height: playerController.value.size?.height ?? 0,
+                    child: VideoPlayer(playerController),
+                  ),
+                ),
+              ),
+            );
+            break;
+          default:
+            return widget.mediaLoadingWidget ??
+                SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 3,
+                  ),
+                );
+            break;
         }
       },
     );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      height: double.infinity,
-      width: double.infinity,
-      child: getContentView(),
-    );
-  }
-
-  Widget getContentView() {
-    if (widget.videoLoader.state == LoadState.success &&
-        playerController.value.initialized) {
-      return Center(
-        child: AspectRatio(
-          aspectRatio: playerController.value.aspectRatio,
-          child: VideoPlayer(playerController),
-        ),
-      );
-    }
-    return widget.videoLoader.state == LoadState.loading
-        ? Center(
-            child: Container(
-              width: 70,
-              height: 70,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                strokeWidth: 3,
-              ),
-            ),
-          )
-        : Center(
-            child: Text(
-            "Media failed to load.",
-            style: TextStyle(
-              color: Colors.grey,
-            ),
-          ));
   }
 
   @override
@@ -155,11 +151,37 @@ class StoryVideoState extends State<StoryVideo> {
     super.dispose();
   }
 
+  Future<void> initializeController() async {
+    if (playerController is VideoPlayerController && playerController.value.initialized) return;
+
+    widget.storyController?.pause();
+
+    final videoFile = await widget.videoLoader.loadVideo();
+
+    this.playerController = VideoPlayerController.file(videoFile);
+
+    await playerController.initialize();
+
+    Provider.of<StoryItem>(context, listen: false).duration = playerController.value.duration;
+
+    widget.storyController.play();
+
+    if (widget.storyController != null) {
+      playerController.addListener(checkIfVideoFinished);
+      _streamSubscription = widget.storyController.playbackNotifier.listen((playbackState) {
+        if (playbackState == PlaybackState.play) {
+          playerController.play();
+        } else {
+          playerController.pause();
+          if (playbackState == PlaybackState.stop) _streamSubscription.cancel();
+        }
+      });
+    }
+  }
+
   void checkIfVideoFinished() {
-    print('~~~~~~~~~~~~~~ -- ${playerController.value.duration.inSeconds} ');
     try {
-      if (playerController.value.position.inSeconds ==
-          playerController.value.duration.inSeconds) {
+      if (playerController.value.position.inSeconds == playerController.value.duration.inSeconds) {
         playerController.removeListener(checkIfVideoFinished);
       }
     } catch (e) {}
