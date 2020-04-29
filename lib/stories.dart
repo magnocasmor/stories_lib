@@ -23,8 +23,7 @@ class Stories extends StatefulWidget {
   final Duration storyDuration;
   final String collectionDbName;
   final Widget previewPlaceholder;
-  final DateTime storyTimeValidaty;
-  // final EdgeInsets previewItemPadding;
+  final Duration storyTimeValidaty;
   final EdgeInsets previewListPadding;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
@@ -38,24 +37,24 @@ class Stories extends StatefulWidget {
   Stories({
     @required this.collectionDbName,
     this.userId,
-    this.previewListPadding,
-    this.onAllStoriesComplete,
     this.closeButton,
+    this.previewBuilder,
     this.placeholderBuilder,
+    this.previewListPadding,
     this.previewPlaceholder,
     this.storyHeaderBuilder,
-    this.previewBuilder,
-    this.storyTimeValidaty,
+    this.storyOpenTransition,
+    this.onAllStoriesComplete,
     this.repeat = false,
     this.inline = false,
     this.languageCode = 'pt',
-    this.storyOpenTransition,
     this.sortingOrderDesc = true,
     // this.previewItemPadding = EdgeInsets.zero,
     this.backgroundBetweenStories = Colors.black,
     this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
     this.storyDuration = const Duration(seconds: 3),
+    this.storyTimeValidaty = const Duration(hours: 12),
   });
 
   @override
@@ -167,7 +166,7 @@ class _StoriesState extends State<Stories> {
       .collection(widget.collectionDbName)
       .where(
         'last_update',
-        isGreaterThanOrEqualTo: DateTime.now().subtract(Duration(hours: 12)),
+        isGreaterThanOrEqualTo: DateTime.now().subtract(widget.storyTimeValidaty),
       )
       .orderBy('last_update', descending: widget.sortingOrderDesc)
       .snapshots();

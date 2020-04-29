@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
+
 import 'settings.dart';
 import 'story_video.dart';
 import 'story_image.dart';
@@ -17,7 +19,7 @@ export 'story_controller.dart';
 typedef StoryHeaderBuilder = Widget Function(
   BuildContext context,
   int currentIndex,
-  String image,
+  ImageProvider image,
   String title,
   List<PageData> pageData,
   Animation animation,
@@ -494,7 +496,7 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
               child: widget.headerBuilder?.call(
                     context,
                     widget.storyItems.indexOf(currentStory),
-                    currentStory.storyPreviewImg,
+                    CachedNetworkImageProvider(currentStory.storyPreviewImg),
                     currentStory.storyTitle,
                     widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
                     this.currentAnimation,
