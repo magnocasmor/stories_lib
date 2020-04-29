@@ -1,5 +1,3 @@
-import 'package:stories_lib/models/story.dart';
-
 import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
 import 'models/stories_collection.dart';
@@ -108,8 +106,6 @@ class _StoriesState extends State<Stories> {
     StoriesCollection story,
     List<String> storyIds,
   ) {
-    final initialStory = _initialStoryId(story);
-
     return Padding(
       padding: widget.storyItemPadding,
       child: GestureDetector(
@@ -121,7 +117,7 @@ class _StoriesState extends State<Stories> {
               context,
               image,
               story.title[widget.languageCode],
-              initialStory is Story,
+              _hasNewStories(story),
             );
           },
           errorWidget: (context, url, error) => Icon(Icons.error),
@@ -147,7 +143,6 @@ class _StoriesState extends State<Stories> {
                   closeButtonWidget: widget.closeButtonWidget,
                   storyDuration: widget.imageStoryDuration,
                   closeButtonPosition: widget.closeButtonPosition,
-                  initialStoryIndex: story.stories.indexOf(initialStory) ?? 0,
                   backgroundColorBetweenStories: widget.backgroundBetweenStories,
                 );
               },
@@ -176,13 +171,17 @@ class _StoriesState extends State<Stories> {
 
   Stream<QuerySnapshot> get _storiesStream => _firestore
       .collection(widget.collectionDbName)
-      .orderBy('date', descending: widget.sortingOrderDesc)
+      .where(
+        'last_update',
+        isGreaterThanOrEqualTo: DateTime.now().subtract(Duration(hours: 12)),
+      )
+      .orderBy('last_update', descending: widget.sortingOrderDesc)
       .snapshots();
 
-  Story _initialStoryId(StoriesCollection collection) {
-    return collection.stories.firstWhere(
-      (s) => s.views?.every((v) => v["user_info"] != widget.userId) ?? true,
-      orElse: () => null,
+  bool _hasNewStories(StoriesCollection collection) {
+    return collection.stories.any(
+      (s) =>
+          isInIntervalToShow(s) && (s.views?.every((v) => v["user_info"] != widget.userId) ?? true),
     );
   }
 }

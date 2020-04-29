@@ -44,9 +44,11 @@ List<StoryItem> parseStories(
 
   storiesCollection.stories.asMap().forEach(
     (index, storyData) {
+      if (!isInIntervalToShow(storyData)) return;
+
+      final storyId = storyData.id;
       final storyPreviewImg = storiesCollection.coverImg;
       final storyTitle = storiesCollection.title[languageCode];
-
       final duration = Duration(seconds: storyDuration);
       final media = storyData.media != null ? storyData.media[languageCode] : null;
       final caption = storyData.caption != null ? storyData.caption[languageCode] : null;
@@ -59,6 +61,7 @@ List<StoryItem> parseStories(
             StoryItem.text(
               text: caption,
               shown: _shown,
+              storyId: storyId,
               duration: duration,
               storyTitle: storyTitle,
               storyPreviewImg: storyPreviewImg,
@@ -71,6 +74,7 @@ List<StoryItem> parseStories(
           storyItems.add(
             StoryItem.pageImage(
               shown: _shown,
+              storyId: storyId,
               caption: caption,
               image: storyImage,
               duration: duration,
@@ -84,6 +88,7 @@ List<StoryItem> parseStories(
             StoryItem.pageGif(
               url: media,
               shown: _shown,
+              storyId: storyId,
               caption: caption,
               duration: duration,
               storyTitle: storyTitle,
@@ -97,6 +102,7 @@ List<StoryItem> parseStories(
             StoryItem.pageVideo(
               url: media,
               shown: _shown,
+              storyId: storyId,
               caption: caption,
               storyTitle: storyTitle,
               controller: storyController,
@@ -119,6 +125,10 @@ List<StoryItem> parseStories(
 
 bool isViewed(Story story, String userId) {
   return story.views?.any((v) => v["user_info"] == userId) ?? false;
+}
+
+bool isInIntervalToShow(Story story) {
+  return story.date.isAfter(DateTime.now().subtract(Duration(hours: 12)));
 }
 
 StoriesCollection storiesCollectionFromDocument(DocumentSnapshot document) =>

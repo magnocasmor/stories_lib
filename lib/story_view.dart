@@ -24,6 +24,8 @@ typedef StoryHeaderBuilder = Widget Function(
 
 /// This is a representation of a story item (or page).
 class StoryItem extends ChangeNotifier {
+  final String storyId;
+
   final String storyPreviewImg;
 
   final String storyTitle;
@@ -47,6 +49,7 @@ class StoryItem extends ChangeNotifier {
 
   StoryItem({
     @required this.view,
+    @required this.storyId,
     this.storyTitle,
     this.storyPreviewImg,
     Duration duration = const Duration(seconds: 3),
@@ -64,6 +67,7 @@ class StoryItem extends ChangeNotifier {
   /// what inline/full-page means.
   static StoryItem text({
     @required String text,
+    @required String storyId,
     @required Color backgroundColor,
     TextStyle style,
     String storyTitle,
@@ -87,6 +91,7 @@ class StoryItem extends ChangeNotifier {
     ] /** white text */);
 
     return StoryItem(
+      storyId: storyId,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: Container(
@@ -120,6 +125,7 @@ class StoryItem extends ChangeNotifier {
   ///
   /// You can provide any image provider for [image].
   static StoryItem pageImage({
+    @required String storyId,
     @required ImageProvider image,
     String caption,
     String storyTitle,
@@ -130,6 +136,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
+      storyId: storyId,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
@@ -146,6 +153,7 @@ class StoryItem extends ChangeNotifier {
 
   /// Shorthand for creating inline image page.
   static StoryItem inlineImage({
+    @required String storyId,
     @required ImageProvider image,
     Text caption,
     String storyTitle,
@@ -156,6 +164,7 @@ class StoryItem extends ChangeNotifier {
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
+      storyId: storyId,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: Container(
@@ -193,6 +202,7 @@ class StoryItem extends ChangeNotifier {
 
   static StoryItem pageGif({
     @required String url,
+    @required String storyId,
     String caption,
     String storyTitle,
     String storyPreviewImg,
@@ -204,6 +214,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
+      storyId: storyId,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
@@ -223,6 +234,7 @@ class StoryItem extends ChangeNotifier {
   /// Shorthand for creating inline image page.
   static StoryItem inlineGif({
     @required String url,
+    @required String storyId,
     Text caption,
     String storyTitle,
     String storyPreviewImg,
@@ -235,6 +247,7 @@ class StoryItem extends ChangeNotifier {
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
+      storyId: storyId,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: Container(
@@ -284,6 +297,7 @@ class StoryItem extends ChangeNotifier {
 
   static StoryItem pageVideo({
     @required String url,
+    @required String storyId,
     String caption,
     String storyTitle,
     String storyPreviewImg,
@@ -295,6 +309,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(videoFit != null, "[videoFit] should not be null");
     return StoryItem(
+      storyId: storyId,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: StoryWidget(

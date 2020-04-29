@@ -18,7 +18,6 @@ class GroupedStoriesView extends StatefulWidget {
   final bool inline;
   final String userId;
   final String languageCode;
-  final int initialStoryIndex;
   final bool sortingOrderDesc;
   final String selectedStoryId;
   final int storyDuration;
@@ -43,7 +42,6 @@ class GroupedStoriesView extends StatefulWidget {
     this.closeButtonPosition,
     this.backgroundColorBetweenStories,
     this.repeat = false,
-    this.initialStoryIndex = 0,
     this.storyDuration = 3,
     this.sortingOrderDesc = false,
   });
@@ -103,7 +101,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                         widget.languageCode,
                         widget.storyDuration,
                       );
-                      
+
                       return GestureDetector(
                         child: StoryView(
                           storyItems: widget.sortingOrderDesc ? stories.reversed.toList() : stories,
@@ -116,8 +114,9 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                             storyData.reference.get().then(
                               (ds) async {
                                 final doc = ds.data;
-                                final index = stories.indexOf(item);
-                                final views = doc["stories"][index]["views"];
+                                final story =
+                                    doc["stories"].singleWhere((s) => s['id'] == item.storyId);
+                                final views = story["views"];
                                 final currentView = {
                                   "user_info": widget.userId,
                                   "date": DateTime.now(),
@@ -132,7 +131,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                                     views.add(currentView);
                                   }
                                 } else {
-                                  doc["stories"][index]["views"] = [currentView];
+                                  story["views"] = [currentView];
                                 }
 
                                 ds.reference.updateData(doc);
@@ -173,8 +172,12 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
     );
   }
 
-  Future<DocumentSnapshot> streamStories(String storyId) =>
-      _firestore.collection(widget.collectionDbName).document(storyId).get();
+  Future<DocumentSnapshot> streamStories(String storyId) => _firestore
+      .collection(widget.collectionDbName)
+      .orderBy('last_update', descending: widget.sortingOrderDesc)
+      .reference()
+      .document(storyId)
+      .get();
 
   void _nextGroupedStories() {
     if (_pageController.page.toInt() != indexOfStory(widget.storiesIds.last)) {
