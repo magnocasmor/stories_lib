@@ -33,7 +33,7 @@ class Stories extends StatefulWidget {
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final ItemBuilder placeholderBuilder;
-  final ProgressBuilder progressBuilder;
+  final StoryHeaderBuilder storyHeaderBuilder;
   final StoryPreviewBuilder storyPreviewBuilder;
   final RouteTransitionsBuilder navigationTransition;
 
@@ -41,7 +41,7 @@ class Stories extends StatefulWidget {
     @required this.collectionDbName,
     this.userId,
     this.listPadding,
-    this.progressBuilder,
+    this.storyHeaderBuilder,
     this.onStoriesFinish,
     this.closeButtonWidget,
     this.placeholderBuilder,
@@ -127,7 +127,7 @@ class _StoriesState extends State<Stories> {
           errorWidget: (context, url, error) => Icon(Icons.error),
         ),
         onTap: () async {
-          Navigator.pushAndRemoveUntil(
+          Navigator.push(
             context,
             PageRouteBuilder(
               transitionDuration: const Duration(milliseconds: 250),
@@ -140,7 +140,7 @@ class _StoriesState extends State<Stories> {
                   userId: widget.userId,
                   selectedStoryId: story.storyId,
                   languageCode: widget.languageCode,
-                  progressBuilder: widget.progressBuilder,
+                  progressBuilder: widget.storyHeaderBuilder,
                   progressPosition: widget.progressPosition,
                   // sortingOrderDesc: widget.sortingOrderDesc,
                   collectionDbName: widget.collectionDbName,
@@ -155,7 +155,6 @@ class _StoriesState extends State<Stories> {
                 arguments: story.storyId,
               ),
             ),
-            ModalRoute.withName('/'),
           );
         },
       ),

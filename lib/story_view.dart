@@ -13,14 +13,21 @@ export 'story_image.dart';
 export 'story_video.dart';
 export 'story_controller.dart';
 
-typedef ProgressBuilder = Widget Function(
-  List<PageData> pageData,
+typedef StoryHeaderBuilder = Widget Function(
+  BuildContext context,
   int currentIndex,
+  String image,
+  String title,
+  List<PageData> pageData,
   Animation animation,
 );
 
 /// This is a representation of a story item (or page).
 class StoryItem extends ChangeNotifier {
+  final String storyPreviewImg;
+
+  final String storyTitle;
+
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
   Duration _duration;
@@ -40,6 +47,8 @@ class StoryItem extends ChangeNotifier {
 
   StoryItem({
     @required this.view,
+    this.storyTitle,
+    this.storyPreviewImg,
     Duration duration = const Duration(seconds: 3),
     this.shown = false,
   })  : assert(duration != null, "[duration] should not be null"),
@@ -57,6 +66,8 @@ class StoryItem extends ChangeNotifier {
     @required String text,
     @required Color backgroundColor,
     TextStyle style,
+    String storyTitle,
+    String storyPreviewImg,
     bool shown = false,
     bool roundedTop = false,
     bool roundedBottom = false,
@@ -76,6 +87,8 @@ class StoryItem extends ChangeNotifier {
     ] /** white text */);
 
     return StoryItem(
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
@@ -109,12 +122,16 @@ class StoryItem extends ChangeNotifier {
   static StoryItem pageImage({
     @required ImageProvider image,
     String caption,
+    String storyTitle,
+    String storyPreviewImg,
     bool shown = false,
     BoxFit imageFit = BoxFit.fitHeight,
     Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
         story: Image(
           image: image,
@@ -131,12 +148,16 @@ class StoryItem extends ChangeNotifier {
   static StoryItem inlineImage({
     @required ImageProvider image,
     Text caption,
+    String storyTitle,
+    String storyPreviewImg,
     bool shown = false,
     bool roundedTop = true,
     bool roundedBottom = true,
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: Container(
         decoration: BoxDecoration(
             color: Colors.grey[100],
@@ -173,14 +194,18 @@ class StoryItem extends ChangeNotifier {
   static StoryItem pageGif({
     @required String url,
     String caption,
-    bool shown = false,
+    String storyTitle,
+    String storyPreviewImg,
     StoryController controller,
+    bool shown = false,
     BoxFit imageFit = BoxFit.fitHeight,
     Map<String, dynamic> requestHeaders,
     Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
         story: StoryImage.url(
           url: url,
@@ -199,15 +224,19 @@ class StoryItem extends ChangeNotifier {
   static StoryItem inlineGif({
     @required String url,
     Text caption,
+    String storyTitle,
+    String storyPreviewImg,
+    StoryController controller,
+    Map<String, dynamic> requestHeaders,
     bool shown = false,
     bool roundedTop = true,
     bool roundedBottom = false,
-    StoryController controller,
     BoxFit imageFit = BoxFit.cover,
-    Map<String, dynamic> requestHeaders,
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: Container(
         decoration: BoxDecoration(
           color: Colors.grey[100],
@@ -256,14 +285,18 @@ class StoryItem extends ChangeNotifier {
   static StoryItem pageVideo({
     @required String url,
     String caption,
-    bool shown = false,
+    String storyTitle,
+    String storyPreviewImg,
     StoryController controller,
+    bool shown = false,
     BoxFit videoFit = BoxFit.fitHeight,
     Map<String, dynamic> requestHeaders,
     Duration duration = const Duration(seconds: 10),
   }) {
     assert(videoFit != null, "[videoFit] should not be null");
     return StoryItem(
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
         story: StoryVideo.url(
           url: url,
@@ -300,7 +333,7 @@ class StoryView extends StatefulWidget {
 
   final VoidCallback previousOnFirstStory;
 
-  final ProgressBuilder progressBuilder;
+  final StoryHeaderBuilder storyHeaderBuilder;
 
   /// Callback for when a story is currently being shown.
   final ValueChanged<StoryItem> onStoryShow;
@@ -323,7 +356,7 @@ class StoryView extends StatefulWidget {
     this.controller,
     this.onComplete,
     this.onStoryShow,
-    this.progressBuilder,
+    this.storyHeaderBuilder,
     this.previousOnFirstStory,
     this.progressPosition = Alignment.topCenter,
     this.repeat = false,
@@ -440,9 +473,12 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
                 horizontal: 16.0,
                 vertical: 8.0,
               ),
-              child: widget.progressBuilder?.call(
-                    widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
+              child: widget.storyHeaderBuilder?.call(
+                    context,
                     widget.storyItems.indexOf(currentStory),
+                    currentStory.storyPreviewImg,
+                    currentStory.storyTitle,
+                    widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
                     this.currentAnimation,
                   ) ??
                   PageBar(

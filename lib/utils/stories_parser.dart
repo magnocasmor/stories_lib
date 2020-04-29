@@ -7,7 +7,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 List<String> storyIds(List<DocumentSnapshot> stories) {
   return stories
-      .where((story) => _storiesCollectionFromDocument(story).stories != null)
+      .where((story) => storiesCollectionFromDocument(story).stories != null)
       .map((story) => story.documentID)
       .toList();
 }
@@ -16,7 +16,7 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
   final _cacheDepth = 4;
 
   return stories.map((story) {
-    final StoriesCollection storyData = _storiesCollectionFromDocument(story);
+    final StoriesCollection storyData = storiesCollectionFromDocument(story);
 
     if (storyData.stories != null) {
       var i = 0;
@@ -38,12 +38,15 @@ List<StoryItem> parseStories(
   String languageCode,
   int storyDuration,
 ) {
-  final storiesCollection = _storiesCollectionFromDocument(data);
+  final storiesCollection = storiesCollectionFromDocument(data);
 
   final storyItems = <StoryItem>[];
 
   storiesCollection.stories.asMap().forEach(
     (index, storyData) {
+      final storyPreviewImg = storiesCollection.coverImg;
+      final storyTitle = storiesCollection.title[languageCode];
+
       final duration = Duration(seconds: storyDuration);
       final media = storyData.media != null ? storyData.media[languageCode] : null;
       final caption = storyData.caption != null ? storyData.caption[languageCode] : null;
@@ -55,9 +58,11 @@ List<StoryItem> parseStories(
           storyItems.add(
             StoryItem.text(
               text: caption,
-              duration: duration,
-              backgroundColor: storyData.backgroundColor,
               shown: _shown,
+              duration: duration,
+              storyTitle: storyTitle,
+              storyPreviewImg: storyPreviewImg,
+              backgroundColor: storyData.backgroundColor,
             ),
           );
           break;
@@ -65,10 +70,12 @@ List<StoryItem> parseStories(
           final storyImage = CachedNetworkImageProvider(media);
           storyItems.add(
             StoryItem.pageImage(
+              shown: _shown,
               caption: caption,
               image: storyImage,
               duration: duration,
-              shown: _shown,
+              storyTitle: storyTitle,
+              storyPreviewImg: storyPreviewImg,
             ),
           );
           break;
@@ -76,10 +83,12 @@ List<StoryItem> parseStories(
           storyItems.add(
             StoryItem.pageGif(
               url: media,
+              shown: _shown,
               caption: caption,
               duration: duration,
+              storyTitle: storyTitle,
               controller: storyController,
-              shown: _shown,
+              storyPreviewImg: storyPreviewImg,
             ),
           );
           break;
@@ -87,9 +96,11 @@ List<StoryItem> parseStories(
           storyItems.add(
             StoryItem.pageVideo(
               url: media,
-              caption: caption,
-              controller: storyController,
               shown: _shown,
+              caption: caption,
+              storyTitle: storyTitle,
+              controller: storyController,
+              storyPreviewImg: storyPreviewImg,
             ),
           );
           break;
@@ -110,5 +121,5 @@ bool isViewed(Story story, String userId) {
   return story.views?.any((v) => v["user_info"] == userId) ?? false;
 }
 
-StoriesCollection _storiesCollectionFromDocument(DocumentSnapshot document) =>
+StoriesCollection storiesCollectionFromDocument(DocumentSnapshot document) =>
     StoriesCollection.fromJson(document.data..addAll({"story_id": document.documentID}));

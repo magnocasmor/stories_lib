@@ -27,7 +27,7 @@ class GroupedStoriesView extends StatefulWidget {
   final Widget closeButtonWidget;
   final Alignment progressPosition;
   final Alignment closeButtonPosition;
-  final ProgressBuilder progressBuilder;
+  final StoryHeaderBuilder progressBuilder;
   final Color backgroundColorBetweenStories;
 
   GroupedStoriesView({
@@ -103,13 +103,14 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                         widget.languageCode,
                         widget.storyDuration,
                       );
+                      
                       return GestureDetector(
                         child: StoryView(
                           storyItems: widget.sortingOrderDesc ? stories.reversed.toList() : stories,
                           controller: storyController,
                           repeat: widget.repeat,
                           inline: widget.inline,
-                          progressBuilder: widget.progressBuilder,
+                          storyHeaderBuilder: widget.progressBuilder,
                           progressPosition: widget.progressPosition,
                           onStoryShow: (StoryItem item) {
                             storyData.reference.get().then(
