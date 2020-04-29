@@ -1,5 +1,5 @@
-import 'package:stories_lib/models/story.dart';
 import 'package:stories_lib/story_view.dart';
+import 'package:stories_lib/models/story.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/models/stories_collection.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -36,7 +36,7 @@ List<StoryItem> parseStories(
   StoryController storyController,
   String userId,
   String languageCode,
-  int storyDuration,
+  Duration storyDuration,
 ) {
   final storiesCollection = storiesCollectionFromDocument(data);
 
@@ -49,7 +49,7 @@ List<StoryItem> parseStories(
       final storyId = storyData.id;
       final storyPreviewImg = storiesCollection.coverImg;
       final storyTitle = storiesCollection.title[languageCode];
-      final duration = Duration(seconds: storyDuration);
+      final duration = storyDuration;
       final media = storyData.media != null ? storyData.media[languageCode] : null;
       final caption = storyData.caption != null ? storyData.caption[languageCode] : null;
 

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'story_view.dart';
 import 'story_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:stories_lib/stories.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/utils/stories_parser.dart';
 
@@ -13,44 +14,44 @@ export 'story_controller.dart';
 
 enum _StoriesDirection { next, previous }
 
-class GroupedStoriesView extends StatefulWidget {
+class StoriesCollectionView extends StatefulWidget {
   final bool repeat;
   final bool inline;
   final String userId;
+  final Widget closeButton;
   final String languageCode;
   final bool sortingOrderDesc;
   final String selectedStoryId;
-  final int storyDuration;
+  final Duration storyDuration;
   final List<String> storiesIds;
   final String collectionDbName;
-  final Widget closeButtonWidget;
-  final Alignment progressPosition;
   final Alignment closeButtonPosition;
   final StoryHeaderBuilder progressBuilder;
+  final StoryHeaderPosition headerPosition;
   final Color backgroundColorBetweenStories;
 
-  GroupedStoriesView({
+  StoriesCollectionView({
     @required this.storiesIds,
     @required this.selectedStoryId,
     @required this.collectionDbName,
     this.userId,
     this.inline,
+    this.closeButton,
     this.languageCode,
     this.progressBuilder,
-    this.progressPosition,
-    this.closeButtonWidget,
+    this.headerPosition,
     this.closeButtonPosition,
     this.backgroundColorBetweenStories,
     this.repeat = false,
-    this.storyDuration = 3,
     this.sortingOrderDesc = false,
+    this.storyDuration = const Duration(seconds: 3),
   });
 
   @override
-  _GroupedStoriesViewState createState() => _GroupedStoriesViewState();
+  _StoriesCollectionViewState createState() => _StoriesCollectionViewState();
 }
 
-class _GroupedStoriesViewState extends State<GroupedStoriesView> {
+class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   final _firestore = Firestore.instance;
   final storyController = StoryController();
   PageController _pageController;
@@ -75,7 +76,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
         return Future.value(false);
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: widget.backgroundColorBetweenStories,
         body: SafeArea(
           bottom: false,
           child: PageView.builder(
@@ -108,8 +109,8 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                           controller: storyController,
                           repeat: widget.repeat,
                           inline: widget.inline,
-                          storyHeaderBuilder: widget.progressBuilder,
-                          progressPosition: widget.progressPosition,
+                          headerBuilder: widget.progressBuilder,
+                          headerPosition: widget.headerPosition,
                           onStoryShow: (StoryItem item) {
                             storyData.reference.get().then(
                               (ds) async {
@@ -160,7 +161,7 @@ class _GroupedStoriesViewState extends State<GroupedStoriesView> {
                     alignment: widget.closeButtonPosition,
                     child: GestureDetector(
                       onTap: _finishStoriesView,
-                      child: widget.closeButtonWidget,
+                      child: widget.closeButton,
                     ),
                   ),
                 ],

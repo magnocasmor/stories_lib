@@ -4,9 +4,9 @@ import 'story_view.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:stories_lib/settings.dart';
 import 'package:video_player/video_player.dart';
 import 'package:stories_lib/story_controller.dart';
-import 'package:stories_lib/utils/load_state.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class VideoLoader {
@@ -45,19 +45,19 @@ class VideoLoader {
 }
 
 class StoryVideo extends StatefulWidget {
-  final BoxFit videoFit;
+  final BoxFit fit;
   final Widget mediaErrorWidget;
   final VideoLoader videoLoader;
   final Widget mediaLoadingWidget;
-  final StoryController storyController;
+  final StoryController controller;
 
   StoryVideo({
     Key key,
     @required this.videoLoader,
-    this.storyController,
+    this.controller,
     this.mediaErrorWidget,
     this.mediaLoadingWidget,
-    this.videoFit = BoxFit.cover,
+    this.fit = BoxFit.cover,
   }) : super(key: key ?? UniqueKey());
 
   static StoryVideo url({
@@ -71,8 +71,8 @@ class StoryVideo extends StatefulWidget {
   }) {
     return StoryVideo(
       key: key,
-      videoFit: videoFit,
-      storyController: controller,
+      fit: videoFit,
+      controller: controller,
       mediaErrorWidget: mediaErrorWidget,
       mediaLoadingWidget: mediaLoadingWidget,
       videoLoader: VideoLoader(url, requestHeaders: requestHeaders),
@@ -81,23 +81,24 @@ class StoryVideo extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() {
-    return StoryVideoState();
+    return _StoryVideoState();
   }
 }
 
-class StoryVideoState extends State<StoryVideo> {
-  Future<void> playerLoader;
-
-  StreamSubscription _streamSubscription;
+class _StoryVideoState extends State<StoryVideo> {
+  StreamSubscription streamSubscription;
 
   VideoPlayerController playerController;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(child: contentView());
+  void dispose() {
+    playerController?.dispose();
+    streamSubscription?.cancel();
+    super.dispose();
   }
 
-  Widget contentView() {
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<void>(
       future: initializeController(),
       builder: (context, snapshot) {
@@ -118,7 +119,7 @@ class StoryVideoState extends State<StoryVideo> {
             return SafeArea(
               child: SizedBox.expand(
                 child: FittedBox(
-                  fit: widget.videoFit,
+                  fit: widget.fit,
                   child: SizedBox(
                     width: playerController.value.size?.width ?? 0,
                     height: playerController.value.size?.height ?? 0,
@@ -144,17 +145,10 @@ class StoryVideoState extends State<StoryVideo> {
     );
   }
 
-  @override
-  void dispose() {
-    playerController?.dispose();
-    _streamSubscription?.cancel();
-    super.dispose();
-  }
-
   Future<void> initializeController() async {
     if (playerController is VideoPlayerController && playerController.value.initialized) return;
 
-    widget.storyController?.pause();
+    widget.controller?.pause();
 
     final videoFile = await widget.videoLoader.loadVideo();
 
@@ -164,16 +158,16 @@ class StoryVideoState extends State<StoryVideo> {
 
     Provider.of<StoryItem>(context, listen: false).duration = playerController.value.duration;
 
-    widget.storyController.play();
+    widget.controller.play();
 
-    if (widget.storyController != null) {
+    if (widget.controller != null) {
       playerController.addListener(checkIfVideoFinished);
-      _streamSubscription = widget.storyController.playbackNotifier.listen((playbackState) {
+      streamSubscription = widget.controller.playbackNotifier.listen((playbackState) {
         if (playbackState == PlaybackState.play) {
           playerController.play();
         } else {
           playerController.pause();
-          if (playbackState == PlaybackState.stop) _streamSubscription.cancel();
+          if (playbackState == PlaybackState.stop) streamSubscription.cancel();
         }
       });
     }

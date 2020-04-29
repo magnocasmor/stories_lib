@@ -45,7 +45,7 @@ class _HomeState extends State<Home> {
           Stories(
             collectionDbName: collectionDbName,
             showTitleOnIcon: true,
-            onStoriesFinish: () {
+            onAllStoriesComplete: () {
               _backFromStoriesAlert();
             },
             iconTextStyle: TextStyle(
@@ -73,7 +73,7 @@ class _HomeState extends State<Home> {
                 EdgeInsets.only(left: 8.0, right: 8.0, bottom: 12.0),
             //how long story lasts in seconds
             storyDuration: 7,
-            progressPosition: ProgressPosition.top,
+            headerPosition: ProgressPosition.top,
             repeat: true,
             inline: false,
             languageCode: 'pt',

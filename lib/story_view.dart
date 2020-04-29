@@ -6,7 +6,8 @@ import 'story_image.dart';
 import 'story_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:stories_lib/utils/contrast_helper.dart';
+import 'package:stories_lib/stories.dart';
+import 'package:stories_lib/utils/color_parser.dart';
 import 'package:stories_lib/components/story_widget.dart';
 
 export 'story_image.dart';
@@ -80,7 +81,7 @@ class StoryItem extends ChangeNotifier {
     assert(text is String, "[title] should not be null");
     if (backgroundColor == null) backgroundColor = Colors.black;
 
-    final contrast = ContrastHelper.contrast([
+    final _contrast = contrast([
       backgroundColor.red,
       backgroundColor.green,
       backgroundColor.blue,
@@ -110,7 +111,7 @@ class StoryItem extends ChangeNotifier {
           child: Text(
             text,
             style: (style ?? TextStyle())
-                .copyWith(color: contrast > 1.8 ? Colors.white : Colors.black),
+                .copyWith(color: _contrast > 1.8 ? Colors.white : Colors.black),
             textAlign: TextAlign.center,
           ),
         ),
@@ -348,13 +349,13 @@ class StoryView extends StatefulWidget {
 
   final VoidCallback previousOnFirstStory;
 
-  final StoryHeaderBuilder storyHeaderBuilder;
+  final StoryHeaderBuilder headerBuilder;
 
   /// Callback for when a story is currently being shown.
   final ValueChanged<StoryItem> onStoryShow;
 
   /// Where the progress indicator should be placed.
-  final Alignment progressPosition;
+  final StoryHeaderPosition headerPosition;
 
   /// Should the story be repeated forever?
   final bool repeat;
@@ -371,24 +372,24 @@ class StoryView extends StatefulWidget {
     this.controller,
     this.onComplete,
     this.onStoryShow,
-    this.storyHeaderBuilder,
+    this.headerBuilder,
     this.previousOnFirstStory,
-    this.progressPosition = Alignment.topCenter,
     this.repeat = false,
     this.inline = false,
+    this.headerPosition = StoryHeaderPosition.top,
   })  : assert(storyItems != null && storyItems.length > 0,
             "[storyItems] should not be null or empty"),
-        assert(progressPosition != null, "[progressPosition] cannot be null"),
+        assert(headerPosition != null, "[progressPosition] cannot be null"),
         assert(repeat != null, "[repeat] cannot be null"),
         assert(inline != null, "[inline] cannot be null");
 
   @override
   State<StatefulWidget> createState() {
-    return StoryViewState();
+    return _StoryViewState();
   }
 }
 
-class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
+class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   Timer debouncer;
   Animation<double> currentAnimation;
   AnimationController animationController;
@@ -482,13 +483,15 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
         children: <Widget>[
           currentView,
           Align(
-            alignment: widget.progressPosition,
+            alignment: widget.headerPosition == StoryHeaderPosition.top
+                ? Alignment.topCenter
+                : Alignment.bottomCenter,
             child: Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: 16.0,
                 vertical: 8.0,
               ),
-              child: widget.storyHeaderBuilder?.call(
+              child: widget.headerBuilder?.call(
                     context,
                     widget.storyItems.indexOf(currentStory),
                     currentStory.storyPreviewImg,
@@ -547,7 +550,6 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   }
 
   void onComplete() {
-    // widget.controller?.pause();
     widget.controller?.stop();
     if (widget.repeat) {
       widget.storyItems.forEach((it) {
@@ -638,8 +640,8 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 /// Capsule holding the duration and shown property of each story. Passed down
 /// to the pages bar to render the page indicators.
 class PageData {
-  final Duration duration;
   final bool shown;
+  final Duration duration;
 
   PageData(this.duration, this.shown);
 }

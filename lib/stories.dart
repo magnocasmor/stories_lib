@@ -1,61 +1,61 @@
-import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
 import 'models/stories_collection.dart';
+import 'package:stories_lib/settings.dart';
+import 'package:stories_lib/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/utils/stories_parser.dart';
+import 'package:stories_lib/stories_collection_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-export 'grouped_stories_view.dart';
+export 'stories_collection_view.dart';
 
-typedef ItemBuilder = Widget Function(BuildContext, int);
+typedef _ItemBuilder = Widget Function(BuildContext, int);
 
 typedef StoryPreviewBuilder = Widget Function(BuildContext, ImageProvider, String, bool);
-
-typedef HighlightBuilder = Widget Function(BuildContext, Widget);
 
 class Stories extends StatefulWidget {
   final bool repeat;
   final bool inline;
   final String userId;
+  final Widget closeButton;
   final String languageCode;
-  final bool recentHighlight;
   final bool sortingOrderDesc;
-  final int imageStoryDuration;
-  final EdgeInsets listPadding;
+  final Duration storyDuration;
   final String collectionDbName;
-  final Widget closeButtonWidget;
   final Widget previewPlaceholder;
-  final Alignment progressPosition;
-  final EdgeInsets storyItemPadding;
-  final VoidCallback onStoriesFinish;
+  final DateTime storyTimeValidaty;
+  // final EdgeInsets previewItemPadding;
+  final EdgeInsets previewListPadding;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
-  final ItemBuilder placeholderBuilder;
+  final _ItemBuilder placeholderBuilder;
+  final VoidCallback onAllStoriesComplete;
+  final StoryHeaderPosition headerPosition;
+  final StoryPreviewBuilder previewBuilder;
   final StoryHeaderBuilder storyHeaderBuilder;
-  final StoryPreviewBuilder storyPreviewBuilder;
-  final RouteTransitionsBuilder navigationTransition;
+  final RouteTransitionsBuilder storyOpenTransition;
 
   Stories({
     @required this.collectionDbName,
     this.userId,
-    this.listPadding,
-    this.storyHeaderBuilder,
-    this.onStoriesFinish,
-    this.closeButtonWidget,
+    this.previewListPadding,
+    this.onAllStoriesComplete,
+    this.closeButton,
     this.placeholderBuilder,
     this.previewPlaceholder,
-    this.imageStoryDuration,
-    this.storyPreviewBuilder,
+    this.storyHeaderBuilder,
+    this.previewBuilder,
+    this.storyTimeValidaty,
     this.repeat = false,
     this.inline = false,
-    this.languageCode = 'en',
-    this.navigationTransition,
-    this.recentHighlight = false,
+    this.languageCode = 'pt',
+    this.storyOpenTransition,
     this.sortingOrderDesc = true,
-    this.storyItemPadding = EdgeInsets.zero,
-    this.progressPosition = Alignment.topCenter,
+    // this.previewItemPadding = EdgeInsets.zero,
     this.backgroundBetweenStories = Colors.black,
+    this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
+    this.storyDuration = const Duration(seconds: 3),
   });
 
   @override
@@ -90,10 +90,7 @@ class _StoriesState extends State<Stories> {
           return _storiesList(
             itemCount: 4,
             builder: (context, index) {
-              return Container(
-                margin: widget.storyItemPadding,
-                child: widget.placeholderBuilder?.call(context, index),
-              );
+              return widget.placeholderBuilder?.call(context, index);
             },
           );
         }
@@ -106,64 +103,61 @@ class _StoriesState extends State<Stories> {
     StoriesCollection story,
     List<String> storyIds,
   ) {
-    return Padding(
-      padding: widget.storyItemPadding,
-      child: GestureDetector(
-        child: CachedNetworkImage(
-          imageUrl: story.coverImg,
-          placeholder: (context, url) => widget.previewPlaceholder,
-          imageBuilder: (context, image) {
-            return widget.storyPreviewBuilder(
-              context,
-              image,
-              story.title[widget.languageCode],
-              _hasNewStories(story),
-            );
-          },
-          errorWidget: (context, url, error) => Icon(Icons.error),
-        ),
-        onTap: () async {
-          Navigator.push(
+    return GestureDetector(
+      child: CachedNetworkImage(
+        imageUrl: story.coverImg,
+        placeholder: (context, url) => widget.previewPlaceholder,
+        imageBuilder: (context, image) {
+          return widget.previewBuilder(
             context,
-            PageRouteBuilder(
-              transitionDuration: const Duration(milliseconds: 250),
-              transitionsBuilder: widget.navigationTransition,
-              pageBuilder: (context, anim, anim2) {
-                return GroupedStoriesView(
-                  storiesIds: storyIds,
-                  repeat: widget.repeat,
-                  inline: widget.inline,
-                  userId: widget.userId,
-                  selectedStoryId: story.storyId,
-                  languageCode: widget.languageCode,
-                  progressBuilder: widget.storyHeaderBuilder,
-                  progressPosition: widget.progressPosition,
-                  // sortingOrderDesc: widget.sortingOrderDesc,
-                  collectionDbName: widget.collectionDbName,
-                  closeButtonWidget: widget.closeButtonWidget,
-                  storyDuration: widget.imageStoryDuration,
-                  closeButtonPosition: widget.closeButtonPosition,
-                  backgroundColorBetweenStories: widget.backgroundBetweenStories,
-                );
-              },
-              settings: RouteSettings(
-                arguments: story.storyId,
-              ),
-            ),
+            image,
+            story.title[widget.languageCode],
+            _hasNewStories(story),
           );
         },
+        errorWidget: (context, url, error) => Icon(Icons.error),
       ),
+      onTap: () async {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 250),
+            transitionsBuilder: widget.storyOpenTransition,
+            pageBuilder: (context, anim, anim2) {
+              return StoriesCollectionView(
+                storiesIds: storyIds,
+                repeat: widget.repeat,
+                inline: widget.inline,
+                userId: widget.userId,
+                selectedStoryId: story.storyId,
+                languageCode: widget.languageCode,
+                headerPosition: widget.headerPosition,
+                progressBuilder: widget.storyHeaderBuilder,
+                // sortingOrderDesc: widget.sortingOrderDesc,
+                collectionDbName: widget.collectionDbName,
+                closeButton: widget.closeButton,
+                storyDuration: widget.storyDuration,
+                closeButtonPosition: widget.closeButtonPosition,
+                backgroundColorBetweenStories: widget.backgroundBetweenStories,
+              );
+            },
+            settings: RouteSettings(
+              arguments: story.storyId,
+            ),
+          ),
+        );
+      },
     );
   }
 
   ListView _storiesList({
     int itemCount,
-    ItemBuilder builder,
+    _ItemBuilder builder,
   }) {
     return ListView.builder(
       scrollDirection: Axis.horizontal,
       primary: false,
-      padding: widget.listPadding,
+      padding: widget.previewListPadding,
       itemCount: itemCount,
       itemBuilder: builder,
     );

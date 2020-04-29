@@ -2,9 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:stories_lib/utils/color_parser.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:json_annotation/json_annotation.dart';
-
-@JsonSerializable(explicitToJson: true)
 class Story {
   final String id;
   final String type;
