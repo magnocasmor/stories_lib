@@ -3,7 +3,7 @@ import 'models/stories_collection.dart';
 import 'package:stories_lib/settings.dart';
 import 'package:stories_lib/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stories_lib/utils/stories_parser.dart';
+import 'package:stories_lib/utils/stories_helpers.dart';
 import 'package:stories_lib/stories_collection_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -21,7 +21,9 @@ class Stories extends StatefulWidget {
   final String languageCode;
   final bool sortingOrderDesc;
   final Duration storyDuration;
+  final Widget mediaErrorWidget;
   final String collectionDbName;
+  final Widget mediaLoadingWidget;
   final Widget previewPlaceholder;
   final Duration storyTimeValidaty;
   final EdgeInsets previewListPadding;
@@ -39,17 +41,18 @@ class Stories extends StatefulWidget {
     this.userId,
     this.closeButton,
     this.previewBuilder,
+    this.mediaErrorWidget,
     this.placeholderBuilder,
     this.previewListPadding,
     this.previewPlaceholder,
     this.storyHeaderBuilder,
+    this.mediaLoadingWidget,
     this.storyOpenTransition,
     this.onAllStoriesComplete,
     this.repeat = false,
     this.inline = false,
     this.languageCode = 'pt',
     this.sortingOrderDesc = true,
-    // this.previewItemPadding = EdgeInsets.zero,
     this.backgroundBetweenStories = Colors.black,
     this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
@@ -130,6 +133,8 @@ class _StoriesState extends State<Stories> {
                 userId: widget.userId,
                 selectedStoryId: story.storyId,
                 languageCode: widget.languageCode,
+                mediaErrorWidget: widget.mediaErrorWidget,
+                mediaLoadingWidget: widget.mediaLoadingWidget,
                 headerPosition: widget.headerPosition,
                 progressBuilder: widget.storyHeaderBuilder,
                 // sortingOrderDesc: widget.sortingOrderDesc,

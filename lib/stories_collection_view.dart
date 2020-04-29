@@ -4,7 +4,7 @@ import 'story_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:stories_lib/stories.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stories_lib/utils/stories_parser.dart';
+import 'package:stories_lib/utils/stories_helpers.dart';
 
 export 'settings.dart';
 export 'story_view.dart';
@@ -24,7 +24,9 @@ class StoriesCollectionView extends StatefulWidget {
   final String selectedStoryId;
   final Duration storyDuration;
   final List<String> storiesIds;
+  final Widget mediaErrorWidget;
   final String collectionDbName;
+  final Widget mediaLoadingWidget;
   final Alignment closeButtonPosition;
   final StoryHeaderBuilder progressBuilder;
   final StoryHeaderPosition headerPosition;
@@ -38,8 +40,10 @@ class StoriesCollectionView extends StatefulWidget {
     this.inline,
     this.closeButton,
     this.languageCode,
-    this.progressBuilder,
     this.headerPosition,
+    this.progressBuilder,
+    this.mediaErrorWidget,
+    this.mediaLoadingWidget,
     this.closeButtonPosition,
     this.backgroundColorBetweenStories,
     this.repeat = false,
@@ -90,7 +94,17 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                     future: streamStories(widget.storiesIds[index]),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return Center(child: CircularProgressIndicator());
+                        return widget.mediaLoadingWidget ??
+                            Center(
+                              child: SizedBox(
+                                width: 70,
+                                height: 70,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  strokeWidth: 3,
+                                ),
+                              ),
+                            );
                       }
 
                       final storyData = snapshot.data;
@@ -101,6 +115,8 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                         widget.userId,
                         widget.languageCode,
                         widget.storyDuration,
+                        widget.mediaErrorWidget,
+                        widget.mediaLoadingWidget,
                       );
 
                       return GestureDetector(

@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:stories_lib/settings.dart';
 import 'package:video_player/video_player.dart';
 import 'package:stories_lib/story_controller.dart';
+import 'package:stories_lib/components/story_error.dart';
+import 'package:stories_lib/components/story_loading.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class VideoLoader {
@@ -99,49 +101,37 @@ class _StoryVideoState extends State<StoryVideo> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: initializeController(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return widget.mediaErrorWidget ??
-              Text(
-                "Media failed to load.",
-                style: TextStyle(
-                  color: Colors.white,
+    return Center(
+      child: FutureBuilder<void>(
+        future: initializeController(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return widget.mediaErrorWidget ?? StoryError();
+          }
+
+          final state = snapshot.connectionState;
+
+          switch (state) {
+            case ConnectionState.done:
+              return SafeArea(
+                child: SizedBox.expand(
+                  child: FittedBox(
+                    fit: widget.fit,
+                    child: SizedBox(
+                      width: playerController.value.size?.width ?? 0,
+                      height: playerController.value.size?.height ?? 0,
+                      child: VideoPlayer(playerController),
+                    ),
+                  ),
                 ),
               );
-        }
-
-        final state = snapshot.connectionState;
-
-        switch (state) {
-          case ConnectionState.done:
-            return SafeArea(
-              child: SizedBox.expand(
-                child: FittedBox(
-                  fit: widget.fit,
-                  child: SizedBox(
-                    width: playerController.value.size?.width ?? 0,
-                    height: playerController.value.size?.height ?? 0,
-                    child: VideoPlayer(playerController),
-                  ),
-                ),
-              ),
-            );
-            break;
-          default:
-            return widget.mediaLoadingWidget ??
-                SizedBox(
-                  width: 70,
-                  height: 70,
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    strokeWidth: 3,
-                  ),
-                );
-            break;
-        }
-      },
+              break;
+            default:
+              return widget.mediaLoadingWidget ?? StoryLoading();
+              break;
+          }
+        },
+      ),
     );
   }
 

@@ -1,7 +1,5 @@
 import 'dart:ui';
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
-
 import 'settings.dart';
 import 'story_video.dart';
 import 'story_image.dart';
@@ -11,6 +9,8 @@ import 'package:provider/provider.dart';
 import 'package:stories_lib/stories.dart';
 import 'package:stories_lib/utils/color_parser.dart';
 import 'package:stories_lib/components/story_widget.dart';
+import 'package:stories_lib/components/story_loading.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 export 'story_image.dart';
 export 'story_video.dart';
@@ -133,6 +133,8 @@ class StoryItem extends ChangeNotifier {
     String caption,
     String storyTitle,
     String storyPreviewImg,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     bool shown = false,
     BoxFit imageFit = BoxFit.fitHeight,
     Duration duration = const Duration(seconds: 3),
@@ -209,10 +211,12 @@ class StoryItem extends ChangeNotifier {
     String caption,
     String storyTitle,
     String storyPreviewImg,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     StoryController controller,
+    Map<String, dynamic> requestHeaders,
     bool shown = false,
     BoxFit imageFit = BoxFit.fitHeight,
-    Map<String, dynamic> requestHeaders,
     Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
@@ -223,9 +227,11 @@ class StoryItem extends ChangeNotifier {
       view: StoryWidget(
         story: StoryImage.url(
           url: url,
-          controller: controller,
           fit: imageFit,
+          controller: controller,
           requestHeaders: requestHeaders,
+          mediaErrorWidget: mediaErrorWidget,
+          mediaLoadingWidget: mediaLoadingWidget,
         ),
         caption: caption,
       ),
@@ -241,6 +247,8 @@ class StoryItem extends ChangeNotifier {
     Text caption,
     String storyTitle,
     String storyPreviewImg,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     StoryController controller,
     Map<String, dynamic> requestHeaders,
     bool shown = false,
@@ -269,6 +277,8 @@ class StoryItem extends ChangeNotifier {
                 url: url,
                 controller: controller,
                 fit: imageFit,
+                mediaErrorWidget: mediaErrorWidget,
+                mediaLoadingWidget: mediaLoadingWidget,
                 requestHeaders: requestHeaders,
               ),
               caption.data != null && caption.data.length > 0
@@ -304,6 +314,8 @@ class StoryItem extends ChangeNotifier {
     String caption,
     String storyTitle,
     String storyPreviewImg,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     StoryController controller,
     bool shown = false,
     BoxFit videoFit = BoxFit.fitHeight,
@@ -321,6 +333,8 @@ class StoryItem extends ChangeNotifier {
           videoFit: videoFit,
           controller: controller,
           requestHeaders: requestHeaders,
+          mediaErrorWidget: mediaErrorWidget,
+          mediaLoadingWidget: mediaLoadingWidget,
         ),
         caption: caption,
       ),

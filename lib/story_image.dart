@@ -5,6 +5,8 @@ import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:stories_lib/settings.dart';
+import 'package:stories_lib/components/story_error.dart';
+import 'package:stories_lib/components/story_loading.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// Utitlity to load image (gif, png, jpg, etc) media just once. Resource is
@@ -132,36 +134,25 @@ class _StoryImageState extends State<StoryImage> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Object>(
-      stream: streamFrame.stream,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return widget.mediaErrorWidget ??
-              Text(
-                "Image failed to load.",
-                style: TextStyle(
-                  color: Colors.white,
-                ),
-              );
-        } else if (snapshot.hasData) {
-          return SizedBox.expand(
-            child: RawImage(
-              image: snapshot.data,
-              fit: widget.fit,
-            ),
-          );
-        } else {
-          return widget.mediaLoadingWidget ??
-              SizedBox(
-                width: 70,
-                height: 70,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
-              );
-        }
-      },
+    return Center(
+      child: StreamBuilder<Object>(
+        stream: streamFrame.stream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return widget.mediaErrorWidget ?? StoryError();
+          } else if (snapshot.hasData) {
+            return SizedBox.expand(
+              child: RawImage(
+                image: snapshot.data,
+                fit: widget.fit,
+              ),
+            );
+          } else {
+            return widget.mediaLoadingWidget ??
+                StoryLoading();
+          }
+        },
+      ),
     );
   }
 

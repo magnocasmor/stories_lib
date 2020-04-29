@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:stories_lib/story_view.dart';
 import 'package:stories_lib/models/story.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -37,6 +38,8 @@ List<StoryItem> parseStories(
   String userId,
   String languageCode,
   Duration storyDuration,
+  Widget mediaErrorWidget,
+  Widget mediaLoadingWidget,
 ) {
   final storiesCollection = storiesCollectionFromDocument(data);
 
@@ -94,6 +97,8 @@ List<StoryItem> parseStories(
               storyTitle: storyTitle,
               controller: storyController,
               storyPreviewImg: storyPreviewImg,
+              mediaErrorWidget: mediaErrorWidget,
+              mediaLoadingWidget: mediaLoadingWidget,
             ),
           );
           break;
@@ -107,6 +112,8 @@ List<StoryItem> parseStories(
               storyTitle: storyTitle,
               controller: storyController,
               storyPreviewImg: storyPreviewImg,
+              mediaErrorWidget: mediaErrorWidget,
+              mediaLoadingWidget: mediaLoadingWidget,
             ),
           );
           break;
