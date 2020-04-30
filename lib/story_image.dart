@@ -4,7 +4,9 @@ import 'story_controller.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
-import 'package:stories_lib/utils/load_state.dart';
+import 'package:stories_lib/settings.dart';
+import 'package:stories_lib/components/story_error.dart';
+import 'package:stories_lib/components/story_loading.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// Utitlity to load image (gif, png, jpg, etc) media just once. Resource is
@@ -86,33 +88,35 @@ class StoryImage extends StatefulWidget {
   }
 
   @override
-  State<StatefulWidget> createState() => StoryImageState();
+  State<StatefulWidget> createState() => _StoryImageState();
 }
 
-class StoryImageState extends State<StoryImage> {
+class _StoryImageState extends State<StoryImage> {
   final streamFrame = BehaviorSubject<ui.Image>();
 
-  Timer _timer;
+  Timer timer;
 
-  StreamSubscription<PlaybackState> _streamSubscription;
+  StreamSubscription<PlaybackState> streamSubscription;
 
   @override
   void initState() {
     super.initState();
 
     if (widget.controller != null) {
-      this._streamSubscription = widget.controller.playbackNotifier.listen((playbackState) {
-        // for the case of gifs we need to pause/play
-        if (widget.imageLoader._frames == null) {
-          return;
-        }
+      this.streamSubscription = widget.controller.playbackNotifier.listen(
+        (playbackState) {
+          // for the case of gifs we need to pause/play
+          if (widget.imageLoader._frames == null) {
+            return;
+          }
 
-        if (playbackState == PlaybackState.pause) {
-          this._timer?.cancel();
-        } else {
-          forward();
-        }
-      });
+          if (playbackState == PlaybackState.pause) {
+            this.timer?.cancel();
+          } else {
+            forward();
+          }
+        },
+      );
     }
 
     initializeImage();
@@ -120,9 +124,9 @@ class StoryImageState extends State<StoryImage> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    timer?.cancel();
     streamFrame.close();
-    _streamSubscription?.cancel();
+    streamSubscription?.cancel();
     // widget.imageLoader.state.close();
 
     super.dispose();
@@ -130,40 +134,25 @@ class StoryImageState extends State<StoryImage> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: contentView());
-  }
-
-  Widget contentView() {
-    return StreamBuilder<Object>(
-      stream: streamFrame.stream,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return widget.mediaErrorWidget ??
-              Text(
-                "Image failed to load.",
-                style: TextStyle(
-                  color: Colors.white,
-                ),
-              );
-        } else if (snapshot.hasData) {
-          return SizedBox.expand(
-            child: RawImage(
-              image: snapshot.data,
-              fit: widget.fit,
-            ),
-          );
-        } else {
-          return widget.mediaLoadingWidget ??
-              SizedBox(
-                width: 70,
-                height: 70,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
-              );
-        }
-      },
+    return Center(
+      child: StreamBuilder<Object>(
+        stream: streamFrame.stream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return widget.mediaErrorWidget ?? StoryError();
+          } else if (snapshot.hasData) {
+            return SizedBox.expand(
+              child: RawImage(
+                image: snapshot.data,
+                fit: widget.fit,
+              ),
+            );
+          } else {
+            return widget.mediaLoadingWidget ??
+                StoryLoading();
+          }
+        },
+      ),
     );
   }
 
@@ -182,7 +171,7 @@ class StoryImageState extends State<StoryImage> {
   }
 
   void forward() async {
-    this._timer?.cancel();
+    this.timer?.cancel();
 
     if (widget.controller != null &&
         widget.controller.playbackNotifier.value == PlaybackState.pause) {
@@ -194,7 +183,7 @@ class StoryImageState extends State<StoryImage> {
     this.streamFrame.add(nextFrame.image);
 
     if (nextFrame.duration > Duration(milliseconds: 0)) {
-      this._timer = Timer(nextFrame.duration, forward);
+      this.timer = Timer(nextFrame.duration, forward);
     }
   }
 }

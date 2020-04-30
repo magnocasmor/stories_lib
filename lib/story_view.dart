@@ -6,21 +6,33 @@ import 'story_image.dart';
 import 'story_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:stories_lib/utils/contrast_helper.dart';
+import 'package:stories_lib/stories.dart';
+import 'package:stories_lib/utils/color_parser.dart';
 import 'package:stories_lib/components/story_widget.dart';
+import 'package:stories_lib/components/story_loading.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 export 'story_image.dart';
 export 'story_video.dart';
 export 'story_controller.dart';
 
-typedef ProgressBuilder = Widget Function(
-  List<PageData> pageData,
+typedef StoryHeaderBuilder = Widget Function(
+  BuildContext context,
   int currentIndex,
+  ImageProvider image,
+  String title,
+  List<PageData> pageData,
   Animation animation,
 );
 
 /// This is a representation of a story item (or page).
 class StoryItem extends ChangeNotifier {
+  final String storyId;
+
+  final String storyPreviewImg;
+
+  final String storyTitle;
+
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
   Duration _duration;
@@ -40,6 +52,9 @@ class StoryItem extends ChangeNotifier {
 
   StoryItem({
     @required this.view,
+    @required this.storyId,
+    this.storyTitle,
+    this.storyPreviewImg,
     Duration duration = const Duration(seconds: 3),
     this.shown = false,
   })  : assert(duration != null, "[duration] should not be null"),
@@ -55,8 +70,11 @@ class StoryItem extends ChangeNotifier {
   /// what inline/full-page means.
   static StoryItem text({
     @required String text,
+    @required String storyId,
     @required Color backgroundColor,
     TextStyle style,
+    String storyTitle,
+    String storyPreviewImg,
     bool shown = false,
     bool roundedTop = false,
     bool roundedBottom = false,
@@ -65,7 +83,7 @@ class StoryItem extends ChangeNotifier {
     assert(text is String, "[title] should not be null");
     if (backgroundColor == null) backgroundColor = Colors.black;
 
-    final contrast = ContrastHelper.contrast([
+    final _contrast = contrast([
       backgroundColor.red,
       backgroundColor.green,
       backgroundColor.blue,
@@ -76,6 +94,9 @@ class StoryItem extends ChangeNotifier {
     ] /** white text */);
 
     return StoryItem(
+      storyId: storyId,
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
@@ -92,7 +113,7 @@ class StoryItem extends ChangeNotifier {
           child: Text(
             text,
             style: (style ?? TextStyle())
-                .copyWith(color: contrast > 1.8 ? Colors.white : Colors.black),
+                .copyWith(color: _contrast > 1.8 ? Colors.white : Colors.black),
             textAlign: TextAlign.center,
           ),
         ),
@@ -107,14 +128,22 @@ class StoryItem extends ChangeNotifier {
   ///
   /// You can provide any image provider for [image].
   static StoryItem pageImage({
+    @required String storyId,
     @required ImageProvider image,
     String caption,
+    String storyTitle,
+    String storyPreviewImg,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     bool shown = false,
     BoxFit imageFit = BoxFit.fitHeight,
     Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
+      storyId: storyId,
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
         story: Image(
           image: image,
@@ -129,14 +158,20 @@ class StoryItem extends ChangeNotifier {
 
   /// Shorthand for creating inline image page.
   static StoryItem inlineImage({
+    @required String storyId,
     @required ImageProvider image,
     Text caption,
+    String storyTitle,
+    String storyPreviewImg,
     bool shown = false,
     bool roundedTop = true,
     bool roundedBottom = true,
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
+      storyId: storyId,
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: Container(
         decoration: BoxDecoration(
             color: Colors.grey[100],
@@ -172,21 +207,31 @@ class StoryItem extends ChangeNotifier {
 
   static StoryItem pageGif({
     @required String url,
+    @required String storyId,
     String caption,
-    bool shown = false,
+    String storyTitle,
+    String storyPreviewImg,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     StoryController controller,
-    BoxFit imageFit = BoxFit.fitHeight,
     Map<String, dynamic> requestHeaders,
+    bool shown = false,
+    BoxFit imageFit = BoxFit.fitHeight,
     Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
+      storyId: storyId,
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
         story: StoryImage.url(
           url: url,
-          controller: controller,
           fit: imageFit,
+          controller: controller,
           requestHeaders: requestHeaders,
+          mediaErrorWidget: mediaErrorWidget,
+          mediaLoadingWidget: mediaLoadingWidget,
         ),
         caption: caption,
       ),
@@ -198,16 +243,24 @@ class StoryItem extends ChangeNotifier {
   /// Shorthand for creating inline image page.
   static StoryItem inlineGif({
     @required String url,
+    @required String storyId,
     Text caption,
+    String storyTitle,
+    String storyPreviewImg,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
+    StoryController controller,
+    Map<String, dynamic> requestHeaders,
     bool shown = false,
     bool roundedTop = true,
     bool roundedBottom = false,
-    StoryController controller,
     BoxFit imageFit = BoxFit.cover,
-    Map<String, dynamic> requestHeaders,
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
+      storyId: storyId,
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: Container(
         decoration: BoxDecoration(
           color: Colors.grey[100],
@@ -224,6 +277,8 @@ class StoryItem extends ChangeNotifier {
                 url: url,
                 controller: controller,
                 fit: imageFit,
+                mediaErrorWidget: mediaErrorWidget,
+                mediaLoadingWidget: mediaLoadingWidget,
                 requestHeaders: requestHeaders,
               ),
               caption.data != null && caption.data.length > 0
@@ -255,21 +310,31 @@ class StoryItem extends ChangeNotifier {
 
   static StoryItem pageVideo({
     @required String url,
+    @required String storyId,
     String caption,
-    bool shown = false,
+    String storyTitle,
+    String storyPreviewImg,
+    Widget mediaErrorWidget,
+    Widget mediaLoadingWidget,
     StoryController controller,
+    bool shown = false,
     BoxFit videoFit = BoxFit.fitHeight,
     Map<String, dynamic> requestHeaders,
     Duration duration = const Duration(seconds: 10),
   }) {
     assert(videoFit != null, "[videoFit] should not be null");
     return StoryItem(
+      storyId: storyId,
+      storyTitle: storyTitle,
+      storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
         story: StoryVideo.url(
           url: url,
           videoFit: videoFit,
           controller: controller,
           requestHeaders: requestHeaders,
+          mediaErrorWidget: mediaErrorWidget,
+          mediaLoadingWidget: mediaLoadingWidget,
         ),
         caption: caption,
       ),
@@ -300,13 +365,13 @@ class StoryView extends StatefulWidget {
 
   final VoidCallback previousOnFirstStory;
 
-  final ProgressBuilder progressBuilder;
+  final StoryHeaderBuilder headerBuilder;
 
   /// Callback for when a story is currently being shown.
   final ValueChanged<StoryItem> onStoryShow;
 
   /// Where the progress indicator should be placed.
-  final Alignment progressPosition;
+  final StoryHeaderPosition headerPosition;
 
   /// Should the story be repeated forever?
   final bool repeat;
@@ -323,24 +388,24 @@ class StoryView extends StatefulWidget {
     this.controller,
     this.onComplete,
     this.onStoryShow,
-    this.progressBuilder,
+    this.headerBuilder,
     this.previousOnFirstStory,
-    this.progressPosition = Alignment.topCenter,
     this.repeat = false,
     this.inline = false,
+    this.headerPosition = StoryHeaderPosition.top,
   })  : assert(storyItems != null && storyItems.length > 0,
             "[storyItems] should not be null or empty"),
-        assert(progressPosition != null, "[progressPosition] cannot be null"),
+        assert(headerPosition != null, "[progressPosition] cannot be null"),
         assert(repeat != null, "[repeat] cannot be null"),
         assert(inline != null, "[inline] cannot be null");
 
   @override
   State<StatefulWidget> createState() {
-    return StoryViewState();
+    return _StoryViewState();
   }
 }
 
-class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
+class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   Timer debouncer;
   Animation<double> currentAnimation;
   AnimationController animationController;
@@ -434,15 +499,20 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
         children: <Widget>[
           currentView,
           Align(
-            alignment: widget.progressPosition,
+            alignment: widget.headerPosition == StoryHeaderPosition.top
+                ? Alignment.topCenter
+                : Alignment.bottomCenter,
             child: Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: 16.0,
                 vertical: 8.0,
               ),
-              child: widget.progressBuilder?.call(
-                    widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
+              child: widget.headerBuilder?.call(
+                    context,
                     widget.storyItems.indexOf(currentStory),
+                    CachedNetworkImageProvider(currentStory.storyPreviewImg),
+                    currentStory.storyTitle,
+                    widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
                     this.currentAnimation,
                   ) ??
                   PageBar(
@@ -496,21 +566,19 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   }
 
   void onComplete() {
-    // widget.controller?.pause();
     widget.controller?.stop();
-
-    if (widget.onComplete != null) {
-      widget.onComplete();
-    } else {
-      print("Done");
-    }
-
     if (widget.repeat) {
       widget.storyItems.forEach((it) {
         it.shown = false;
       });
 
-      beginPlay();
+      return beginPlay();
+    } else {
+      if (widget.onComplete != null) {
+        widget.onComplete();
+      } else {
+        print("Done");
+      }
     }
   }
 
@@ -588,8 +656,8 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 /// Capsule holding the duration and shown property of each story. Passed down
 /// to the pages bar to render the page indicators.
 class PageData {
-  final Duration duration;
   final bool shown;
+  final Duration duration;
 
   PageData(this.duration, this.shown);
 }

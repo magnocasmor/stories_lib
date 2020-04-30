@@ -1,59 +1,65 @@
-import 'grouped_stories_view.dart';
 import 'package:flutter/material.dart';
 import 'models/stories_collection.dart';
+import 'package:stories_lib/settings.dart';
+import 'package:stories_lib/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stories_lib/utils/stories_parser.dart';
+import 'package:stories_lib/utils/stories_helpers.dart';
+import 'package:stories_lib/stories_collection_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-export 'grouped_stories_view.dart';
+export 'stories_collection_view.dart';
 
-typedef ItemBuilder = Widget Function(BuildContext, int);
+typedef _ItemBuilder = Widget Function(BuildContext, int);
 
 typedef StoryPreviewBuilder = Widget Function(BuildContext, ImageProvider, String, bool);
-
-typedef HighlightBuilder = Widget Function(BuildContext, Widget);
 
 class Stories extends StatefulWidget {
   final bool repeat;
   final bool inline;
+  final String userId;
+  final Widget closeButton;
   final String languageCode;
-  final bool recentHighlight;
-  final bool sortingOrderDesc;
-  final int imageStoryDuration;
-  final EdgeInsets listPadding;
+  final bool sortByDescUpdate;
+  final Duration storyDuration;
+  final Widget mediaErrorWidget;
   final String collectionDbName;
-  final Widget closeButtonWidget;
+  final Widget mediaLoadingWidget;
   final Widget previewPlaceholder;
-  final Alignment progressPosition;
-  final EdgeInsets storyItemPadding;
-  final VoidCallback onStoriesFinish;
+  final Duration storyTimeValidaty;
+  final EdgeInsets previewListPadding;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
-  final ItemBuilder placeholderBuilder;
-  final ProgressBuilder progressBuilder;
-  final StoryPreviewBuilder storyPreviewBuilder;
-  final RouteTransitionsBuilder navigationTransition;
+  final _ItemBuilder placeholderBuilder;
+  final VoidCallback onAllStoriesComplete;
+  final StoryHeaderPosition headerPosition;
+  final StoryPreviewBuilder previewBuilder;
+  final List<Map<String, dynamic>> releases;
+  final StoryHeaderBuilder storyHeaderBuilder;
+  final RouteTransitionsBuilder storyOpenTransition;
 
   Stories({
     @required this.collectionDbName,
-    this.listPadding,
-    this.progressBuilder,
-    this.onStoriesFinish,
-    this.closeButtonWidget,
+    this.userId,
+    this.releases,
+    this.closeButton,
+    this.previewBuilder,
+    this.mediaErrorWidget,
     this.placeholderBuilder,
+    this.previewListPadding,
     this.previewPlaceholder,
-    this.imageStoryDuration,
-    this.storyPreviewBuilder,
+    this.storyHeaderBuilder,
+    this.mediaLoadingWidget,
+    this.storyOpenTransition,
+    this.onAllStoriesComplete,
     this.repeat = false,
     this.inline = false,
-    this.languageCode = 'en',
-    this.navigationTransition,
-    this.recentHighlight = false,
-    this.sortingOrderDesc = true,
-    this.storyItemPadding = EdgeInsets.zero,
-    this.progressPosition = Alignment.topCenter,
-    this.closeButtonPosition = Alignment.topRight,
+    this.languageCode = 'pt',
+    this.sortByDescUpdate = true,
     this.backgroundBetweenStories = Colors.black,
+    this.headerPosition = StoryHeaderPosition.top,
+    this.closeButtonPosition = Alignment.topRight,
+    this.storyDuration = const Duration(seconds: 3),
+    this.storyTimeValidaty = const Duration(hours: 12),
   });
 
   @override
@@ -83,14 +89,24 @@ class _StoriesState extends State<Stories> {
               },
             );
           else
-            return Container();
+            return LimitedBox();
+        } else if (snapshot.hasError) {
+          print(snapshot.error);
+          return Center(
+            child: Column(
+              children: <Widget>[
+                Icon(Icons.error),
+                Text("Can't get stories"),
+              ],
+            ),
+          );
         } else {
           return _storiesList(
             itemCount: 4,
             builder: (context, index) {
-              return Container(
-                margin: widget.storyItemPadding,
-                child: widget.placeholderBuilder?.call(context, index),
+              return Padding(
+                padding: widget.previewListPadding,
+                child: widget.placeholderBuilder?.call(context, index) ?? LimitedBox(),
               );
             },
           );
@@ -104,71 +120,88 @@ class _StoriesState extends State<Stories> {
     StoriesCollection story,
     List<String> storyIds,
   ) {
-    return Padding(
-      padding: widget.storyItemPadding,
-      child: GestureDetector(
-        child: CachedNetworkImage(
-          imageUrl: story.coverImg,
-          placeholder: (context, url) => widget.previewPlaceholder,
-          imageBuilder: (context, image) {
-            return widget.storyPreviewBuilder(
-              context,
-              image,
-              story.title[widget.languageCode],
-              widget.recentHighlight,
-            );
-          },
-          errorWidget: (context, url, error) => Icon(Icons.error),
-        ),
-        onTap: () async {
-          Navigator.pushAndRemoveUntil(
+    return GestureDetector(
+      child: CachedNetworkImage(
+        imageUrl: story.coverImg,
+        placeholder: (context, url) => widget.previewPlaceholder,
+        imageBuilder: (context, image) {
+          return widget.previewBuilder(
             context,
-            PageRouteBuilder(
-              transitionDuration: const Duration(milliseconds: 250),
-              transitionsBuilder: widget.navigationTransition,
-              pageBuilder: (context, anim, anim2) {
-                return GroupedStoriesView(
-                  storiesIds: storyIds,
-                  repeat: widget.repeat,
-                  inline: widget.inline,
-                  selectedStoryId: story.storyId,
-                  languageCode: widget.languageCode,
-                  progressBuilder: widget.progressBuilder,
-                  progressPosition: widget.progressPosition,
-                  sortingOrderDesc: widget.sortingOrderDesc,
-                  collectionDbName: widget.collectionDbName,
-                  closeButtonWidget: widget.closeButtonWidget,
-                  imageStoryDuration: widget.imageStoryDuration,
-                  closeButtonPosition: widget.closeButtonPosition,
-                  backgroundColorBetweenStories: widget.backgroundBetweenStories,
-                );
-              },
-              settings: RouteSettings(
-                arguments: story.storyId,
-              ),
-            ),
-            ModalRoute.withName('/'),
+            image,
+            story.title[widget.languageCode],
+            _hasNewStories(story),
           );
         },
+        errorWidget: (context, url, error) => Icon(Icons.error),
       ),
+      onTap: () async {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 250),
+            transitionsBuilder: widget.storyOpenTransition,
+            pageBuilder: (context, anim, anim2) {
+              return StoriesCollectionView(
+                storiesIds: storyIds,
+                repeat: widget.repeat,
+                inline: widget.inline,
+                userId: widget.userId,
+                selectedStoryId: story.storyId,
+                languageCode: widget.languageCode,
+                mediaErrorWidget: widget.mediaErrorWidget,
+                mediaLoadingWidget: widget.mediaLoadingWidget,
+                headerPosition: widget.headerPosition,
+                progressBuilder: widget.storyHeaderBuilder,
+                sortingOrderDesc: widget.sortByDescUpdate,
+                collectionDbName: widget.collectionDbName,
+                closeButton: widget.closeButton,
+                storyDuration: widget.storyDuration,
+                closeButtonPosition: widget.closeButtonPosition,
+                backgroundColorBetweenStories: widget.backgroundBetweenStories,
+              );
+            },
+            settings: RouteSettings(
+              arguments: story.storyId,
+            ),
+          ),
+        );
+      },
     );
   }
 
   ListView _storiesList({
     int itemCount,
-    ItemBuilder builder,
+    _ItemBuilder builder,
   }) {
     return ListView.builder(
       scrollDirection: Axis.horizontal,
       primary: false,
-      padding: widget.listPadding,
+      padding: widget.previewListPadding,
       itemCount: itemCount,
       itemBuilder: builder,
     );
   }
 
-  Stream<QuerySnapshot> get _storiesStream => _firestore
-      .collection(widget.collectionDbName)
-      .orderBy('date', descending: widget.sortingOrderDesc)
-      .snapshots();
+  Stream<QuerySnapshot> get _storiesStream {
+    var query = _firestore.collection(widget.collectionDbName).where(
+          'last_update',
+          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.storyTimeValidaty),
+        );
+
+    if (widget.releases is List && widget.releases.isNotEmpty)
+      query = query.where('releases', arrayContainsAny: widget.releases);
+
+    return query
+        .orderBy('last_update', descending: widget.sortByDescUpdate)
+        // .getDocuments() //This method return errors in query, but doesnt update on document changes
+        // .asStream();
+        .snapshots();
+  }
+
+  bool _hasNewStories(StoriesCollection collection) {
+    return collection.stories.any(
+      (s) =>
+          isInIntervalToShow(s) && (s.views?.every((v) => v["user_info"] != widget.userId) ?? true),
+    );
+  }
 }
