@@ -19,6 +19,7 @@ class Stories extends StatefulWidget {
   final String userId;
   final Widget closeButton;
   final String languageCode;
+  final Widget publishStory;
   final bool sortByDescUpdate;
   final Duration storyDuration;
   final Widget mediaErrorWidget;
@@ -42,6 +43,7 @@ class Stories extends StatefulWidget {
     this.userId,
     this.releases,
     this.closeButton,
+    this.publishStory,
     this.previewBuilder,
     this.mediaErrorWidget,
     this.placeholderBuilder,
@@ -104,10 +106,7 @@ class _StoriesState extends State<Stories> {
           return _storiesList(
             itemCount: 4,
             builder: (context, index) {
-              return Padding(
-                padding: widget.previewListPadding,
-                child: widget.placeholderBuilder?.call(context, index) ?? LimitedBox(),
-              );
+              return widget.placeholderBuilder?.call(context, index) ?? LimitedBox();
             },
           );
         }
@@ -169,16 +168,22 @@ class _StoriesState extends State<Stories> {
     );
   }
 
-  ListView _storiesList({
+  Widget _storiesList({
     int itemCount,
     _ItemBuilder builder,
   }) {
-    return ListView.builder(
+    return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       primary: false,
       padding: widget.previewListPadding,
-      itemCount: itemCount,
-      itemBuilder: builder,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.publishStory is Widget) widget.publishStory,
+          for (int i = 0; i < itemCount; i++) builder(context, i),
+        ],
+      ),
     );
   }
 
