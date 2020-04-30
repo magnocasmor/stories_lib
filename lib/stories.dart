@@ -19,7 +19,7 @@ class Stories extends StatefulWidget {
   final String userId;
   final Widget closeButton;
   final String languageCode;
-  final bool sortingOrderDesc;
+  final bool sortByDescUpdate;
   final Duration storyDuration;
   final Widget mediaErrorWidget;
   final String collectionDbName;
@@ -54,7 +54,7 @@ class Stories extends StatefulWidget {
     this.repeat = false,
     this.inline = false,
     this.languageCode = 'pt',
-    this.sortingOrderDesc = true,
+    this.sortByDescUpdate = true,
     this.backgroundBetweenStories = Colors.black,
     this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
@@ -152,7 +152,7 @@ class _StoriesState extends State<Stories> {
                 mediaLoadingWidget: widget.mediaLoadingWidget,
                 headerPosition: widget.headerPosition,
                 progressBuilder: widget.storyHeaderBuilder,
-                // sortingOrderDesc: widget.sortingOrderDesc,
+                sortingOrderDesc: widget.sortByDescUpdate,
                 collectionDbName: widget.collectionDbName,
                 closeButton: widget.closeButton,
                 storyDuration: widget.storyDuration,
@@ -192,7 +192,7 @@ class _StoriesState extends State<Stories> {
       query = query.where('releases', arrayContainsAny: widget.releases);
 
     return query
-        .orderBy('last_update', descending: widget.sortingOrderDesc)
+        .orderBy('last_update', descending: widget.sortByDescUpdate)
         // .getDocuments() //This method return errors in query, but doesnt update on document changes
         // .asStream();
         .snapshots();

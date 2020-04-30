@@ -121,7 +121,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
 
                       return GestureDetector(
                         child: StoryView(
-                          storyItems: widget.sortingOrderDesc ? stories.reversed.toList() : stories,
+                          storyItems: stories,
                           controller: storyController,
                           repeat: widget.repeat,
                           inline: widget.inline,
@@ -189,12 +189,8 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     );
   }
 
-  Future<DocumentSnapshot> streamStories(String storyId) => _firestore
-      .collection(widget.collectionDbName)
-      .orderBy('last_update', descending: widget.sortingOrderDesc)
-      .reference()
-      .document(storyId)
-      .get();
+  Future<DocumentSnapshot> streamStories(String storyId) =>
+      _firestore.collection(widget.collectionDbName).document(storyId).get();
 
   void _nextGroupedStories() {
     if (_pageController.page.toInt() != indexOfStory(widget.storiesIds.last)) {
