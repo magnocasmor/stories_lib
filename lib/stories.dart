@@ -20,7 +20,6 @@ class Stories extends StatefulWidget {
   final Widget closeButton;
   final String languageCode;
   final bool sortingOrderDesc;
-  final List<String> releases;
   final Duration storyDuration;
   final Widget mediaErrorWidget;
   final String collectionDbName;
@@ -34,6 +33,7 @@ class Stories extends StatefulWidget {
   final VoidCallback onAllStoriesComplete;
   final StoryHeaderPosition headerPosition;
   final StoryPreviewBuilder previewBuilder;
+  final List<Map<String, dynamic>> releases;
   final StoryHeaderBuilder storyHeaderBuilder;
   final RouteTransitionsBuilder storyOpenTransition;
 
@@ -193,7 +193,7 @@ class _StoriesState extends State<Stories> {
 
     return query
         .orderBy('last_update', descending: widget.sortingOrderDesc)
-        // .getDocuments()
+        // .getDocuments() //This method return errors in query, but doesnt update on document changes
         // .asStream();
         .snapshots();
   }
