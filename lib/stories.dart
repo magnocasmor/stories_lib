@@ -20,6 +20,7 @@ class Stories extends StatefulWidget {
   final Widget closeButton;
   final String languageCode;
   final bool sortingOrderDesc;
+  final List<String> releases;
   final Duration storyDuration;
   final Widget mediaErrorWidget;
   final String collectionDbName;
@@ -39,6 +40,7 @@ class Stories extends StatefulWidget {
   Stories({
     @required this.collectionDbName,
     this.userId,
+    this.releases,
     this.closeButton,
     this.previewBuilder,
     this.mediaErrorWidget,
@@ -88,11 +90,24 @@ class _StoriesState extends State<Stories> {
             );
           else
             return LimitedBox();
+        } else if (snapshot.hasError) {
+          print(snapshot.error);
+          return Center(
+            child: Column(
+              children: <Widget>[
+                Icon(Icons.error),
+                Text("Can't get stories"),
+              ],
+            ),
+          );
         } else {
           return _storiesList(
             itemCount: 4,
             builder: (context, index) {
-              return widget.placeholderBuilder?.call(context, index);
+              return Padding(
+                padding: widget.previewListPadding,
+                child: widget.placeholderBuilder?.call(context, index) ?? LimitedBox(),
+              );
             },
           );
         }
@@ -167,14 +182,21 @@ class _StoriesState extends State<Stories> {
     );
   }
 
-  Stream<QuerySnapshot> get _storiesStream => _firestore
-      .collection(widget.collectionDbName)
-      .where(
-        'last_update',
-        isGreaterThanOrEqualTo: DateTime.now().subtract(widget.storyTimeValidaty),
-      )
-      .orderBy('last_update', descending: widget.sortingOrderDesc)
-      .snapshots();
+  Stream<QuerySnapshot> get _storiesStream {
+    var query = _firestore.collection(widget.collectionDbName).where(
+          'last_update',
+          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.storyTimeValidaty),
+        );
+
+    if (widget.releases is List && widget.releases.isNotEmpty)
+      query = query.where('releases', arrayContainsAny: widget.releases);
+
+    return query
+        .orderBy('last_update', descending: widget.sortingOrderDesc)
+        // .getDocuments()
+        // .asStream();
+        .snapshots();
+  }
 
   bool _hasNewStories(StoriesCollection collection) {
     return collection.stories.any(
