@@ -18,6 +18,8 @@ typedef StoryPublisherToolsBuilder = Widget Function(
   void Function(String, StoryType),
 );
 
+typedef StoryPublisherPreviewToolsBuilder = Widget Function(BuildContext, File, VoidCallback);
+
 typedef StoryPublisherButtonBuilder = Widget Function(BuildContext, StoryType, Animation<double>);
 
 class StoryPublisher extends StatefulWidget {
@@ -25,16 +27,18 @@ class StoryPublisher extends StatefulWidget {
   final Widget errorWidget;
   final Widget loadingWidget;
   final Alignment closeButtonPosition;
+  final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
-  final StoryPublisherToolsBuilder tools;
+  final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
   const StoryPublisher({
     Key key,
     this.errorWidget,
     this.closeButton,
-    this.tools,
+    this.toolsBuilder,
     this.loadingWidget,
     this.publishBuilder,
+    this.resultToolsBuilder,
     this.closeButtonPosition = Alignment.topRight,
   }) : super(key: key);
 
@@ -132,11 +136,11 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                                 onLongPressEnd: (details) => _stopVideoRecording(),
                                 child: widget.publishBuilder(context, type, animation),
                               ),
-                            if (widget.tools != null)
+                            if (widget.toolsBuilder != null)
                               Flexible(
                                 child: IgnorePointer(
                                   ignoring: controller.value.isRecordingVideo,
-                                  child: widget.tools(
+                                  child: widget.toolsBuilder(
                                     context,
                                     type,
                                     controller.description.lensDirection,
@@ -197,22 +201,14 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     storyPath = await _pathToNewFile('png');
     await controller.takePicture(storyPath);
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Image.file(
-          File(storyPath),
-          fit: BoxFit.fitHeight,
-        ),
-      ),
-    );
+    _goToStoryResult();
   }
 
   void _startVideoRecording() async {
     storyPath = await _pathToNewFile('mp4');
     await controller.prepareForVideoRecording();
     await controller.startVideoRecording(storyPath);
-    setState(() {});
+    setState(() => type = StoryType.video);
     animationController.forward();
   }
 
@@ -220,61 +216,122 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     animationController.stop();
     await controller.stopVideoRecording();
     animationController.reset();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) {
-          final control = VideoPlayerController.file(File(storyPath));
-          return FutureBuilder<void>(
-            future: control.initialize(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                // control.setLooping(true);
-                control.play();
-                return VideoPlayer(control);
-              } else {
-                return widget.loadingWidget ?? Center(child: StoryLoading());
-              }
-            },
-          );
-        },
-      ),
-    );
+    _goToStoryResult();
   }
 
   void _sendExternalMedia(String path, StoryType type) {
     storyPath = path;
-    if (type == StoryType.video) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) {
-            final control = VideoPlayerController.file(File(storyPath));
-            return FutureBuilder<void>(
-              future: control.initialize(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) {
-                  // control.setLooping(true);
-                  control.play();
-                  return VideoPlayer(control);
-                } else {
-                  return widget.loadingWidget ?? Center(child: StoryLoading());
-                }
-              },
-            );
-          },
-        ),
-      );
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Image.file(
-            File(path),
-            fit: BoxFit.fitHeight,
+    this.type = type;
+    _goToStoryResult();
+  }
+
+  void _goToStoryResult() {
+    Navigator.push(
+      context,
+      PageRouteBuilder(pageBuilder: (context, anim, anim2) {
+        return StoryPublisherPreview(
+          filePath: storyPath,
+          type: type,
+          closeButton: widget.closeButton,
+          resultToolsBuilder: widget.resultToolsBuilder,
+          closeButtonPosition: widget.closeButtonPosition,
+        );
+      }),
+    );
+  }
+}
+
+class StoryPublisherPreview extends StatefulWidget {
+  final StoryType type;
+  final String filePath;
+  final Widget closeButton;
+  final Alignment closeButtonPosition;
+  final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
+
+  StoryPublisherPreview({
+    Key key,
+    @required this.type,
+    @required this.filePath,
+    this.closeButton,
+    this.closeButtonPosition,
+    this.resultToolsBuilder,
+  })  : assert(filePath != null, "The [filePath] can't be null"),
+        assert(type != null, "The [type] can't be null"),
+        super(key: key);
+
+  @override
+  _StoryPublisherPreviewState createState() => _StoryPublisherPreviewState();
+}
+
+class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
+  File storyFile;
+  VideoPlayerController controller;
+
+  @override
+  void initState() {
+    storyFile = File(widget.filePath);
+    if (widget.type == StoryType.video) controller = VideoPlayerController.file(storyFile);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: <Widget>[
+          _buildPreview(),
+          Align(
+            alignment: widget.closeButtonPosition,
+            child: SafeArea(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: widget.closeButton,
+              ),
+            ),
           ),
-        ),
-      );
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SafeArea(
+              child:
+                  widget.resultToolsBuilder?.call(context, storyFile, _sendStory) ?? LimitedBox(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreview() {
+    switch (widget.type) {
+      case StoryType.image:
+        return Image.file(
+          storyFile,
+          fit: BoxFit.fitHeight,
+        );
+        break;
+      case StoryType.video:
+        return FutureBuilder<void>(
+          future: controller.initialize(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              controller.setLooping(true);
+              controller.play();
+              return VideoPlayer(controller);
+            } else {
+              return Center(child: StoryLoading());
+            }
+          },
+        );
+      default:
+        return Container();
     }
   }
+
+  void _sendStory() {}
 }
