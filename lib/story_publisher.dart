@@ -5,6 +5,7 @@ import 'package:path/path.dart' show join;
 import 'package:stories_lib/components/story_error.dart';
 import 'package:path_provider/path_provider.dart' as path;
 import 'package:stories_lib/components/story_loading.dart';
+import 'package:video_player/video_player.dart';
 
 enum StoryType { text, image, video, gif }
 
@@ -17,7 +18,7 @@ typedef StoryPublisherToolsBuilder = Widget Function(
   void Function(String, StoryType),
 );
 
-typedef StoryPublisherButtonBuilder = Widget Function(BuildContext, StoryType);
+typedef StoryPublisherButtonBuilder = Widget Function(BuildContext, StoryType, Animation<double>);
 
 class StoryPublisher extends StatefulWidget {
   final Widget closeButton;
@@ -41,25 +42,33 @@ class StoryPublisher extends StatefulWidget {
   _StoryPublisherState createState() => _StoryPublisherState();
 }
 
-class _StoryPublisherState extends State<StoryPublisher> {
+class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProviderStateMixin {
   StoryType type;
+  String storyPath;
   CameraController controller;
+  Animation<double> animation;
+  Future _cameraInitialization;
   CameraLensDirection direction;
   List<CameraDescription> cameras;
-  Future _cameraInitialization;
+  AnimationController animationController;
 
   @override
   void initState() {
-    super.initState();
-
     _cameraInitialization = initializeController(direction: CameraLensDirection.front);
 
     type = StoryType.image;
+
+    animationController = AnimationController(vsync: this, duration: const Duration(seconds: 10));
+
+    animation = animationController.drive(Tween(begin: 0.0, end: 1.0));
+
+    super.initState();
   }
 
   @override
   void dispose() {
     controller?.dispose();
+    animationController?.dispose();
     super.dispose();
   }
 
@@ -117,23 +126,24 @@ class _StoryPublisherState extends State<StoryPublisher> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: <Widget>[
                             if (widget.publishBuilder != null)
-                              InkWell(
+                              GestureDetector(
                                 onTap: _takeStory,
-                                // onLongPress: _takeVideo,
-                                child: widget.publishBuilder(
-                                  context,
-                                  type,
-                                ),
+                                onLongPressStart: (details) => _startVideoRecording(),
+                                onLongPressEnd: (details) => _stopVideoRecording(),
+                                child: widget.publishBuilder(context, type, animation),
                               ),
                             if (widget.tools != null)
                               Flexible(
-                                child: widget.tools(
-                                  context,
-                                  type,
-                                  controller.description.lensDirection,
-                                  _changeType,
-                                  _changeLens,
-                                  _sendExternalMedia,
+                                child: IgnorePointer(
+                                  ignoring: controller.value.isRecordingVideo,
+                                  child: widget.tools(
+                                    context,
+                                    type,
+                                    controller.description.lensDirection,
+                                    _changeType,
+                                    _changeLens,
+                                    _sendExternalMedia,
+                                  ),
                                 ),
                               ),
                           ],
@@ -151,8 +161,6 @@ class _StoryPublisherState extends State<StoryPublisher> {
   }
 
   Future<void> initializeController({CameraLensDirection direction}) async {
-    // if (controller is CameraController) return;
-
     final cameras = await availableCameras();
 
     final selectedCamera = cameras.firstWhere(
@@ -161,6 +169,8 @@ class _StoryPublisherState extends State<StoryPublisher> {
     );
 
     controller = CameraController(selectedCamera, ResolutionPreset.max);
+
+    storyPath = null;
 
     await controller.initialize();
   }
@@ -177,26 +187,85 @@ class _StoryPublisherState extends State<StoryPublisher> {
     });
   }
 
-  void _takeStory() async {
+  Future<String> _pathToNewFile(String format) async {
     final tempDir = await path.getTemporaryDirectory();
 
-    final picturePath = join(tempDir.path, "${DateTime.now()}.png");
+    return join(tempDir.path, "${DateTime.now().millisecondsSinceEpoch}.$format");
+  }
 
-    await controller.takePicture(picturePath);
+  void _takeStory() async {
+    storyPath = await _pathToNewFile('png');
+    await controller.takePicture(storyPath);
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Image.file(
-          File(picturePath),
+          File(storyPath),
           fit: BoxFit.fitHeight,
         ),
       ),
     );
   }
 
+  void _startVideoRecording() async {
+    storyPath = await _pathToNewFile('mp4');
+    await controller.prepareForVideoRecording();
+    await controller.startVideoRecording(storyPath);
+    setState(() {});
+    animationController.forward();
+  }
+
+  void _stopVideoRecording() async {
+    animationController.stop();
+    await controller.stopVideoRecording();
+    animationController.reset();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) {
+          final control = VideoPlayerController.file(File(storyPath));
+          return FutureBuilder<void>(
+            future: control.initialize(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                // control.setLooping(true);
+                control.play();
+                return VideoPlayer(control);
+              } else {
+                return widget.loadingWidget ?? Center(child: StoryLoading());
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+
   void _sendExternalMedia(String path, StoryType type) {
-    if (type == StoryType.image)
+    storyPath = path;
+    if (type == StoryType.video) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) {
+            final control = VideoPlayerController.file(File(storyPath));
+            return FutureBuilder<void>(
+              future: control.initialize(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  // control.setLooping(true);
+                  control.play();
+                  return VideoPlayer(control);
+                } else {
+                  return widget.loadingWidget ?? Center(child: StoryLoading());
+                }
+              },
+            );
+          },
+        ),
+      );
+    } else {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -206,5 +275,6 @@ class _StoryPublisherState extends State<StoryPublisher> {
           ),
         ),
       );
+    }
   }
 }
