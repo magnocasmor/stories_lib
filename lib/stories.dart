@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:stories_lib/story_publisher.dart';
 import 'models/stories_collection.dart';
 import 'package:stories_lib/settings.dart';
 import 'package:stories_lib/story_view.dart';
@@ -191,11 +190,7 @@ class _StoriesState extends State<Stories> {
     if (widget.releases is List && widget.releases.isNotEmpty)
       query = query.where('releases', arrayContainsAny: widget.releases);
 
-    return query
-        .orderBy('last_update', descending: widget.sortByDescUpdate)
-        // .getDocuments() //This method return errors in query, but doesnt update on document changes
-        // .asStream();
-        .snapshots();
+    return query.orderBy('last_update', descending: widget.sortByDescUpdate).snapshots();
   }
 
   bool _hasNewStories(StoriesCollection collection) {

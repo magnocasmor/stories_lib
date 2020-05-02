@@ -1,13 +1,22 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' show join;
-import 'package:stories_lib/components/story_error.dart';
-import 'package:path_provider/path_provider.dart' as path;
-import 'package:stories_lib/components/story_loading.dart';
+import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_compress/video_compress.dart';
+import 'package:path/path.dart' show join, basename;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:stories_lib/components/story_error.dart';
+import 'package:stories_lib/components/story_loading.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 
 enum StoryType { text, image, video, gif }
+
+enum StoryUploadStatus { waiting, compressing, sending, complete, failure }
 
 typedef StoryPublisherToolsBuilder = Widget Function(
   BuildContext,
@@ -18,14 +27,18 @@ typedef StoryPublisherToolsBuilder = Widget Function(
   void Function(String, StoryType),
 );
 
-typedef StoryPublisherPreviewToolsBuilder = Widget Function(BuildContext, File, VoidCallback);
+typedef StoryPublisherPreviewToolsBuilder = Widget Function(
+    BuildContext, File, Stream<StoryUploadStatus>, VoidCallback);
 
 typedef StoryPublisherButtonBuilder = Widget Function(BuildContext, StoryType, Animation<double>);
 
 class StoryPublisher extends StatefulWidget {
+  final String userId;
   final Widget closeButton;
   final Widget errorWidget;
   final Widget loadingWidget;
+  final Duration videoDuration;
+  final String collectionDbName;
   final Alignment closeButtonPosition;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
@@ -33,6 +46,8 @@ class StoryPublisher extends StatefulWidget {
 
   const StoryPublisher({
     Key key,
+    @required this.collectionDbName,
+    this.userId,
     this.errorWidget,
     this.closeButton,
     this.toolsBuilder,
@@ -40,6 +55,7 @@ class StoryPublisher extends StatefulWidget {
     this.publishBuilder,
     this.resultToolsBuilder,
     this.closeButtonPosition = Alignment.topRight,
+    this.videoDuration = const Duration(seconds: 10),
   }) : super(key: key);
 
   @override
@@ -49,11 +65,11 @@ class StoryPublisher extends StatefulWidget {
 class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProviderStateMixin {
   StoryType type;
   String storyPath;
+  Timer videoTimer;
   CameraController controller;
   Animation<double> animation;
   Future _cameraInitialization;
   CameraLensDirection direction;
-  List<CameraDescription> cameras;
   AnimationController animationController;
 
   @override
@@ -62,7 +78,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     type = StoryType.image;
 
-    animationController = AnimationController(vsync: this, duration: const Duration(seconds: 10));
+    animationController = AnimationController(vsync: this, duration: widget.videoDuration);
 
     animation = animationController.drive(Tween(begin: 0.0, end: 1.0));
 
@@ -71,6 +87,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   @override
   void dispose() {
+    videoTimer?.cancel();
     controller?.dispose();
     animationController?.dispose();
     super.dispose();
@@ -192,7 +209,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   }
 
   Future<String> _pathToNewFile(String format) async {
-    final tempDir = await path.getTemporaryDirectory();
+    final tempDir = await getTemporaryDirectory();
 
     return join(tempDir.path, "${DateTime.now().millisecondsSinceEpoch}.$format");
   }
@@ -207,21 +224,29 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   void _startVideoRecording() async {
     storyPath = await _pathToNewFile('mp4');
     await controller.prepareForVideoRecording();
+    await HapticFeedback.vibrate();
     await controller.startVideoRecording(storyPath);
+
+    videoTimer?.cancel();
+    videoTimer = Timer(widget.videoDuration, _stopVideoRecording);
+
     setState(() => type = StoryType.video);
     animationController.forward();
   }
 
   void _stopVideoRecording() async {
+    videoTimer?.cancel();
     animationController.stop();
     await controller.stopVideoRecording();
     animationController.reset();
+
     _goToStoryResult();
   }
 
-  void _sendExternalMedia(String path, StoryType type) {
+  void _sendExternalMedia(String path, StoryType type) async {
     storyPath = path;
     this.type = type;
+
     _goToStoryResult();
   }
 
@@ -230,9 +255,11 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       context,
       PageRouteBuilder(pageBuilder: (context, anim, anim2) {
         return StoryPublisherPreview(
-          filePath: storyPath,
           type: type,
+          filePath: storyPath,
+          userId: widget.userId,
           closeButton: widget.closeButton,
+          collectionDbName: widget.collectionDbName,
           resultToolsBuilder: widget.resultToolsBuilder,
           closeButtonPosition: widget.closeButtonPosition,
         );
@@ -242,9 +269,11 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 }
 
 class StoryPublisherPreview extends StatefulWidget {
+  final String userId;
   final StoryType type;
   final String filePath;
   final Widget closeButton;
+  final String collectionDbName;
   final Alignment closeButtonPosition;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
@@ -252,9 +281,11 @@ class StoryPublisherPreview extends StatefulWidget {
     Key key,
     @required this.type,
     @required this.filePath,
+    this.userId,
     this.closeButton,
-    this.closeButtonPosition,
     this.resultToolsBuilder,
+    this.closeButtonPosition,
+    @required this.collectionDbName,
   })  : assert(filePath != null, "The [filePath] can't be null"),
         assert(type != null, "The [type] can't be null"),
         super(key: key);
@@ -265,10 +296,15 @@ class StoryPublisherPreview extends StatefulWidget {
 
 class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
   File storyFile;
+  String compressedPath;
+  Future compressFuture;
   VideoPlayerController controller;
+  final _uploadStatus = StreamController<StoryUploadStatus>()..add(StoryUploadStatus.waiting);
 
   @override
   void initState() {
+    _compress();
+
     storyFile = File(widget.filePath);
     if (widget.type == StoryType.video) controller = VideoPlayerController.file(storyFile);
     super.initState();
@@ -277,6 +313,8 @@ class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
   @override
   void dispose() {
     controller?.dispose();
+    _uploadStatus?.close();
+    VideoCompress.cancelCompression();
     super.dispose();
   }
 
@@ -298,8 +336,9 @@ class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
           Align(
             alignment: Alignment.bottomCenter,
             child: SafeArea(
-              child:
-                  widget.resultToolsBuilder?.call(context, storyFile, _sendStory) ?? LimitedBox(),
+              child: widget.resultToolsBuilder
+                      ?.call(context, storyFile, _uploadStatus.stream, _sendStory) ??
+                  LimitedBox(),
             ),
           ),
         ],
@@ -333,5 +372,142 @@ class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
     }
   }
 
-  void _sendStory() {}
+  void _compress() {
+    switch (widget.type) {
+      case StoryType.video:
+        compressFuture = _compressVideo().then((path) => compressedPath = path);
+        break;
+      case StoryType.image:
+        compressFuture = _compressImage().then((path) => compressedPath = path);
+        break;
+      default:
+    }
+  }
+
+  Future<void> _sendStory() async {
+    try {
+      _uploadStatus.add(StoryUploadStatus.compressing);
+      await compressFuture;
+
+      if (compressedPath is! String) throw Exception("Fail to compress story");
+
+      _uploadStatus.add(StoryUploadStatus.sending);
+      final url = await _uploadFile(compressedPath);
+
+      if (url is! String) throw Exception("Fail to upload story");
+
+      await _sendToFirestore(url);
+
+      _uploadStatus.add(StoryUploadStatus.complete);
+    } catch (e) {
+      _uploadStatus.add(StoryUploadStatus.failure);
+    }
+  }
+
+  Future<String> _compressImage() async {
+    debugPrint('image before = ${File(widget.filePath).lengthSync() / 1000} kB');
+
+    final temp = await getTemporaryDirectory();
+    final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.jpeg');
+
+    final compressed = await FlutterImageCompress.compressAndGetFile(
+      widget.filePath,
+      newPath,
+      quality: 90,
+      keepExif: true,
+    );
+
+    debugPrint('image after = ${compressed.lengthSync() / 1000} kB');
+
+    return compressed.path;
+  }
+
+  Future<String> _compressVideo() async {
+    debugPrint('video before = ${File(widget.filePath).lengthSync() / 1000} kB');
+
+    final mediaInfo = await VideoCompress.compressVideo(
+      widget.filePath,
+      includeAudio: true,
+      deleteOrigin: true,
+      quality: VideoQuality.DefaultQuality,
+    );
+
+    debugPrint('video after = ${File(mediaInfo.path).lengthSync() / 1000} kB');
+
+    return mediaInfo.path;
+  }
+
+  Future<String> _uploadFile(String path) async {
+    try {
+      final fileName = basename(path);
+
+      final storageReference =
+          FirebaseStorage.instance.ref().child("stories").child(widget.userId).child(fileName);
+
+      final StorageUploadTask uploadTask = storageReference.putFile(File(path));
+
+      var subs;
+      subs = uploadTask.events.listen((event) {
+        print((event.snapshot.bytesTransferred / event.snapshot.totalByteCount) * 100);
+        if (event.type == StorageTaskEventType.success ||
+            event.type == StorageTaskEventType.success) subs.cancel();
+      });
+
+      final StorageTaskSnapshot downloadUrl = (await uploadTask.onComplete);
+      final String url = (await downloadUrl.ref.getDownloadURL());
+
+      return url;
+    } catch (e, s) {
+      print(e);
+      print(s);
+
+      return null;
+    }
+  }
+
+  Future<void> _sendToFirestore(String url) async {
+    try {
+      final firestore = Firestore.instance;
+
+      final collectionInfo = {
+        "cover_img":
+            "https://images.unsplash.com/photo-1570158268183-d296b2892211?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=634&q=80",
+        "last_update": DateTime.now(),
+        "title": {"pt": "sou"},
+        "releases": [
+          {"group": "dev"}
+        ]
+      };
+
+      final storyInfo = {
+        "id": Uuid().v4(),
+        "date": DateTime.now(),
+        "media": {"pt": url},
+        "type": _extractType,
+      };
+
+      final userDoc =
+          await firestore.collection(widget.collectionDbName).document(widget.userId).get();
+
+      if (userDoc.exists) {
+        final stories = userDoc.data["stories"] ?? List();
+        if (stories is List) {
+          stories.add(storyInfo);
+          await userDoc.reference.updateData(
+            {"last_update": DateTime.now(), "stories": stories},
+          );
+        }
+      } else {
+        await userDoc.reference.setData(collectionInfo
+          ..addAll({
+            "stories": [storyInfo]
+          }));
+      }
+    } catch (e, s) {
+      debugPrint(e);
+      debugPrint(s.toString());
+    }
+  }
+
+  String get _extractType => widget.type.toString().split('.')[1];
 }
