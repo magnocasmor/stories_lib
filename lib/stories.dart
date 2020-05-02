@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stories_lib/story_publisher.dart';
 import 'models/stories_collection.dart';
 import 'package:stories_lib/settings.dart';
 import 'package:stories_lib/story_view.dart';
@@ -81,17 +82,14 @@ class _StoriesState extends State<Stories> {
 
           final storyWidgets = parseStoriesPreview(widget.languageCode, stories);
 
-          if (storyWidgets.isNotEmpty)
-            return _storiesList(
-              itemCount: stories.length,
-              builder: (context, index) {
-                final story = storyWidgets[index];
+          return _storiesList(
+            itemCount: stories.length,
+            builder: (context, index) {
+              final story = storyWidgets[index];
 
-                return _storyItem(context, story, storyIds(stories));
-              },
-            );
-          else
-            return LimitedBox();
+              return _storyItem(context, story, storyIds(stories));
+            },
+          );
         } else if (snapshot.hasError) {
           print(snapshot.error);
           return Center(
@@ -159,9 +157,6 @@ class _StoriesState extends State<Stories> {
                 backgroundColorBetweenStories: widget.backgroundBetweenStories,
               );
             },
-            settings: RouteSettings(
-              arguments: story.storyId,
-            ),
           ),
         );
       },
