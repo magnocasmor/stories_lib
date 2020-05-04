@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:stories_lib/stories_collection_view.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_compress/video_compress.dart';
@@ -34,6 +35,7 @@ typedef StoryPublisherButtonBuilder = Widget Function(BuildContext, StoryType, A
 
 class StoryPublisher extends StatefulWidget {
   final String userId;
+  final bool hasPublish;
   final Widget closeButton;
   final Widget errorWidget;
   final Widget loadingWidget;
@@ -54,6 +56,7 @@ class StoryPublisher extends StatefulWidget {
     this.loadingWidget,
     this.publishBuilder,
     this.resultToolsBuilder,
+    this.hasPublish = false,
     this.closeButtonPosition = Alignment.topRight,
     this.videoDuration = const Duration(seconds: 10),
   }) : super(key: key);
@@ -71,6 +74,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   Future _cameraInitialization;
   CameraLensDirection direction;
   AnimationController animationController;
+  bool showPublishes = true;
+  PageController pageController;
 
   @override
   void initState() {
@@ -81,6 +86,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     animationController = AnimationController(vsync: this, duration: widget.videoDuration);
 
     animation = animationController.drive(Tween(begin: 0.0, end: 1.0));
+
+    pageController = PageController();
 
     super.initState();
   }
@@ -95,6 +102,17 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    return PageView(
+      pageSnapping: false,
+      controller: pageController,
+      children: <Widget>[
+        if (widget.hasPublish && showPublishes) myStories(),
+        publishStory(),
+      ],
+    );
+  }
+
+  Widget publishStory() {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -177,6 +195,92 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget myStories() {
+    return WillPopScope(
+      onWillPop: () {
+        showPublishes = false;
+        pageController?.nextPage(duration: const Duration(milliseconds: 250), curve: Curves.ease);
+        return Future.value(false);
+      },
+      child: StoriesCollectionView(
+        storiesIds: [widget.userId],
+        repeat: false,
+        inline: false,
+        userId: widget.userId,
+        selectedStoryId: widget.userId,
+        languageCode: 'pt',
+        progressBuilder: (context, currentIndex, previewImage, title, datas, animation) {
+          return Column(
+            children: <Widget>[
+              Row(
+                children: datas.map(
+                  (it) {
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: datas.last == it ? 0 : 8.0),
+                        child: AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, child) {
+                            return SizedBox(
+                              height: 3.0,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(1.5),
+                                child: LinearProgressIndicator(
+                                  backgroundColor: Colors.black26,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  value: datas.indexOf(it) == currentIndex
+                                      ? animation.value
+                                      : it.shown ? 1 : 0,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ).toList(),
+              ),
+              Row(
+                children: <Widget>[
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24.0),
+                    ),
+                    position: DecorationPosition.foreground,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Hero(
+                        tag: title,
+                        transitionOnUserGestures: true,
+                        child: CircleAvatar(
+                          backgroundImage: previewImage,
+                          // backgroundColor: Colors.purple,
+                          radius: 20.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(title),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+        // sortingOrderDesc: true,
+        headerPosition: StoryHeaderPosition.top,
+        collectionDbName: widget.collectionDbName,
+        closeButton: widget.closeButton,
+        storyDuration: const Duration(seconds: 5),
+        closeButtonPosition: widget.closeButtonPosition,
+        backgroundColorBetweenStories: Colors.black,
       ),
     );
   }

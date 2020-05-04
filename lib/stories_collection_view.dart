@@ -76,8 +76,8 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () {
-        _finishStoriesView();
-        return Future.value(false);
+        storyController?.stop();
+        return Future.value(true);
       },
       child: Scaffold(
         backgroundColor: widget.backgroundColorBetweenStories,
@@ -222,9 +222,9 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     }
   }
 
-  bool _finishStoriesView() {
+  Future<bool> _finishStoriesView() {
     storyController?.stop();
-    return Navigator.pop(context);
+    return Navigator.maybePop(context);
   }
 
   int indexOfStory(String storyId) => widget.storiesIds.indexOf(storyId);
