@@ -13,13 +13,14 @@ typedef _ItemBuilder = Widget Function(BuildContext, int);
 
 typedef StoryPreviewBuilder = Widget Function(BuildContext, ImageProvider, String, bool);
 
+typedef StoryPublisherPreviewBuilder = Widget Function(BuildContext, ImageProvider, bool, bool);
+
 class Stories extends StatefulWidget {
   final bool repeat;
   final bool inline;
   final String userId;
   final Widget closeButton;
   final String languageCode;
-  final Widget publishStory;
   final bool sortByDescUpdate;
   final Duration storyDuration;
   final Widget mediaErrorWidget;
@@ -37,13 +38,14 @@ class Stories extends StatefulWidget {
   final List<Map<String, dynamic>> releases;
   final StoryHeaderBuilder storyHeaderBuilder;
   final RouteTransitionsBuilder storyOpenTransition;
+  final StoryPublisherPreviewBuilder publishStoryBuilder;
 
   Stories({
     @required this.collectionDbName,
     this.userId,
     this.releases,
     this.closeButton,
-    this.publishStory,
+    this.publishStoryBuilder,
     this.previewBuilder,
     this.mediaErrorWidget,
     this.placeholderBuilder,
@@ -79,14 +81,29 @@ class _StoriesState extends State<Stories> {
         if (snapshot.hasData) {
           final stories = snapshot.data.documents;
 
-          final storyWidgets = parseStoriesPreview(widget.languageCode, stories);
+          final storyPreviews = parseStoriesPreview(widget.languageCode, stories);
+
+          final myPreview = storyPreviews.firstWhere(
+            (preview) => preview.storyId == widget.userId,
+            orElse: () => null,
+          );
+
+          final hasPublish = myPreview != null && myPreview.stories.isNotEmpty;
+
+          storyPreviews.remove(myPreview);
+
+          final hasNewPublish = hasPublish ? _hasNewStories(myPreview) : false;
+
+          final myCoverImg = myPreview != null ? CachedNetworkImageProvider(myPreview.coverImg) : null;
 
           return _storiesList(
-            itemCount: stories.length,
+            itemCount: storyPreviews.length,
+            myPreview:
+                widget.publishStoryBuilder?.call(context, myCoverImg, hasPublish, hasNewPublish),
             builder: (context, index) {
-              final story = storyWidgets[index];
+              final preview = storyPreviews[index];
 
-              return _storyItem(context, story, storyIds(stories));
+              return _storyItem(context, preview, storyIds(stories));
             },
           );
         } else if (snapshot.hasError) {
@@ -164,6 +181,7 @@ class _StoriesState extends State<Stories> {
 
   Widget _storiesList({
     int itemCount,
+    Widget myPreview,
     _ItemBuilder builder,
   }) {
     return SingleChildScrollView(
@@ -174,7 +192,7 @@ class _StoriesState extends State<Stories> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.publishStory is Widget) widget.publishStory,
+          if (myPreview != null) myPreview,
           for (int i = 0; i < itemCount; i++) builder(context, i),
         ],
       ),
