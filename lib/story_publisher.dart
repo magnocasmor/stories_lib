@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:stories_lib/stories_settings.dart';
 import 'package:uuid/uuid.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'package:stories_lib/stories_settings.dart';
 import 'package:path/path.dart' show join, basename;
 import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:video_compress/video_compress.dart';
@@ -32,9 +32,18 @@ typedef StoryPublisherToolsBuilder = Widget Function(
 );
 
 typedef StoryPublisherPreviewToolsBuilder = Widget Function(
-    BuildContext, File, Stream<StoryUploadStatus>, VoidCallback);
+  BuildContext,
+  File,
+  Stream<StoryUploadStatus>,
+  VoidCallback,
+);
 
-typedef StoryPublisherButtonBuilder = Widget Function(BuildContext, StoryType, Animation<double>);
+typedef StoryPublisherButtonBuilder = Widget Function(
+  BuildContext,
+  StoryType,
+  Animation<double>,
+  void Function(StoryType),
+);
 
 class StoryPublisher extends StatefulWidget {
   final bool hasPublish;
@@ -43,6 +52,7 @@ class StoryPublisher extends StatefulWidget {
   final Widget loadingWidget;
   final Duration videoDuration;
   final StoriesSettings settings;
+  final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
@@ -56,6 +66,7 @@ class StoryPublisher extends StatefulWidget {
     this.toolsBuilder,
     this.loadingWidget,
     this.publishBuilder,
+    this.onStoryPosted,
     this.resultToolsBuilder,
     this.hasPublish = false,
     this.closeButtonPosition = Alignment.topRight,
@@ -106,10 +117,10 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     return Stack(
       children: <Widget>[
         PageView(
-          pageSnapping: false,
+          pageSnapping: true,
           controller: pageController,
           children: <Widget>[
-            if (widget.hasPublish && showPublishes) myStories(),
+            if (widget.hasPublish) myStories(),
             publishStory(),
           ],
         ),
@@ -173,12 +184,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: <Widget>[
                               if (widget.publishBuilder != null)
-                                GestureDetector(
-                                  onTap: _takeStory,
-                                  onLongPressStart: (details) => _startVideoRecording(),
-                                  onLongPressEnd: (details) => _stopVideoRecording(),
-                                  child: widget.publishBuilder(context, type, animation),
-                                ),
+                                widget.publishBuilder(context, type, animation, _processStory),
                               if (widget.toolsBuilder != null)
                                 Flexible(
                                   child: IgnorePointer(
@@ -216,10 +222,10 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         return Future.value(false);
       },
       child: StoriesCollectionView(
-        settings: widget.settings,
-        storiesIds: [widget.settings.userId],
         repeat: false,
         inline: false,
+        settings: widget.settings,
+        storiesIds: [widget.settings.userId],
         selectedStoryId: widget.settings.userId,
         progressBuilder: (context, currentIndex, previewImage, title, datas, animation) {
           return Column(
@@ -322,7 +328,22 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     return join(tempDir.path, "${DateTime.now().millisecondsSinceEpoch}.$format");
   }
 
-  void _takeStory() async {
+  void _processStory(StoryType type) {
+    switch (type) {
+      case StoryType.image:
+        _takePicture();
+        break;
+      case StoryType.video:
+        if (cameraController.value.isRecordingVideo)
+          _stopVideoRecording();
+        else
+          _startVideoRecording();
+        break;
+      default:
+    }
+  }
+
+  void _takePicture() async {
     if (cameraController.value.isRecordingVideo) return;
 
     storyPath = await _pathToNewFile('jpg');
@@ -369,11 +390,12 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     Navigator.push(
       context,
       PageRouteBuilder(pageBuilder: (context, anim, anim2) {
-        return StoryPublisherResult(
+        return _StoryPublisherResult(
           type: type,
           filePath: storyPath,
           settings: widget.settings,
           closeButton: widget.closeButton,
+          onStoryPosted: widget.onStoryPosted,
           resultToolsBuilder: widget.resultToolsBuilder,
           closeButtonPosition: widget.closeButtonPosition,
         );
@@ -382,20 +404,22 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   }
 }
 
-class StoryPublisherResult extends StatefulWidget {
+class _StoryPublisherResult extends StatefulWidget {
   final StoryType type;
   final String filePath;
   final Widget closeButton;
   final StoriesSettings settings;
+  final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
-  StoryPublisherResult({
+  _StoryPublisherResult({
     Key key,
     @required this.type,
     @required this.settings,
     @required this.filePath,
     this.closeButton,
+    this.onStoryPosted,
     this.resultToolsBuilder,
     this.closeButtonPosition,
   })  : assert(filePath != null, "The [filePath] can't be null"),
@@ -406,7 +430,7 @@ class StoryPublisherResult extends StatefulWidget {
   _StoryPublisherResultState createState() => _StoryPublisherResultState();
 }
 
-class _StoryPublisherResultState extends State<StoryPublisherResult> {
+class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   File storyFile;
   String compressedPath;
   Future compressFuture;
@@ -515,6 +539,8 @@ class _StoryPublisherResultState extends State<StoryPublisherResult> {
       await _sendToFirestore(url);
 
       _uploadStatus.add(StoryUploadStatus.complete);
+
+      widget.onStoryPosted?.call();
     } catch (e) {
       _uploadStatus.add(StoryUploadStatus.failure);
     }
