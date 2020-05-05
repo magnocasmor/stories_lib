@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:stories_lib/components/fitted_container.dart';
+
 import 'story_view.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
@@ -114,15 +116,11 @@ class _StoryVideoState extends State<StoryVideo> {
           switch (state) {
             case ConnectionState.done:
               return SafeArea(
-                child: SizedBox.expand(
-                  child: FittedBox(
-                    fit: widget.fit,
-                    child: SizedBox(
-                      width: playerController.value.size?.width ?? 0,
-                      height: playerController.value.size?.height ?? 0,
-                      child: VideoPlayer(playerController),
-                    ),
-                  ),
+                child: FittedContainer(
+                  fit: widget.fit,
+                  width: playerController.value.size?.width ?? 0,
+                  height: playerController.value.size?.height ?? 0,
+                  child: VideoPlayer(playerController),
                 ),
               );
               break;

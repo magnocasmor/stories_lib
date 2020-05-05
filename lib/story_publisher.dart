@@ -3,14 +3,16 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:stories_lib/stories_collection_view.dart';
+import 'package:stories_lib/components/fitted_container.dart';
+import 'package:stories_lib/components/story_widget.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
-import 'package:video_compress/video_compress.dart';
+// import 'package:video_compress/video_compress.dart';
 import 'package:path/path.dart' show join, basename;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:stories_lib/components/story_error.dart';
+import 'package:stories_lib/stories_collection_view.dart';
 import 'package:stories_lib/components/story_loading.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
@@ -42,6 +44,7 @@ class StoryPublisher extends StatefulWidget {
   final Duration videoDuration;
   final String collectionDbName;
   final Alignment closeButtonPosition;
+  final StoriesController storiesController;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
@@ -59,6 +62,7 @@ class StoryPublisher extends StatefulWidget {
     this.hasPublish = false,
     this.closeButtonPosition = Alignment.topRight,
     this.videoDuration = const Duration(seconds: 10),
+    this.storiesController,
   }) : super(key: key);
 
   @override
@@ -69,17 +73,17 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   StoryType type;
   String storyPath;
   Timer videoTimer;
-  CameraController controller;
   Animation<double> animation;
-  Future _cameraInitialization;
+  Future cameraInitialization;
+  PageController pageController;
   CameraLensDirection direction;
+  CameraController cameraController;
   AnimationController animationController;
   bool showPublishes = true;
-  PageController pageController;
 
   @override
   void initState() {
-    _cameraInitialization = initializeController(direction: CameraLensDirection.front);
+    cameraInitialization = initializeController(direction: CameraLensDirection.front);
 
     type = StoryType.image;
 
@@ -95,7 +99,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   @override
   void dispose() {
     videoTimer?.cancel();
-    controller?.dispose();
+    cameraController?.dispose();
     animationController?.dispose();
     super.dispose();
   }
@@ -115,86 +119,90 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   Widget publishStory() {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: <Widget>[
-          FutureBuilder<void>(
-            future: _cameraInitialization,
-            builder: (context, snapshot) {
-              if (snapshot.hasError)
-                return Center(
-                  child: widget.errorWidget ??
-                      StoryError(
-                        info: "Open camera failed.",
-                      ),
-                );
-
-              switch (snapshot.connectionState) {
-                case ConnectionState.done:
-                  return AspectRatio(
-                    aspectRatio: controller.value.aspectRatio,
-                    child: CameraPreview(controller),
-                  );
-                  break;
-                default:
-                  return Center(
-                    child: widget.loadingWidget ?? StoryLoading(),
-                  );
-              }
-            },
-          ),
-          Align(
-            alignment: widget.closeButtonPosition,
-            child: SafeArea(
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: widget.closeButton,
+      body: SafeArea(
+        child: Stack(
+          children: <Widget>[
+            Center(
+              child: FutureBuilder<void>(
+                future: cameraInitialization,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError)
+                    return widget.errorWidget ??
+                        StoryError(
+                          info: "Open camera failed.",
+                        );
+                  switch (snapshot.connectionState) {
+                    case ConnectionState.done:
+                      return FittedContainer(
+                        fit: BoxFit.fitHeight,
+                        width: cameraController.value.previewSize?.height ?? 0,
+                        height: cameraController.value.previewSize?.width ?? 0,
+                        child: AspectRatio(
+                          aspectRatio: cameraController.value.aspectRatio,
+                          child: CameraPreview(cameraController),
+                        ),
+                      );
+                      break;
+                    default:
+                      return widget.loadingWidget ?? StoryLoading();
+                  }
+                },
               ),
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: FutureBuilder<void>(
-                  future: _cameraInitialization,
-                  builder: (context, snapshot) {
-                    switch (snapshot.connectionState) {
-                      case ConnectionState.done:
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: <Widget>[
-                            if (widget.publishBuilder != null)
-                              GestureDetector(
-                                onTap: _takeStory,
-                                onLongPressStart: (details) => _startVideoRecording(),
-                                onLongPressEnd: (details) => _stopVideoRecording(),
-                                child: widget.publishBuilder(context, type, animation),
-                              ),
-                            if (widget.toolsBuilder != null)
-                              Flexible(
-                                child: IgnorePointer(
-                                  ignoring: controller.value.isRecordingVideo,
-                                  child: widget.toolsBuilder(
-                                    context,
-                                    type,
-                                    controller.description.lensDirection,
-                                    _changeType,
-                                    _changeLens,
-                                    _sendExternalMedia,
+            Align(
+              alignment: widget.closeButtonPosition,
+              child: SafeArea(
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: widget.closeButton,
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: FutureBuilder<void>(
+                    future: cameraInitialization,
+                    builder: (context, snapshot) {
+                      switch (snapshot.connectionState) {
+                        case ConnectionState.done:
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: <Widget>[
+                              if (widget.publishBuilder != null)
+                                GestureDetector(
+                                  onTap: _takeStory,
+                                  onLongPressStart: (details) => _startVideoRecording(),
+                                  onLongPressEnd: (details) => _stopVideoRecording(),
+                                  child: widget.publishBuilder(context, type, animation),
+                                ),
+                              if (widget.toolsBuilder != null)
+                                Flexible(
+                                  child: IgnorePointer(
+                                    ignoring: cameraController.value.isRecordingVideo,
+                                    child: widget.toolsBuilder(
+                                      context,
+                                      type,
+                                      cameraController.description.lensDirection,
+                                      _changeType,
+                                      _changeLens,
+                                      _sendExternalMedia,
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        );
-                        break;
-                      default:
-                        return LimitedBox();
-                    }
-                  }),
+                            ],
+                          );
+                          break;
+                        default:
+                          return LimitedBox();
+                      }
+                    }),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -293,16 +301,16 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       orElse: () => cameras.first,
     );
 
-    controller = CameraController(selectedCamera, ResolutionPreset.max);
+    cameraController = CameraController(selectedCamera, ResolutionPreset.high);
 
     storyPath = null;
 
-    await controller.initialize();
+    await cameraController.initialize();
   }
 
   void _changeLens(CameraLensDirection mode) {
     setState(() {
-      _cameraInitialization = initializeController(direction: mode);
+      cameraInitialization = initializeController(direction: mode);
     });
   }
 
@@ -319,17 +327,22 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   }
 
   void _takeStory() async {
-    storyPath = await _pathToNewFile('png');
-    await controller.takePicture(storyPath);
+    if (cameraController.value.isRecordingVideo) return;
+
+    storyPath = await _pathToNewFile('jpg');
+    await cameraController.takePicture(storyPath);
+
+    setState(() => type = StoryType.image);
 
     _goToStoryResult();
   }
 
   void _startVideoRecording() async {
+    if (cameraController.value.isTakingPicture) return;
     storyPath = await _pathToNewFile('mp4');
-    await controller.prepareForVideoRecording();
+    await cameraController.prepareForVideoRecording();
     await HapticFeedback.vibrate();
-    await controller.startVideoRecording(storyPath);
+    await cameraController.startVideoRecording(storyPath);
 
     videoTimer?.cancel();
     videoTimer = Timer(widget.videoDuration, _stopVideoRecording);
@@ -339,9 +352,11 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   }
 
   void _stopVideoRecording() async {
+    if (cameraController.value.isTakingPicture) return;
+
     videoTimer?.cancel();
     animationController.stop();
-    await controller.stopVideoRecording();
+    await cameraController.stopVideoRecording();
     animationController.reset();
 
     _goToStoryResult();
@@ -358,7 +373,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     Navigator.push(
       context,
       PageRouteBuilder(pageBuilder: (context, anim, anim2) {
-        return StoryPublisherPreview(
+        return StoryPublisherResult(
           type: type,
           filePath: storyPath,
           userId: widget.userId,
@@ -372,7 +387,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   }
 }
 
-class StoryPublisherPreview extends StatefulWidget {
+class StoryPublisherResult extends StatefulWidget {
   final String userId;
   final StoryType type;
   final String filePath;
@@ -381,7 +396,7 @@ class StoryPublisherPreview extends StatefulWidget {
   final Alignment closeButtonPosition;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
-  StoryPublisherPreview({
+  StoryPublisherResult({
     Key key,
     @required this.type,
     @required this.filePath,
@@ -395,10 +410,10 @@ class StoryPublisherPreview extends StatefulWidget {
         super(key: key);
 
   @override
-  _StoryPublisherPreviewState createState() => _StoryPublisherPreviewState();
+  _StoryPublisherResultState createState() => _StoryPublisherResultState();
 }
 
-class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
+class _StoryPublisherResultState extends State<StoryPublisherResult> {
   File storyFile;
   String compressedPath;
   Future compressFuture;
@@ -418,34 +433,33 @@ class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
   void dispose() {
     controller?.dispose();
     _uploadStatus?.close();
-    VideoCompress.cancelCompression();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: <Widget>[
-          _buildPreview(),
-          Align(
-            alignment: widget.closeButtonPosition,
-            child: SafeArea(
+      body: SafeArea(
+        child: Stack(
+          children: <Widget>[
+            StoryWidget(
+              story: _buildPreview(),
+            ),
+            Align(
+              alignment: widget.closeButtonPosition,
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: widget.closeButton,
               ),
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
+            Align(
+              alignment: Alignment.bottomCenter,
               child: widget.resultToolsBuilder
                       ?.call(context, storyFile, _uploadStatus.stream, _sendStory) ??
                   LimitedBox(),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -465,7 +479,12 @@ class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
             if (snapshot.connectionState == ConnectionState.done) {
               controller.setLooping(true);
               controller.play();
-              return VideoPlayer(controller);
+              return FittedContainer(
+                fit: BoxFit.fitHeight,
+                width: controller.value.size.width,
+                height: controller.value.size.height,
+                child: VideoPlayer(controller),
+              );
             } else {
               return Center(child: StoryLoading());
             }
@@ -527,18 +546,28 @@ class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
   }
 
   Future<String> _compressVideo() async {
-    debugPrint('video before = ${File(widget.filePath).lengthSync() / 1000} kB');
+    try {
+      debugPrint('video before = ${File(widget.filePath).lengthSync() / 1000} kB');
 
-    final mediaInfo = await VideoCompress.compressVideo(
-      widget.filePath,
-      includeAudio: true,
-      deleteOrigin: true,
-      quality: VideoQuality.DefaultQuality,
-    );
+      // final mediaInfo = await VideoCompress.compressVideo(
+      //   widget.filePath,
+      //   deleteOrigin: true,
+      //   quality: VideoQuality.MediumQuality,
+      // );
 
-    debugPrint('video after = ${File(mediaInfo.path).lengthSync() / 1000} kB');
+      // compressedPath = mediaInfo.path;
 
-    return mediaInfo.path;
+      // debugPrint('video after = ${mediaInfo.file.lengthSync() / 1000} kB');
+
+      compressedPath = widget.filePath;
+
+      return compressedPath;
+    } catch (e, s) {
+      print(e);
+      print(s);
+
+      return null;
+    }
   }
 
   Future<String> _uploadFile(String path) async {
@@ -614,4 +643,73 @@ class _StoryPublisherPreviewState extends State<StoryPublisherPreview> {
   }
 
   String get _extractType => widget.type.toString().split('.')[1];
+}
+
+class StoriesController {
+  CameraController cameraController;
+  String storyPath;
+  StoryType type;
+  Timer videoTimer;
+  Future cameraInitialization;
+  CameraLensDirection direction;
+  AnimationController animationController;
+  final Duration videoDuration;
+
+  StoriesController({
+    this.videoDuration,
+  });
+
+  Future<void> initializeCamera({CameraLensDirection direction}) async {
+    final cameras = await availableCameras();
+
+    final selectedCamera = cameras.firstWhere(
+      (cam) => cam.lensDirection == direction,
+      orElse: () => cameras.first,
+    );
+
+    cameraController = CameraController(selectedCamera, ResolutionPreset.high);
+
+    storyPath = null;
+
+    await cameraController.initialize();
+  }
+
+  Future<String> _pathToNewFile(String format) async {
+    final tempDir = await getTemporaryDirectory();
+
+    return join(tempDir.path, "${DateTime.now().millisecondsSinceEpoch}.$format");
+  }
+
+  Future<void> takeStory() async {
+    if (cameraController.value.isRecordingVideo) return;
+
+    storyPath = await _pathToNewFile('jpg');
+
+    await cameraController.takePicture(storyPath);
+  }
+
+  void startVideoRecording() async {
+    if (cameraController.value.isTakingPicture) return;
+    storyPath = await _pathToNewFile('mp4');
+    await cameraController.prepareForVideoRecording();
+    await HapticFeedback.vibrate();
+    await cameraController.startVideoRecording(storyPath);
+
+    videoTimer?.cancel();
+    videoTimer = Timer(videoDuration, stopVideoRecording);
+
+    // setState(() => type = StoryType.video);
+    animationController.forward();
+  }
+
+  void stopVideoRecording() async {
+    if (cameraController.value.isTakingPicture) return;
+
+    videoTimer?.cancel();
+    animationController.stop();
+    await cameraController.stopVideoRecording();
+    animationController.reset();
+
+    // _goToStoryResult();
+  }
 }
