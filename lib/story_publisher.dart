@@ -628,9 +628,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         "cover_img": widget.settings.coverImg,
         "last_update": DateTime.now(),
         "title": {widget.settings.languageCode: widget.settings.username},
-        "releases": [
-          widget.settings.releases,
-        ]
+        "releases": widget.settings.releases,
       };
 
       final storyInfo = {
