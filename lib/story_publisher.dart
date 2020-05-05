@@ -1,19 +1,19 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:uuid/uuid.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:stories_lib/components/fitted_container.dart';
-import 'package:stories_lib/components/story_widget.dart';
-import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
-// import 'package:video_compress/video_compress.dart';
 import 'package:path/path.dart' show join, basename;
 import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:video_compress/video_compress.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:stories_lib/components/story_error.dart';
+import 'package:stories_lib/components/story_widget.dart';
 import 'package:stories_lib/stories_collection_view.dart';
 import 'package:stories_lib/components/story_loading.dart';
+import 'package:stories_lib/components/fitted_container.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 
@@ -44,7 +44,6 @@ class StoryPublisher extends StatefulWidget {
   final Duration videoDuration;
   final String collectionDbName;
   final Alignment closeButtonPosition;
-  final StoriesController storiesController;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
@@ -62,7 +61,6 @@ class StoryPublisher extends StatefulWidget {
     this.hasPublish = false,
     this.closeButtonPosition = Alignment.topRight,
     this.videoDuration = const Duration(seconds: 10),
-    this.storiesController,
   }) : super(key: key);
 
   @override
@@ -106,12 +104,25 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return PageView(
-      pageSnapping: false,
-      controller: pageController,
+    return Stack(
       children: <Widget>[
-        if (widget.hasPublish && showPublishes) myStories(),
-        publishStory(),
+        PageView(
+          pageSnapping: false,
+          controller: pageController,
+          children: <Widget>[
+            if (widget.hasPublish && showPublishes) myStories(),
+            publishStory(),
+          ],
+        ),
+        Align(
+          alignment: widget.closeButtonPosition,
+          child: SafeArea(
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: widget.closeButton,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -147,15 +158,6 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                       return widget.loadingWidget ?? StoryLoading();
                   }
                 },
-              ),
-            ),
-            Align(
-              alignment: widget.closeButtonPosition,
-              child: SafeArea(
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: widget.closeButton,
-                ),
               ),
             ),
             Align(
@@ -284,10 +286,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         },
         // sortingOrderDesc: true,
         headerPosition: StoryHeaderPosition.top,
-        collectionDbName: widget.collectionDbName,
-        closeButton: widget.closeButton,
         storyDuration: const Duration(seconds: 5),
-        closeButtonPosition: widget.closeButtonPosition,
+        collectionDbName: widget.collectionDbName,
         backgroundColorBetweenStories: Colors.black,
       ),
     );
@@ -643,73 +643,4 @@ class _StoryPublisherResultState extends State<StoryPublisherResult> {
   }
 
   String get _extractType => widget.type.toString().split('.')[1];
-}
-
-class StoriesController {
-  CameraController cameraController;
-  String storyPath;
-  StoryType type;
-  Timer videoTimer;
-  Future cameraInitialization;
-  CameraLensDirection direction;
-  AnimationController animationController;
-  final Duration videoDuration;
-
-  StoriesController({
-    this.videoDuration,
-  });
-
-  Future<void> initializeCamera({CameraLensDirection direction}) async {
-    final cameras = await availableCameras();
-
-    final selectedCamera = cameras.firstWhere(
-      (cam) => cam.lensDirection == direction,
-      orElse: () => cameras.first,
-    );
-
-    cameraController = CameraController(selectedCamera, ResolutionPreset.high);
-
-    storyPath = null;
-
-    await cameraController.initialize();
-  }
-
-  Future<String> _pathToNewFile(String format) async {
-    final tempDir = await getTemporaryDirectory();
-
-    return join(tempDir.path, "${DateTime.now().millisecondsSinceEpoch}.$format");
-  }
-
-  Future<void> takeStory() async {
-    if (cameraController.value.isRecordingVideo) return;
-
-    storyPath = await _pathToNewFile('jpg');
-
-    await cameraController.takePicture(storyPath);
-  }
-
-  void startVideoRecording() async {
-    if (cameraController.value.isTakingPicture) return;
-    storyPath = await _pathToNewFile('mp4');
-    await cameraController.prepareForVideoRecording();
-    await HapticFeedback.vibrate();
-    await cameraController.startVideoRecording(storyPath);
-
-    videoTimer?.cancel();
-    videoTimer = Timer(videoDuration, stopVideoRecording);
-
-    // setState(() => type = StoryType.video);
-    animationController.forward();
-  }
-
-  void stopVideoRecording() async {
-    if (cameraController.value.isTakingPicture) return;
-
-    videoTimer?.cancel();
-    animationController.stop();
-    await cameraController.stopVideoRecording();
-    animationController.reset();
-
-    // _goToStoryResult();
-  }
 }

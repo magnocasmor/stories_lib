@@ -173,13 +173,14 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                       );
                     },
                   ),
-                  Align(
-                    alignment: widget.closeButtonPosition,
-                    child: GestureDetector(
-                      onTap: _finishStoriesView,
-                      child: widget.closeButton,
+                  if (widget.closeButton != null)
+                    Align(
+                      alignment: widget.closeButtonPosition,
+                      child: GestureDetector(
+                        onTap: _finishStoriesView,
+                        child: widget.closeButton,
+                      ),
                     ),
-                  ),
                 ],
               );
             },
