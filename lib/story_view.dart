@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:stories_lib/stories.dart';
 import 'package:stories_lib/utils/color_parser.dart';
 import 'package:stories_lib/components/story_widget.dart';
-import 'package:stories_lib/components/story_loading.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 export 'story_image.dart';

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stories_lib/stories_settings.dart';
 import 'models/stories_collection.dart';
 import 'package:stories_lib/settings.dart';
 import 'package:stories_lib/story_view.dart';
@@ -18,16 +19,11 @@ typedef StoryPublisherPreviewBuilder = Widget Function(BuildContext, ImageProvid
 class Stories extends StatefulWidget {
   final bool repeat;
   final bool inline;
-  final String userId;
   final Widget closeButton;
-  final String languageCode;
-  final bool sortByDescUpdate;
-  final Duration storyDuration;
   final Widget mediaErrorWidget;
-  final String collectionDbName;
+  final StoriesSettings settings;
   final Widget mediaLoadingWidget;
   final Widget previewPlaceholder;
-  final Duration storyTimeValidaty;
   final EdgeInsets previewListPadding;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
@@ -35,15 +31,12 @@ class Stories extends StatefulWidget {
   final VoidCallback onAllStoriesComplete;
   final StoryHeaderPosition headerPosition;
   final StoryPreviewBuilder previewBuilder;
-  final List<Map<String, dynamic>> releases;
   final StoryHeaderBuilder storyHeaderBuilder;
   final RouteTransitionsBuilder storyOpenTransition;
   final StoryPublisherPreviewBuilder publishStoryBuilder;
 
   Stories({
-    @required this.collectionDbName,
-    this.userId,
-    this.releases,
+    @required this.settings,
     this.closeButton,
     this.publishStoryBuilder,
     this.previewBuilder,
@@ -57,13 +50,9 @@ class Stories extends StatefulWidget {
     this.onAllStoriesComplete,
     this.repeat = false,
     this.inline = false,
-    this.languageCode = 'pt',
-    this.sortByDescUpdate = true,
     this.backgroundBetweenStories = Colors.black,
     this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
-    this.storyDuration = const Duration(seconds: 3),
-    this.storyTimeValidaty = const Duration(hours: 12),
   });
 
   @override
@@ -81,10 +70,10 @@ class _StoriesState extends State<Stories> {
         if (snapshot.hasData) {
           final stories = snapshot.data.documents;
 
-          final storyPreviews = parseStoriesPreview(widget.languageCode, stories);
+          final storyPreviews = parseStoriesPreview(widget.settings.languageCode, stories);
 
           final myPreview = storyPreviews.firstWhere(
-            (preview) => preview.storyId == widget.userId,
+            (preview) => preview.storyId == widget.settings.userId,
             orElse: () => null,
           );
 
@@ -94,7 +83,8 @@ class _StoriesState extends State<Stories> {
 
           final hasNewPublish = hasPublish ? _hasNewStories(myPreview) : false;
 
-          final myCoverImg = myPreview != null ? CachedNetworkImageProvider(myPreview.coverImg) : null;
+          final myCoverImg =
+              myPreview != null ? CachedNetworkImageProvider(myPreview.coverImg) : null;
 
           return _storiesList(
             itemCount: storyPreviews.length,
@@ -141,7 +131,7 @@ class _StoriesState extends State<Stories> {
           return widget.previewBuilder(
             context,
             image,
-            story.title[widget.languageCode],
+            story.title[widget.settings.languageCode],
             _hasNewStories(story),
           );
         },
@@ -158,17 +148,13 @@ class _StoriesState extends State<Stories> {
                 storiesIds: storyIds,
                 repeat: widget.repeat,
                 inline: widget.inline,
-                userId: widget.userId,
+                settings: widget.settings,
                 selectedStoryId: story.storyId,
-                languageCode: widget.languageCode,
                 mediaErrorWidget: widget.mediaErrorWidget,
                 mediaLoadingWidget: widget.mediaLoadingWidget,
                 headerPosition: widget.headerPosition,
                 progressBuilder: widget.storyHeaderBuilder,
-                sortingOrderDesc: widget.sortByDescUpdate,
-                collectionDbName: widget.collectionDbName,
                 closeButton: widget.closeButton,
-                storyDuration: widget.storyDuration,
                 closeButtonPosition: widget.closeButtonPosition,
                 backgroundColorBetweenStories: widget.backgroundBetweenStories,
               );
@@ -200,21 +186,22 @@ class _StoriesState extends State<Stories> {
   }
 
   Stream<QuerySnapshot> get _storiesStream {
-    var query = _firestore.collection(widget.collectionDbName).where(
+    var query = _firestore.collection(widget.settings.collectionDbName).where(
           'last_update',
-          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.storyTimeValidaty),
+          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
         );
 
-    if (widget.releases is List && widget.releases.isNotEmpty)
-      query = query.where('releases', arrayContainsAny: widget.releases);
+    if (widget.settings.releases is List && widget.settings.releases.isNotEmpty)
+      query = query.where('releases', arrayContainsAny: widget.settings.releases);
 
-    return query.orderBy('last_update', descending: widget.sortByDescUpdate).snapshots();
+    return query.orderBy('last_update', descending: widget.settings.sortByDescUpdate).snapshots();
   }
 
   bool _hasNewStories(StoriesCollection collection) {
     return collection.stories.any(
       (s) =>
-          isInIntervalToShow(s) && (s.views?.every((v) => v["user_info"] != widget.userId) ?? true),
+          isInIntervalToShow(s) &&
+          (s.views?.every((v) => v["user_info"] != widget.settings.userId) ?? true),
     );
   }
 }

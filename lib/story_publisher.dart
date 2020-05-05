@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:stories_lib/stories_settings.dart';
 import 'package:uuid/uuid.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -36,13 +37,12 @@ typedef StoryPublisherPreviewToolsBuilder = Widget Function(
 typedef StoryPublisherButtonBuilder = Widget Function(BuildContext, StoryType, Animation<double>);
 
 class StoryPublisher extends StatefulWidget {
-  final String userId;
   final bool hasPublish;
   final Widget closeButton;
   final Widget errorWidget;
   final Widget loadingWidget;
   final Duration videoDuration;
-  final String collectionDbName;
+  final StoriesSettings settings;
   final Alignment closeButtonPosition;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
@@ -50,8 +50,7 @@ class StoryPublisher extends StatefulWidget {
 
   const StoryPublisher({
     Key key,
-    @required this.collectionDbName,
-    this.userId,
+    @required this.settings,
     this.errorWidget,
     this.closeButton,
     this.toolsBuilder,
@@ -217,12 +216,11 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         return Future.value(false);
       },
       child: StoriesCollectionView(
-        storiesIds: [widget.userId],
+        settings: widget.settings,
+        storiesIds: [widget.settings.userId],
         repeat: false,
         inline: false,
-        userId: widget.userId,
-        selectedStoryId: widget.userId,
-        languageCode: 'pt',
+        selectedStoryId: widget.settings.userId,
         progressBuilder: (context, currentIndex, previewImage, title, datas, animation) {
           return Column(
             children: <Widget>[
@@ -286,8 +284,6 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         },
         // sortingOrderDesc: true,
         headerPosition: StoryHeaderPosition.top,
-        storyDuration: const Duration(seconds: 5),
-        collectionDbName: widget.collectionDbName,
         backgroundColorBetweenStories: Colors.black,
       ),
     );
@@ -376,9 +372,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         return StoryPublisherResult(
           type: type,
           filePath: storyPath,
-          userId: widget.userId,
+          settings: widget.settings,
           closeButton: widget.closeButton,
-          collectionDbName: widget.collectionDbName,
           resultToolsBuilder: widget.resultToolsBuilder,
           closeButtonPosition: widget.closeButtonPosition,
         );
@@ -388,23 +383,21 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 }
 
 class StoryPublisherResult extends StatefulWidget {
-  final String userId;
   final StoryType type;
   final String filePath;
   final Widget closeButton;
-  final String collectionDbName;
+  final StoriesSettings settings;
   final Alignment closeButtonPosition;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
   StoryPublisherResult({
     Key key,
     @required this.type,
+    @required this.settings,
     @required this.filePath,
-    this.userId,
     this.closeButton,
     this.resultToolsBuilder,
     this.closeButtonPosition,
-    @required this.collectionDbName,
   })  : assert(filePath != null, "The [filePath] can't be null"),
         assert(type != null, "The [type] can't be null"),
         super(key: key);
@@ -574,8 +567,11 @@ class _StoryPublisherResultState extends State<StoryPublisherResult> {
     try {
       final fileName = basename(path);
 
-      final storageReference =
-          FirebaseStorage.instance.ref().child("stories").child(widget.userId).child(fileName);
+      final storageReference = FirebaseStorage.instance
+          .ref()
+          .child("stories")
+          .child(widget.settings.userId)
+          .child(fileName);
 
       final StorageUploadTask uploadTask = storageReference.putFile(File(path));
 
@@ -603,24 +599,25 @@ class _StoryPublisherResultState extends State<StoryPublisherResult> {
       final firestore = Firestore.instance;
 
       final collectionInfo = {
-        "cover_img":
-            "https://images.unsplash.com/photo-1570158268183-d296b2892211?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=634&q=80",
+        "cover_img": widget.settings.coverImg,
         "last_update": DateTime.now(),
-        "title": {"pt": "sou"},
+        "title": {widget.settings.languageCode: widget.settings.username},
         "releases": [
-          {"group": "dev"}
+          widget.settings.releases,
         ]
       };
 
       final storyInfo = {
         "id": Uuid().v4(),
         "date": DateTime.now(),
-        "media": {"pt": url},
+        "media": {widget.settings.languageCode: url},
         "type": _extractType,
       };
 
-      final userDoc =
-          await firestore.collection(widget.collectionDbName).document(widget.userId).get();
+      final userDoc = await firestore
+          .collection(widget.settings.collectionDbName)
+          .document(widget.settings.userId)
+          .get();
 
       if (userDoc.exists) {
         final stories = userDoc.data["stories"] ?? List();

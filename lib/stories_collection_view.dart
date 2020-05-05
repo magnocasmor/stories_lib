@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:stories_lib/stories_settings.dart';
 import 'story_view.dart';
 import 'story_controller.dart';
 import 'package:flutter/material.dart';
@@ -17,15 +18,11 @@ enum _StoriesDirection { next, previous }
 class StoriesCollectionView extends StatefulWidget {
   final bool repeat;
   final bool inline;
-  final String userId;
   final Widget closeButton;
-  final String languageCode;
-  final bool sortingOrderDesc;
   final String selectedStoryId;
-  final Duration storyDuration;
   final List<String> storiesIds;
   final Widget mediaErrorWidget;
-  final String collectionDbName;
+  final StoriesSettings settings;
   final Widget mediaLoadingWidget;
   final Alignment closeButtonPosition;
   final StoryHeaderBuilder progressBuilder;
@@ -33,13 +30,11 @@ class StoriesCollectionView extends StatefulWidget {
   final Color backgroundColorBetweenStories;
 
   StoriesCollectionView({
+    @required this.settings,
     @required this.storiesIds,
     @required this.selectedStoryId,
-    @required this.collectionDbName,
-    this.userId,
     this.inline,
     this.closeButton,
-    this.languageCode,
     this.headerPosition,
     this.progressBuilder,
     this.mediaErrorWidget,
@@ -47,8 +42,6 @@ class StoriesCollectionView extends StatefulWidget {
     this.closeButtonPosition,
     this.backgroundColorBetweenStories,
     this.repeat = false,
-    this.sortingOrderDesc = false,
-    this.storyDuration = const Duration(seconds: 3),
   });
 
   @override
@@ -112,9 +105,9 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                       final stories = parseStories(
                         storyData,
                         storyController,
-                        widget.userId,
-                        widget.languageCode,
-                        widget.storyDuration,
+                        widget.settings.userId,
+                        widget.settings.languageCode,
+                        widget.settings.storyDuration,
                         widget.mediaErrorWidget,
                         widget.mediaLoadingWidget,
                       );
@@ -135,13 +128,13 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                                     doc["stories"].singleWhere((s) => s['id'] == item.storyId);
                                 final views = story["views"];
                                 final currentView = {
-                                  "user_info": widget.userId,
+                                  "user_info": widget.settings.userId,
                                   "date": DateTime.now(),
                                 };
 
                                 if (views is List) {
                                   final hasView = views.any(
-                                    (v) => v["user_info"] == widget.userId,
+                                    (v) => v["user_info"] == widget.settings.userId,
                                   );
 
                                   if (!hasView) {
@@ -191,7 +184,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   }
 
   Future<DocumentSnapshot> streamStories(String storyId) =>
-      _firestore.collection(widget.collectionDbName).document(storyId).get();
+      _firestore.collection(widget.settings.collectionDbName).document(storyId).get();
 
   void _nextGroupedStories() {
     if (_pageController.page.toInt() != indexOfStory(widget.storiesIds.last)) {
