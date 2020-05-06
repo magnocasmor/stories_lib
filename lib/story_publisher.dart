@@ -227,15 +227,23 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         settings: widget.settings,
         storiesIds: [widget.settings.userId],
         selectedStoryId: widget.settings.userId,
-        progressBuilder: (context, currentIndex, previewImage, title, datas, animation) {
+        progressBuilder: (
+          context,
+          currentIndex,
+          previewImage,
+          title,
+          postDate,
+          pageDatas,
+          animation,
+        ) {
           return Column(
             children: <Widget>[
               Row(
-                children: datas.map(
+                children: pageDatas.map(
                   (it) {
                     return Expanded(
                       child: Padding(
-                        padding: EdgeInsets.only(right: datas.last == it ? 0 : 8.0),
+                        padding: EdgeInsets.only(right: pageDatas.last == it ? 0 : 8.0),
                         child: AnimatedBuilder(
                           animation: animation,
                           builder: (context, child) {
@@ -246,7 +254,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                                 child: LinearProgressIndicator(
                                   backgroundColor: Colors.black26,
                                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  value: datas.indexOf(it) == currentIndex
+                                  value: pageDatas.indexOf(it) == currentIndex
                                       ? animation.value
                                       : it.shown ? 1 : 0,
                                 ),
@@ -281,7 +289,13 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                   ),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Text(title),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(title),
+                        Text(DateTime.now().difference(postDate).inHours.toString() + " horas"),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -667,5 +681,3 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
   String get _extractType => widget.type.toString().split('.')[1];
 }
-
-

@@ -20,6 +20,7 @@ typedef StoryHeaderBuilder = Widget Function(
   int currentIndex,
   ImageProvider image,
   String title,
+  DateTime postDate,
   List<PageData> pageData,
   Animation animation,
 );
@@ -31,6 +32,8 @@ class StoryItem extends ChangeNotifier {
   final String storyPreviewImg;
 
   final String storyTitle;
+
+  final DateTime postDate;
 
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
@@ -52,6 +55,7 @@ class StoryItem extends ChangeNotifier {
   StoryItem({
     @required this.view,
     @required this.storyId,
+    @required this.postDate,
     this.storyTitle,
     this.storyPreviewImg,
     Duration duration = const Duration(seconds: 3),
@@ -73,6 +77,7 @@ class StoryItem extends ChangeNotifier {
     @required Color backgroundColor,
     TextStyle style,
     String storyTitle,
+    DateTime postDate,
     String storyPreviewImg,
     bool shown = false,
     bool roundedTop = false,
@@ -94,6 +99,7 @@ class StoryItem extends ChangeNotifier {
 
     return StoryItem(
       storyId: storyId,
+      postDate: postDate,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: Container(
@@ -131,6 +137,7 @@ class StoryItem extends ChangeNotifier {
     @required ImageProvider image,
     String caption,
     String storyTitle,
+    DateTime postDate,
     String storyPreviewImg,
     Widget mediaErrorWidget,
     Widget mediaLoadingWidget,
@@ -141,6 +148,7 @@ class StoryItem extends ChangeNotifier {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
       storyId: storyId,
+      postDate: postDate,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
@@ -161,6 +169,7 @@ class StoryItem extends ChangeNotifier {
     @required ImageProvider image,
     Text caption,
     String storyTitle,
+    DateTime postDate,
     String storyPreviewImg,
     bool shown = false,
     bool roundedTop = true,
@@ -169,6 +178,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     return StoryItem(
       storyId: storyId,
+      postDate: postDate,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: Container(
@@ -209,6 +219,7 @@ class StoryItem extends ChangeNotifier {
     @required String storyId,
     String caption,
     String storyTitle,
+    DateTime postDate,
     String storyPreviewImg,
     Widget mediaErrorWidget,
     Widget mediaLoadingWidget,
@@ -221,6 +232,7 @@ class StoryItem extends ChangeNotifier {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
       storyId: storyId,
+      postDate: postDate,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
@@ -245,6 +257,7 @@ class StoryItem extends ChangeNotifier {
     @required String storyId,
     Text caption,
     String storyTitle,
+    DateTime postDate,
     String storyPreviewImg,
     Widget mediaErrorWidget,
     Widget mediaLoadingWidget,
@@ -258,6 +271,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     return StoryItem(
       storyId: storyId,
+      postDate: postDate,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: Container(
@@ -312,6 +326,7 @@ class StoryItem extends ChangeNotifier {
     @required String storyId,
     String caption,
     String storyTitle,
+    DateTime postDate,
     String storyPreviewImg,
     Widget mediaErrorWidget,
     Widget mediaLoadingWidget,
@@ -324,6 +339,7 @@ class StoryItem extends ChangeNotifier {
     assert(videoFit != null, "[videoFit] should not be null");
     return StoryItem(
       storyId: storyId,
+      postDate: postDate,
       storyTitle: storyTitle,
       storyPreviewImg: storyPreviewImg,
       view: StoryWidget(
@@ -511,6 +527,7 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
                     widget.storyItems.indexOf(currentStory),
                     CachedNetworkImageProvider(currentStory.storyPreviewImg),
                     currentStory.storyTitle,
+                    currentStory.postDate,
                     widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
                     this.currentAnimation,
                   ) ??
