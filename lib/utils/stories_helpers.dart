@@ -1,7 +1,10 @@
 import 'package:flutter/widgets.dart';
-import 'package:stories_lib/story_view.dart';
+import 'package:flutter/foundation.dart';
 import 'package:stories_lib/models/story.dart';
+import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stories_lib/configs/stories_settings.dart';
+import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/models/stories_collection.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -35,9 +38,7 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
 List<StoryItem> parseStories(
   DocumentSnapshot data,
   StoryController storyController,
-  String userId,
-  String languageCode,
-  Duration storyDuration,
+  StoriesSettings settings,
   Widget mediaErrorWidget,
   Widget mediaLoadingWidget,
 ) {
@@ -49,14 +50,17 @@ List<StoryItem> parseStories(
     (index, storyData) {
       if (!isInIntervalToShow(storyData)) return;
 
+      if (settings.userId != storiesCollection.storyId &&
+          !checkRelease(storyData.toJson(), settings)) return;
+
       final storyId = storyData.id;
       final storyPreviewImg = storiesCollection.coverImg;
-      final storyTitle = storiesCollection.title[languageCode];
-      final duration = storyDuration;
-      final media = storyData.media != null ? storyData.media[languageCode] : null;
-      final caption = storyData.caption != null ? storyData.caption[languageCode] : null;
+      final storyTitle = storiesCollection.title[settings.languageCode];
+      final duration = settings.storyDuration;
+      final media = storyData.media != null ? storyData.media[settings.languageCode] : null;
+      final caption = storyData.caption != null ? storyData.caption[settings.languageCode] : null;
 
-      final _shown = isViewed(storyData, userId);
+      final _shown = isViewed(storyData, settings.userId);
 
       switch (storyData.type) {
         case 'text':
@@ -67,6 +71,7 @@ List<StoryItem> parseStories(
               storyId: storyId,
               duration: duration,
               storyTitle: storyTitle,
+              postDate: storyData.date,
               storyPreviewImg: storyPreviewImg,
               backgroundColor: storyData.backgroundColor,
             ),
@@ -82,6 +87,7 @@ List<StoryItem> parseStories(
               image: storyImage,
               duration: duration,
               storyTitle: storyTitle,
+              postDate: storyData.date,
               storyPreviewImg: storyPreviewImg,
             ),
           );
@@ -95,6 +101,7 @@ List<StoryItem> parseStories(
               caption: caption,
               duration: duration,
               storyTitle: storyTitle,
+              postDate: storyData.date,
               controller: storyController,
               storyPreviewImg: storyPreviewImg,
               mediaErrorWidget: mediaErrorWidget,
@@ -110,6 +117,7 @@ List<StoryItem> parseStories(
               storyId: storyId,
               caption: caption,
               storyTitle: storyTitle,
+              postDate: storyData.date,
               controller: storyController,
               storyPreviewImg: storyPreviewImg,
               mediaErrorWidget: mediaErrorWidget,
@@ -123,11 +131,23 @@ List<StoryItem> parseStories(
       if (index < storiesCollection.stories.length - 1 &&
           storiesCollection.stories[index + 1].media != null) {
         DefaultCacheManager()
-            .getSingleFile(storiesCollection.stories[index + 1].media[languageCode]);
+            .getSingleFile(storiesCollection.stories[index + 1].media[settings.languageCode]);
       }
     },
   );
   return storyItems;
+}
+
+bool checkRelease(Map storyData, StoriesSettings settings) {
+  return storyData["releases"] != null &&
+      storyData["releases"].any((release) {
+        if (release is Map)
+          return settings.releases.any((release2) => mapEquals(release, release2));
+        else if (release is List)
+          return settings.releases.any((release2) => listEquals(release, release2));
+        else
+          return settings.releases.contains(release);
+      });
 }
 
 bool isViewed(Story story, String userId) {

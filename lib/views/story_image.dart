@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'story_controller.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
-import 'package:stories_lib/settings.dart';
+import 'package:stories_lib/configs/settings.dart';
 import 'package:stories_lib/components/story_error.dart';
+import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/components/story_loading.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 

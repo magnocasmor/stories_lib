@@ -1,31 +1,22 @@
 import 'dart:ui';
-import 'story_view.dart';
-import 'story_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:stories_lib/stories.dart';
+import 'package:stories_lib/configs/settings.dart';
+import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/utils/stories_helpers.dart';
-
-export 'settings.dart';
-export 'story_view.dart';
-export 'story_image.dart';
-export 'story_video.dart';
-export 'story_controller.dart';
+import 'package:stories_lib/configs/stories_settings.dart';
+import 'package:stories_lib/configs/story_controller.dart';
 
 enum _StoriesDirection { next, previous }
 
 class StoriesCollectionView extends StatefulWidget {
   final bool repeat;
   final bool inline;
-  final String userId;
   final Widget closeButton;
-  final String languageCode;
-  final bool sortingOrderDesc;
   final String selectedStoryId;
-  final Duration storyDuration;
   final List<String> storiesIds;
   final Widget mediaErrorWidget;
-  final String collectionDbName;
+  final StoriesSettings settings;
   final Widget mediaLoadingWidget;
   final Alignment closeButtonPosition;
   final StoryHeaderBuilder progressBuilder;
@@ -33,13 +24,11 @@ class StoriesCollectionView extends StatefulWidget {
   final Color backgroundColorBetweenStories;
 
   StoriesCollectionView({
+    @required this.settings,
     @required this.storiesIds,
     @required this.selectedStoryId,
-    @required this.collectionDbName,
-    this.userId,
     this.inline,
     this.closeButton,
-    this.languageCode,
     this.headerPosition,
     this.progressBuilder,
     this.mediaErrorWidget,
@@ -47,8 +36,6 @@ class StoriesCollectionView extends StatefulWidget {
     this.closeButtonPosition,
     this.backgroundColorBetweenStories,
     this.repeat = false,
-    this.sortingOrderDesc = false,
-    this.storyDuration = const Duration(seconds: 3),
   });
 
   @override
@@ -76,8 +63,8 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () {
-        _finishStoriesView();
-        return Future.value(false);
+        storyController?.stop();
+        return Future.value(true);
       },
       child: Scaffold(
         backgroundColor: widget.backgroundColorBetweenStories,
@@ -91,7 +78,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
               return Stack(
                 children: <Widget>[
                   FutureBuilder<DocumentSnapshot>(
-                    future: streamStories(widget.storiesIds[index]),
+                    future: getStories(widget.storiesIds[index]),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return widget.mediaLoadingWidget ??
@@ -112,9 +99,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                       final stories = parseStories(
                         storyData,
                         storyController,
-                        widget.userId,
-                        widget.languageCode,
-                        widget.storyDuration,
+                        widget.settings,
                         widget.mediaErrorWidget,
                         widget.mediaLoadingWidget,
                       );
@@ -135,13 +120,13 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                                     doc["stories"].singleWhere((s) => s['id'] == item.storyId);
                                 final views = story["views"];
                                 final currentView = {
-                                  "user_info": widget.userId,
+                                  "user_info": widget.settings.userId,
                                   "date": DateTime.now(),
                                 };
 
                                 if (views is List) {
                                   final hasView = views.any(
-                                    (v) => v["user_info"] == widget.userId,
+                                    (v) => v["user_info"] == widget.settings.userId,
                                   );
 
                                   if (!hasView) {
@@ -173,13 +158,14 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                       );
                     },
                   ),
-                  Align(
-                    alignment: widget.closeButtonPosition,
-                    child: GestureDetector(
-                      onTap: _finishStoriesView,
-                      child: widget.closeButton,
+                  if (widget.closeButton != null)
+                    Align(
+                      alignment: widget.closeButtonPosition,
+                      child: GestureDetector(
+                        onTap: _finishStoriesView,
+                        child: widget.closeButton,
+                      ),
                     ),
-                  ),
                 ],
               );
             },
@@ -189,8 +175,8 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     );
   }
 
-  Future<DocumentSnapshot> streamStories(String storyId) =>
-      _firestore.collection(widget.collectionDbName).document(storyId).get();
+  Future<DocumentSnapshot> getStories(String storyId) =>
+      _firestore.collection(widget.settings.collectionDbName).document(storyId).get();
 
   void _nextGroupedStories() {
     if (_pageController.page.toInt() != indexOfStory(widget.storiesIds.last)) {
@@ -222,9 +208,9 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     }
   }
 
-  bool _finishStoriesView() {
+  Future<bool> _finishStoriesView() {
     storyController?.stop();
-    return Navigator.pop(context);
+    return Navigator.maybePop(context);
   }
 
   int indexOfStory(String storyId) => widget.storiesIds.indexOf(storyId);
