@@ -84,7 +84,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
               return Stack(
                 children: <Widget>[
                   FutureBuilder<DocumentSnapshot>(
-                    future: streamStories(widget.storiesIds[index]),
+                    future: getStories(widget.storiesIds[index]),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return widget.mediaLoadingWidget ??
@@ -105,9 +105,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                       final stories = parseStories(
                         storyData,
                         storyController,
-                        widget.settings.userId,
-                        widget.settings.languageCode,
-                        widget.settings.storyDuration,
+                        widget.settings,
                         widget.mediaErrorWidget,
                         widget.mediaLoadingWidget,
                       );
@@ -183,7 +181,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     );
   }
 
-  Future<DocumentSnapshot> streamStories(String storyId) =>
+  Future<DocumentSnapshot> getStories(String storyId) =>
       _firestore.collection(widget.settings.collectionDbName).document(storyId).get();
 
   void _nextGroupedStories() {

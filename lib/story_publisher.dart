@@ -35,7 +35,7 @@ typedef StoryPublisherPreviewToolsBuilder = Widget Function(
   BuildContext,
   File,
   Stream<StoryUploadStatus>,
-  VoidCallback,
+  void Function({List selectedReleases}),
 );
 
 typedef StoryPublisherButtonBuilder = Widget Function(
@@ -524,7 +524,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     }
   }
 
-  Future<void> _sendStory() async {
+  Future<void> _sendStory({List<dynamic> selectedReleases}) async {
     try {
       _uploadStatus.add(StoryUploadStatus.compressing);
       await compressFuture;
@@ -536,7 +536,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
       if (url is! String) throw Exception("Fail to upload story");
 
-      await _sendToFirestore(url);
+      await _sendToFirestore(url, selectedReleases: selectedReleases);
 
       _uploadStatus.add(StoryUploadStatus.complete);
 
@@ -620,7 +620,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     }
   }
 
-  Future<void> _sendToFirestore(String url) async {
+  Future<void> _sendToFirestore(String url, {List<dynamic> selectedReleases}) async {
     try {
       final firestore = Firestore.instance;
 
@@ -635,6 +635,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         "id": Uuid().v4(),
         "date": DateTime.now(),
         "media": {widget.settings.languageCode: url},
+        "releases": selectedReleases ?? widget.settings.releases,
         "type": _extractType,
       };
 
@@ -647,9 +648,10 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         final stories = userDoc.data["stories"] ?? List();
         if (stories is List) {
           stories.add(storyInfo);
-          await userDoc.reference.updateData(
-            {"last_update": DateTime.now(), "stories": stories},
-          );
+          await userDoc.reference.updateData(collectionInfo
+            ..addAll({
+              "stories": stories,
+            }));
         }
       } else {
         await userDoc.reference.setData(collectionInfo

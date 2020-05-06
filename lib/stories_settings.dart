@@ -6,10 +6,10 @@ class StoriesSettings {
   final String username;
   final String languageCode;
   final bool sortByDescUpdate;
+  final List<dynamic> releases;
   final Duration storyDuration;
   final String collectionDbName;
   final Duration storyTimeValidaty;
-  final List<Map<String, dynamic>> releases;
 
   StoriesSettings({
     @required this.userId,
