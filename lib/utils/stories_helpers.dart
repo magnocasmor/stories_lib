@@ -1,9 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:stories_lib/stories_settings.dart';
-import 'package:stories_lib/story_view.dart';
+import 'package:flutter/foundation.dart';
 import 'package:stories_lib/models/story.dart';
+import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stories_lib/configs/stories_settings.dart';
+import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/models/stories_collection.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';

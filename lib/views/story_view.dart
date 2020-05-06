@@ -1,19 +1,14 @@
 import 'dart:ui';
 import 'dart:async';
-import 'settings.dart';
-import 'story_video.dart';
-import 'story_image.dart';
-import 'story_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:stories_lib/stories.dart';
+import 'package:stories_lib/configs/settings.dart';
+import 'package:stories_lib/views/story_image.dart';
+import 'package:stories_lib/views/story_video.dart';
 import 'package:stories_lib/utils/color_parser.dart';
 import 'package:stories_lib/components/story_widget.dart';
+import 'package:stories_lib/configs/story_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
-export 'story_image.dart';
-export 'story_video.dart';
-export 'story_controller.dart';
 
 typedef StoryHeaderBuilder = Widget Function(
   BuildContext context,

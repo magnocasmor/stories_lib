@@ -1,21 +1,22 @@
-import 'dart:async';
 import 'dart:io';
-import 'package:stories_lib/publisher_controller.dart';
+import 'dart:async';
 import 'package:uuid/uuid.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import 'package:stories_lib/stories_settings.dart';
+import 'package:stories_lib/configs/settings.dart';
 import 'package:path/path.dart' show join, basename;
 import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:video_compress/video_compress.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:stories_lib/components/story_error.dart';
 import 'package:stories_lib/components/story_widget.dart';
-import 'package:stories_lib/stories_collection_view.dart';
+import 'package:stories_lib/configs/stories_settings.dart';
 import 'package:stories_lib/components/story_loading.dart';
 import 'package:stories_lib/components/fitted_container.dart';
+import 'package:stories_lib/configs/publisher_controller.dart';
+import 'package:stories_lib/views/stories_collection_view.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 

@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:stories_lib/publisher_controller.dart';
-import 'models/stories_collection.dart';
-import 'package:stories_lib/settings.dart';
-import 'package:stories_lib/story_view.dart';
-import 'package:stories_lib/story_publisher.dart';
-import 'package:stories_lib/stories_settings.dart';
+import 'package:stories_lib/configs/publisher_controller.dart';
+import 'package:stories_lib/configs/settings.dart';
+import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stories_lib/views/story_publisher.dart';
 import 'package:stories_lib/utils/stories_helpers.dart';
-import 'package:stories_lib/stories_collection_view.dart';
+import 'package:stories_lib/configs/stories_settings.dart';
+import 'package:stories_lib/models/stories_collection.dart';
+import 'package:stories_lib/views/stories_collection_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
-export 'stories_collection_view.dart';
 
 typedef _ItemBuilder = Widget Function(BuildContext, int);
 

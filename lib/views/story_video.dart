@@ -1,16 +1,15 @@
 import 'dart:io';
 import 'dart:async';
-import 'package:stories_lib/components/fitted_container.dart';
-
-import 'story_view.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:stories_lib/settings.dart';
 import 'package:video_player/video_player.dart';
-import 'package:stories_lib/story_controller.dart';
+import 'package:stories_lib/configs/settings.dart';
+import 'package:stories_lib/views/story_view.dart';
 import 'package:stories_lib/components/story_error.dart';
+import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/components/story_loading.dart';
+import 'package:stories_lib/components/fitted_container.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class VideoLoader {
