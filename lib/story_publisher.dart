@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:stories_lib/publisher_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -20,8 +21,6 @@ import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 
 enum StoryType { text, image, video, gif }
 
-enum StoryUploadStatus { waiting, compressing, sending, complete, failure }
-
 typedef StoryPublisherToolsBuilder = Widget Function(
   BuildContext,
   StoryType,
@@ -34,7 +33,6 @@ typedef StoryPublisherToolsBuilder = Widget Function(
 typedef StoryPublisherPreviewToolsBuilder = Widget Function(
   BuildContext,
   File,
-  Stream<StoryUploadStatus>,
   void Function({List selectedReleases}),
 );
 
@@ -55,6 +53,7 @@ class StoryPublisher extends StatefulWidget {
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final StoryPublisherToolsBuilder toolsBuilder;
+  final PublisherController publisherController;
   final StoryPublisherButtonBuilder publishBuilder;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
@@ -69,6 +68,7 @@ class StoryPublisher extends StatefulWidget {
     this.onStoryPosted,
     this.resultToolsBuilder,
     this.hasPublish = false,
+    this.publisherController,
     this.closeButtonPosition = Alignment.topRight,
     this.videoDuration = const Duration(seconds: 10),
   }) : super(key: key);
@@ -397,6 +397,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
           closeButton: widget.closeButton,
           onStoryPosted: widget.onStoryPosted,
           resultToolsBuilder: widget.resultToolsBuilder,
+          publisherController: widget.publisherController,
           closeButtonPosition: widget.closeButtonPosition,
         );
       }),
@@ -411,6 +412,7 @@ class _StoryPublisherResult extends StatefulWidget {
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
+  final PublisherController publisherController;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
   _StoryPublisherResult({
@@ -418,6 +420,7 @@ class _StoryPublisherResult extends StatefulWidget {
     @required this.type,
     @required this.settings,
     @required this.filePath,
+    @required this.publisherController,
     this.closeButton,
     this.onStoryPosted,
     this.resultToolsBuilder,
@@ -435,12 +438,11 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   String compressedPath;
   Future compressFuture;
   VideoPlayerController controller;
-  final _uploadStatus = StreamController<StoryUploadStatus>()..add(StoryUploadStatus.waiting);
 
   @override
   void initState() {
     _compress();
-
+    widget.publisherController.addStatus(PublisherStatus.showingResult);
     storyFile = File(widget.filePath);
     if (widget.type == StoryType.video) controller = VideoPlayerController.file(storyFile);
     super.initState();
@@ -449,7 +451,6 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   @override
   void dispose() {
     controller?.dispose();
-    _uploadStatus?.close();
     super.dispose();
   }
 
@@ -471,9 +472,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
             ),
             Align(
               alignment: Alignment.bottomCenter,
-              child: widget.resultToolsBuilder
-                      ?.call(context, storyFile, _uploadStatus.stream, _sendStory) ??
-                  LimitedBox(),
+              child:
+                  widget.resultToolsBuilder?.call(context, storyFile, _sendStory) ?? LimitedBox(),
             ),
           ],
         ),
@@ -526,23 +526,23 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
   Future<void> _sendStory({List<dynamic> selectedReleases}) async {
     try {
-      _uploadStatus.add(StoryUploadStatus.compressing);
+      widget.publisherController.addStatus(PublisherStatus.compressing);
       await compressFuture;
 
       if (compressedPath is! String) throw Exception("Fail to compress story");
 
-      _uploadStatus.add(StoryUploadStatus.sending);
+      widget.publisherController.addStatus(PublisherStatus.sending);
       final url = await _uploadFile(compressedPath);
 
       if (url is! String) throw Exception("Fail to upload story");
 
       await _sendToFirestore(url, selectedReleases: selectedReleases);
 
-      _uploadStatus.add(StoryUploadStatus.complete);
+      widget.publisherController.addStatus(PublisherStatus.complete);
 
       widget.onStoryPosted?.call();
     } catch (e) {
-      _uploadStatus.add(StoryUploadStatus.failure);
+      widget.publisherController.addStatus(PublisherStatus.failure);
     }
   }
 
@@ -667,3 +667,5 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
   String get _extractType => widget.type.toString().split('.')[1];
 }
+
+

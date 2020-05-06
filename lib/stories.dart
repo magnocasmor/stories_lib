@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stories_lib/publisher_controller.dart';
 import 'models/stories_collection.dart';
 import 'package:stories_lib/settings.dart';
 import 'package:stories_lib/story_view.dart';
@@ -207,6 +208,7 @@ class MyStories extends StatefulWidget {
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final _ItemBuilder placeholderBuilder;
+  final PublisherController publisherController;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
   final RouteTransitionsBuilder storyOpenTransition;
@@ -222,13 +224,14 @@ class MyStories extends StatefulWidget {
     this.previewPlaceholder,
     this.mediaLoadingWidget,
     this.storyOpenTransition,
-    this.repeat = false,
-    this.inline = false,
-    this.closeButtonPosition = Alignment.topRight,
     this.toolsBuilder,
     this.onStoryPosted,
     this.publishBuilder,
     this.resultToolsBuilder,
+    this.publisherController,
+    this.repeat = false,
+    this.inline = false,
+    this.closeButtonPosition = Alignment.topRight,
   });
 
   @override
@@ -303,6 +306,7 @@ class _MyStoriesState extends State<MyStories> {
                 publishBuilder: widget.publishBuilder,
                 loadingWidget: widget.mediaLoadingWidget,
                 resultToolsBuilder: widget.resultToolsBuilder,
+                publisherController: widget.publisherController,
                 closeButtonPosition: widget.closeButtonPosition,
               );
             },
