@@ -243,7 +243,7 @@ class _MyStoriesState extends State<MyStories> {
         if (snapshot.hasData) {
           final stories = snapshot.data;
 
-          if (stories.data != null) {
+          if (stories.data?.isNotEmpty ?? false) {
             final interval =
                 DateTime.now().difference((stories.data["last_update"] as Timestamp).toDate());
 

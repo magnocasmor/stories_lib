@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:stories_lib/utils/fix_image_orientation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -322,6 +323,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     storyPath = null;
 
+    this.direction = direction;
+
     await cameraController.initialize();
   }
 
@@ -363,7 +366,12 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     storyPath = await _pathToNewFile('jpg');
     await cameraController.takePicture(storyPath);
-
+    try {
+      storyPath = await fixExifRotation(storyPath, isFront: direction == CameraLensDirection.front);
+    } catch (e, s) {
+      print(e);
+      print(s);
+    }
     setState(() => type = StoryType.image);
 
     _goToStoryResult();
@@ -562,7 +570,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   }
 
   Future<String> _compressImage() async {
-    debugPrint('image before = ${File(widget.filePath).lengthSync() / 1000} kB');
+    // debugPrint('image before = ${File(widget.filePath).lengthSync() / 1000} kB');
 
     final temp = await getTemporaryDirectory();
     final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.jpeg');
@@ -574,7 +582,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       keepExif: true,
     );
 
-    debugPrint('image after = ${compressed.lengthSync() / 1000} kB');
+    // debugPrint('image after = ${compressed.lengthSync() / 1000} kB');
 
     return compressed.path;
   }

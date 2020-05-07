@@ -85,6 +85,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.1.3"
+  exif:
+    dependency: transitive
+    description:
+      name: exif
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.2"
   firebase:
     dependency: transitive
     description:
@@ -294,6 +301,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.5.5"
+  sprintf:
+    dependency: transitive
+    description:
+      name: sprintf
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "4.0.2"
   sqflite:
     dependency: transitive
     description:
@@ -371,13 +385,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.0.8"
-  video_compress:
-    dependency: transitive
-    description:
-      name: video_compress
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "2.0.0"
   video_player:
     dependency: transitive
     description:
