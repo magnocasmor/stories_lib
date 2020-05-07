@@ -243,32 +243,33 @@ class _MyStoriesState extends State<MyStories> {
         if (snapshot.hasData) {
           final stories = snapshot.data;
 
-          final interval =
-              DateTime.now().difference((stories.data["last_update"] as Timestamp).toDate());
+          if (stories.data != null) {
+            final interval =
+                DateTime.now().difference((stories.data["last_update"] as Timestamp).toDate());
 
-          final isInValidaty = interval.compareTo(widget.settings.storyTimeValidaty) <= 0;
+            final isInValidaty = interval.compareTo(widget.settings.storyTimeValidaty) <= 0;
 
-          if (stories.exists && isInValidaty) {
-            final storyPreviews = parseStoriesPreview(widget.settings.languageCode, [stories]);
+            if (stories.exists && isInValidaty) {
+              final storyPreviews = parseStoriesPreview(widget.settings.languageCode, [stories]);
 
-            final myPreview = storyPreviews.firstWhere(
-              (preview) => preview.storyId == widget.settings.userId,
-              orElse: () => null,
-            );
+              final myPreview = storyPreviews.firstWhere(
+                (preview) => preview.storyId == widget.settings.userId,
+                orElse: () => null,
+              );
 
-            final hasPublish = myPreview != null && myPreview.stories.isNotEmpty;
+              final hasPublish = myPreview != null && myPreview.stories.isNotEmpty;
 
-            storyPreviews.remove(myPreview);
+              storyPreviews.remove(myPreview);
 
-            final hasNewPublish = hasPublish
-                ? hasNewStories(
-                    widget.settings.userId, myPreview, widget.settings.storyTimeValidaty)
-                : false;
+              final hasNewPublish = hasPublish
+                  ? hasNewStories(
+                      widget.settings.userId, myPreview, widget.settings.storyTimeValidaty)
+                  : false;
 
-            return _storyItem(myPreview.coverImg, hasPublish, hasNewPublish);
-          } else {
-            return _storyItem(widget.settings.coverImg, false, false);
+              return _storyItem(myPreview.coverImg, hasPublish, hasNewPublish);
+            }
           }
+          return _storyItem(widget.settings.coverImg, false, false);
         } else {
           return widget.placeholderBuilder?.call(context, 0) ?? LimitedBox();
         }
