@@ -175,8 +175,21 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     );
   }
 
-  Future<DocumentSnapshot> getStories(String storyId) =>
-      _firestore.collection(widget.settings.collectionDbName).document(storyId).get();
+  Future<DocumentSnapshot> getStories(String storyId) => _firestore
+      .collection(widget.settings.collectionDbName)
+      .where(
+        'last_update',
+        isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
+      )
+      .getDocuments()
+      .then(
+        (doc) {
+          return doc.documents.singleWhere(
+          (d) => d.documentID == storyId,
+          orElse: () => null,
+        );
+        },
+      );
 
   void _nextGroupedStories() {
     if (_pageController.page.toInt() != indexOfStory(widget.storiesIds.last)) {

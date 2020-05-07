@@ -121,7 +121,11 @@ class _StoriesState extends State<Stories> {
             context,
             image,
             story.title[widget.settings.languageCode],
-            _hasNewStories(story),
+            hasNewStories(
+              widget.settings.userId,
+              story,
+              widget.settings.storyTimeValidaty,
+            ),
           );
         },
         errorWidget: (context, url, error) => Icon(Icons.error),
@@ -185,14 +189,6 @@ class _StoriesState extends State<Stories> {
 
     return query.orderBy('last_update', descending: widget.settings.sortByDescUpdate).snapshots();
   }
-
-  bool _hasNewStories(StoriesCollection collection) {
-    return collection.stories.any(
-      (s) =>
-          isInIntervalToShow(s) &&
-          (s.views?.every((v) => v["user_info"] != widget.settings.userId) ?? true),
-    );
-  }
 }
 
 class MyStories extends StatefulWidget {
@@ -246,7 +242,13 @@ class _MyStoriesState extends State<MyStories> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final stories = snapshot.data;
-          if (stories.exists) {
+
+          final interval =
+              DateTime.now().difference((stories.data["last_update"] as Timestamp).toDate());
+
+          final isInValidaty = interval.compareTo(widget.settings.storyTimeValidaty) <= 0;
+
+          if (stories.exists && isInValidaty) {
             final storyPreviews = parseStoriesPreview(widget.settings.languageCode, [stories]);
 
             final myPreview = storyPreviews.firstWhere(
@@ -258,7 +260,10 @@ class _MyStoriesState extends State<MyStories> {
 
             storyPreviews.remove(myPreview);
 
-            final hasNewPublish = hasPublish ? _hasNewStories(myPreview) : false;
+            final hasNewPublish = hasPublish
+                ? hasNewStories(
+                    widget.settings.userId, myPreview, widget.settings.storyTimeValidaty)
+                : false;
 
             return _storyItem(myPreview.coverImg, hasPublish, hasNewPublish);
           } else {
@@ -314,24 +319,8 @@ class _MyStoriesState extends State<MyStories> {
     );
   }
 
-  Stream<DocumentSnapshot> get _storiesStream {
-    var query = _firestore.collection(widget.settings.collectionDbName).where(
-          'last_update',
-          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
-        );
-
-    return query
-        .orderBy('last_update', descending: widget.settings.sortByDescUpdate)
-        .reference()
-        .document(widget.settings.userId)
-        .snapshots();
-  }
-
-  bool _hasNewStories(StoriesCollection collection) {
-    return collection.stories.any(
-      (s) =>
-          isInIntervalToShow(s) &&
-          (s.views?.every((v) => v["user_info"] != widget.settings.userId) ?? true),
-    );
-  }
+  Stream<DocumentSnapshot> get _storiesStream => _firestore
+      .collection(widget.settings.collectionDbName)
+      .document(widget.settings.userId)
+      .snapshots();
 }

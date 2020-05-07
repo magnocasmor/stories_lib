@@ -48,7 +48,7 @@ List<StoryItem> parseStories(
 
   storiesCollection.stories.asMap().forEach(
     (index, storyData) {
-      if (!isInIntervalToShow(storyData)) return;
+      if (!isInIntervalToShow(storyData, settings.storyTimeValidaty)) return;
 
       if (settings.userId != storiesCollection.storyId &&
           !checkRelease(storyData.toJson(), settings)) return;
@@ -150,12 +150,20 @@ bool checkRelease(Map storyData, StoriesSettings settings) {
       });
 }
 
+bool hasNewStories(String userId, StoriesCollection collection, Duration storyValidaty) {
+  return collection.stories.any(
+    (s) =>
+        isInIntervalToShow(s, storyValidaty) &&
+        (s.views?.every((v) => v["user_info"] != userId) ?? true),
+  );
+}
+
 bool isViewed(Story story, String userId) {
   return story.views?.any((v) => v["user_info"] == userId) ?? false;
 }
 
-bool isInIntervalToShow(Story story) {
-  return story.date.isAfter(DateTime.now().subtract(Duration(hours: 12)));
+bool isInIntervalToShow(Story story, Duration storyValidaty) {
+  return story.date.isAfter(DateTime.now().subtract(storyValidaty));
 }
 
 StoriesCollection storiesCollectionFromDocument(DocumentSnapshot document) =>
