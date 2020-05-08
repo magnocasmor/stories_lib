@@ -461,18 +461,24 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   String compressedPath;
   Future compressFuture;
   VideoPlayerController controller;
+  Future controllerFuture;
 
   @override
   void initState() {
     _compress();
     widget.publisherController.addStatus(PublisherStatus.showingResult);
     storyFile = File(widget.filePath);
-    if (widget.type == StoryType.video) controller = VideoPlayerController.file(storyFile);
+    if (widget.type == StoryType.video) {
+      controller = VideoPlayerController.file(storyFile);
+      controller.setLooping(true);
+      controllerFuture = controller.initialize();
+    }
     super.initState();
   }
 
   @override
   void dispose() {
+    controller?.pause();
     controller?.dispose();
     super.dispose();
   }
@@ -493,11 +499,11 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
                 child: widget.closeButton,
               ),
             ),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child:
-                  widget.resultToolsBuilder?.call(context, storyFile, _sendStory) ?? LimitedBox(),
-            ),
+            if (widget.resultToolsBuilder != null)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: widget.resultToolsBuilder(context, storyFile, _sendStory),
+              ),
           ],
         ),
       ),
@@ -510,15 +516,21 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         return Image.file(
           storyFile,
           fit: BoxFit.fitHeight,
+          filterQuality: FilterQuality.high,
         );
         break;
       case StoryType.video:
+
+        /// A way to listen Navigation without RouteObservers
+        if (ModalRoute.of(context).isCurrent) {
+          controller.play();
+        } else {
+          controller.pause();
+        }
         return FutureBuilder<void>(
-          future: controller.initialize(),
+          future: controllerFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
-              controller.setLooping(true);
-              controller.play();
               return FittedContainer(
                 fit: BoxFit.fitHeight,
                 width: controller.value.size.width,
