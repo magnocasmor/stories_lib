@@ -512,27 +512,27 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
             alignment: widget.headerPosition == StoryHeaderPosition.top
                 ? Alignment.topCenter
                 : Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: widget.headerBuilder?.call(
-                    context,
-                    widget.storyItems.indexOf(currentStory),
-                    CachedNetworkImageProvider(currentStory.storyPreviewImg),
-                    currentStory.storyTitle,
-                    currentStory.postDate,
-                    widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
-                    this.currentAnimation,
-                  ) ??
-                  PageBar(
+            child: widget.headerBuilder?.call(
+                  context,
+                  widget.storyItems.indexOf(currentStory),
+                  CachedNetworkImageProvider(currentStory.storyPreviewImg ?? ""),
+                  currentStory.storyTitle,
+                  currentStory.postDate,
+                  widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
+                  this.currentAnimation,
+                ) ??
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: PageBar(
                     widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
                     this.currentAnimation,
                     key: UniqueKey(),
                     indicatorHeight: widget.inline ? IndicatorHeight.small : IndicatorHeight.large,
                   ),
-            ),
+                ),
           ),
         ],
       ),

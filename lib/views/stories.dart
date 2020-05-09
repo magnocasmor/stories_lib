@@ -113,23 +113,34 @@ class _StoriesState extends State<Stories> {
     List<String> storyIds,
   ) {
     return GestureDetector(
-      child: CachedNetworkImage(
-        imageUrl: story.coverImg,
-        placeholder: (context, url) => widget.previewPlaceholder,
-        imageBuilder: (context, image) {
-          return widget.previewBuilder(
-            context,
-            image,
-            story.title[widget.settings.languageCode],
-            hasNewStories(
-              widget.settings.userId,
-              story,
-              widget.settings.storyTimeValidaty,
+      child: story.coverImg != null
+          ? CachedNetworkImage(
+              imageUrl: story.coverImg,
+              placeholder: (context, url) => widget.previewPlaceholder,
+              imageBuilder: (context, image) {
+                return widget.previewBuilder(
+                  context,
+                  image,
+                  story.title[widget.settings.languageCode],
+                  hasNewStories(
+                    widget.settings.userId,
+                    story,
+                    widget.settings.storyTimeValidaty,
+                  ),
+                );
+              },
+              errorWidget: (context, url, error) => Icon(Icons.error),
+            )
+          : widget.previewBuilder(
+              context,
+              null,
+              story.title[widget.settings.languageCode],
+              hasNewStories(
+                widget.settings.userId,
+                story,
+                widget.settings.storyTimeValidaty,
+              ),
             ),
-          );
-        },
-        errorWidget: (context, url, error) => Icon(Icons.error),
-      ),
       onTap: () async {
         Navigator.push(
           context,
@@ -149,7 +160,7 @@ class _StoriesState extends State<Stories> {
                 progressBuilder: widget.storyHeaderBuilder,
                 closeButton: widget.closeButton,
                 closeButtonPosition: widget.closeButtonPosition,
-                backgroundColorBetweenStories: widget.backgroundBetweenStories,
+                backgroundBetweenStories: widget.backgroundBetweenStories,
               );
             },
           ),
@@ -168,7 +179,7 @@ class _StoriesState extends State<Stories> {
       padding: widget.previewListPadding,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           widget.myStoriesPreview ?? Container(),
           for (int i = 0; i < itemCount; i++) builder(context, i),
@@ -201,7 +212,10 @@ class MyStories extends StatefulWidget {
   final Widget previewPlaceholder;
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
+  final Color backgroundBetweenStories;
   final _ItemBuilder placeholderBuilder;
+  final StoryHeaderBuilder headerBuilder;
+  final StoryHeaderPosition headerPosition;
   final PublisherController publisherController;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
@@ -221,11 +235,14 @@ class MyStories extends StatefulWidget {
     this.toolsBuilder,
     this.onStoryPosted,
     this.publishBuilder,
+    this.headerBuilder,
     this.resultToolsBuilder,
     this.publisherController,
     this.repeat = false,
     this.inline = false,
+    this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
+    this.backgroundBetweenStories = Colors.black,
   });
 
   @override
@@ -301,17 +318,20 @@ class _MyStoriesState extends State<MyStories> {
             transitionsBuilder: widget.storyOpenTransition,
             pageBuilder: (context, anim, anim2) {
               return StoryPublisher(
-                settings: widget.settings,
                 hasPublish: hasPublish,
+                settings: widget.settings,
                 closeButton: widget.closeButton,
                 toolsBuilder: widget.toolsBuilder,
                 onStoryPosted: widget.onStoryPosted,
                 errorWidget: widget.mediaErrorWidget,
                 publishBuilder: widget.publishBuilder,
+                headerPosition: widget.headerPosition,
                 loadingWidget: widget.mediaLoadingWidget,
+                storyHeaderBuilder: widget.headerBuilder,
                 resultToolsBuilder: widget.resultToolsBuilder,
                 publisherController: widget.publisherController,
                 closeButtonPosition: widget.closeButtonPosition,
+                backgroundBetweenStories: widget.backgroundBetweenStories,
               );
             },
           ),

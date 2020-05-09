@@ -206,6 +206,7 @@ class _HomeState extends State<Home> {
     return MyStories(
       settings: settings,
       publisherController: controller,
+      
       closeButton: closeButton(),
       placeholderBuilder: placeholderBuilder,
       storyOpenTransition: transition,

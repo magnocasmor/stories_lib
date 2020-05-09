@@ -107,6 +107,7 @@ class _StoryVideoState extends State<StoryVideo> {
         future: initializeController(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
+            widget.controller.play();
             return widget.mediaErrorWidget ?? StoryError();
           }
 

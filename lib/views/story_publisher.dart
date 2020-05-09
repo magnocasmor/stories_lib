@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:stories_lib/utils/fix_image_orientation.dart';
+import 'package:stories_lib/views/story_view.dart';
 import 'package:uuid/uuid.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -54,6 +55,9 @@ class StoryPublisher extends StatefulWidget {
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
+  final Color backgroundBetweenStories;
+  final StoryHeaderPosition headerPosition;
+  final StoryHeaderBuilder storyHeaderBuilder;
   final StoryPublisherToolsBuilder toolsBuilder;
   final PublisherController publisherController;
   final StoryPublisherButtonBuilder publishBuilder;
@@ -69,8 +73,11 @@ class StoryPublisher extends StatefulWidget {
     this.publishBuilder,
     this.onStoryPosted,
     this.resultToolsBuilder,
-    this.hasPublish = false,
+    this.storyHeaderBuilder,
     this.publisherController,
+    this.hasPublish = false,
+    this.backgroundBetweenStories,
+    this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
     this.videoDuration = const Duration(seconds: 10),
   }) : super(key: key);
@@ -128,11 +135,9 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         ),
         Align(
           alignment: widget.closeButtonPosition,
-          child: SafeArea(
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: widget.closeButton,
-            ),
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: widget.closeButton,
           ),
         ),
       ],
@@ -141,7 +146,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   Widget publishStory() {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: widget.backgroundBetweenStories,
       body: SafeArea(
         child: Stack(
           children: <Widget>[
@@ -157,7 +162,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                   switch (snapshot.connectionState) {
                     case ConnectionState.done:
                       return FittedContainer(
-                        fit: BoxFit.fitHeight,
+                        fit: BoxFit.cover,
                         width: cameraController.value.previewSize?.height ?? 0,
                         height: cameraController.value.previewSize?.width ?? 0,
                         child: AspectRatio(
@@ -228,85 +233,11 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         inline: false,
         settings: widget.settings,
         storiesIds: [widget.settings.userId],
+        headerPosition: widget.headerPosition,
         selectedStoryId: widget.settings.userId,
-        progressBuilder: (
-          context,
-          currentIndex,
-          previewImage,
-          title,
-          postDate,
-          pageDatas,
-          animation,
-        ) {
-          return Column(
-            children: <Widget>[
-              Row(
-                children: pageDatas.map(
-                  (it) {
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: pageDatas.last == it ? 0 : 8.0),
-                        child: AnimatedBuilder(
-                          animation: animation,
-                          builder: (context, child) {
-                            return SizedBox(
-                              height: 3.0,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(1.5),
-                                child: LinearProgressIndicator(
-                                  backgroundColor: Colors.black26,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  value: pageDatas.indexOf(it) == currentIndex
-                                      ? animation.value
-                                      : it.shown ? 1 : 0,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                ).toList(),
-              ),
-              Row(
-                children: <Widget>[
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24.0),
-                    ),
-                    position: DecorationPosition.foreground,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: Hero(
-                        tag: title,
-                        transitionOnUserGestures: true,
-                        child: CircleAvatar(
-                          backgroundImage: previewImage,
-                          // backgroundColor: Colors.purple,
-                          radius: 20.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(title),
-                        Text(DateTime.now().difference(postDate).inHours.toString() + " horas"),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          );
-        },
+        progressBuilder: widget.storyHeaderBuilder,
         // sortingOrderDesc: true,
-        headerPosition: StoryHeaderPosition.top,
-        backgroundColorBetweenStories: Colors.black,
+        backgroundBetweenStories: widget.backgroundBetweenStories,
       ),
     );
   }
@@ -412,18 +343,21 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   void _goToStoryResult() {
     Navigator.push(
       context,
-      PageRouteBuilder(pageBuilder: (context, anim, anim2) {
-        return _StoryPublisherResult(
-          type: type,
-          filePath: storyPath,
-          settings: widget.settings,
-          closeButton: widget.closeButton,
-          onStoryPosted: widget.onStoryPosted,
-          resultToolsBuilder: widget.resultToolsBuilder,
-          publisherController: widget.publisherController,
-          closeButtonPosition: widget.closeButtonPosition,
-        );
-      }),
+      PageRouteBuilder(
+        pageBuilder: (context, anim, anim2) {
+          return _StoryPublisherResult(
+            type: type,
+            filePath: storyPath,
+            settings: widget.settings,
+            closeButton: widget.closeButton,
+            onStoryPosted: widget.onStoryPosted,
+            resultToolsBuilder: widget.resultToolsBuilder,
+            closeButtonPosition: widget.closeButtonPosition,
+            publisherController: widget.publisherController,
+            backgroundBetweenStories: widget.backgroundBetweenStories,
+          );
+        },
+      ),
     );
   }
 }
@@ -435,6 +369,7 @@ class _StoryPublisherResult extends StatefulWidget {
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
+  final Color backgroundBetweenStories;
   final PublisherController publisherController;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
@@ -448,6 +383,7 @@ class _StoryPublisherResult extends StatefulWidget {
     this.onStoryPosted,
     this.resultToolsBuilder,
     this.closeButtonPosition,
+    this.backgroundBetweenStories,
   })  : assert(filePath != null, "The [filePath] can't be null"),
         assert(type != null, "The [type] can't be null"),
         super(key: key);
@@ -486,6 +422,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: widget.backgroundBetweenStories,
       body: SafeArea(
         child: Stack(
           children: <Widget>[
@@ -515,7 +452,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       case StoryType.image:
         return Image.file(
           storyFile,
-          fit: BoxFit.fitHeight,
+          fit: BoxFit.cover,
           filterQuality: FilterQuality.high,
         );
         break;
@@ -532,7 +469,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
               return FittedContainer(
-                fit: BoxFit.fitHeight,
+                fit: BoxFit.cover,
                 width: controller.value.size.width,
                 height: controller.value.size.height,
                 child: VideoPlayer(controller),

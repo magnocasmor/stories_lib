@@ -19,9 +19,9 @@ class StoriesCollectionView extends StatefulWidget {
   final StoriesSettings settings;
   final Widget mediaLoadingWidget;
   final Alignment closeButtonPosition;
+  final Color backgroundBetweenStories;
   final StoryHeaderBuilder progressBuilder;
   final StoryHeaderPosition headerPosition;
-  final Color backgroundColorBetweenStories;
 
   StoriesCollectionView({
     @required this.settings,
@@ -34,7 +34,7 @@ class StoriesCollectionView extends StatefulWidget {
     this.mediaErrorWidget,
     this.mediaLoadingWidget,
     this.closeButtonPosition,
-    this.backgroundColorBetweenStories,
+    this.backgroundBetweenStories,
     this.repeat = false,
   });
 
@@ -67,7 +67,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
         return Future.value(true);
       },
       child: Scaffold(
-        backgroundColor: widget.backgroundColorBetweenStories,
+        backgroundColor: widget.backgroundBetweenStories,
         body: SafeArea(
           bottom: false,
           child: PageView.builder(
@@ -176,18 +176,18 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   }
 
   Future<DocumentSnapshot> getStories(String storyId) => _firestore
-      .collection(widget.settings.collectionDbName)
-      .where(
-        'last_update',
-        isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
-      )
-      .getDocuments()
-      .then(
+          .collection(widget.settings.collectionDbName)
+          .where(
+            'last_update',
+            isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
+          )
+          .getDocuments()
+          .then(
         (doc) {
           return doc.documents.singleWhere(
-          (d) => d.documentID == storyId,
-          orElse: () => null,
-        );
+            (d) => d.documentID == storyId,
+            orElse: () => null,
+          );
         },
       );
 
