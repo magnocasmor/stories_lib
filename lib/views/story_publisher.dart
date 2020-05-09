@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/utils/fix_image_orientation.dart';
 import 'package:stories_lib/views/story_view.dart';
 import 'package:uuid/uuid.dart';
@@ -7,7 +8,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import 'package:stories_lib/configs/settings.dart';
 import 'package:path/path.dart' show join, basename;
 import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:video_compress/video_compress.dart';
@@ -56,6 +56,7 @@ class StoryPublisher extends StatefulWidget {
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
+  final StoryController storyController;
   final StoryOverlayInfoBuilder overlayInfoBuilder;
   final StoryPublisherToolsBuilder toolsBuilder;
   final PublisherController publisherController;
@@ -71,6 +72,7 @@ class StoryPublisher extends StatefulWidget {
     this.loadingWidget,
     this.publishBuilder,
     this.onStoryPosted,
+    this.storyController,
     this.resultToolsBuilder,
     this.overlayInfoBuilder,
     this.publisherController,
@@ -231,6 +233,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         inline: false,
         settings: widget.settings,
         storiesIds: [widget.settings.userId],
+        storyController: widget.storyController,
         selectedStoryId: widget.settings.userId,
         overlayInfoBuilder: widget.overlayInfoBuilder,
         // sortingOrderDesc: true,

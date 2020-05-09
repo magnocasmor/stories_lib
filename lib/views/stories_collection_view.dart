@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:stories_lib/configs/settings.dart';
 import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/utils/stories_helpers.dart';
@@ -20,6 +19,7 @@ class StoriesCollectionView extends StatefulWidget {
   final Widget mediaLoadingWidget;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
+  final StoryController storyController;
   final StoryOverlayInfoBuilder overlayInfoBuilder;
 
   StoriesCollectionView({
@@ -28,6 +28,7 @@ class StoriesCollectionView extends StatefulWidget {
     @required this.selectedStoryId,
     this.inline,
     this.closeButton,
+    this.storyController,
     this.overlayInfoBuilder,
     this.mediaErrorWidget,
     this.mediaLoadingWidget,
@@ -42,18 +43,19 @@ class StoriesCollectionView extends StatefulWidget {
 
 class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   final _firestore = Firestore.instance;
-  final storyController = StoryController();
   PageController _pageController;
+  StoryController _storyController;
 
   @override
   void initState() {
     super.initState();
+    _storyController = widget.storyController ?? StoryController();
     _pageController = PageController(initialPage: indexOfStory(widget.selectedStoryId));
   }
 
   @override
   void dispose() {
-    storyController.dispose();
+    _storyController.dispose();
     super.dispose();
   }
 
@@ -61,7 +63,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () {
-        storyController?.stop();
+        _storyController?.stop();
         return Future.value(true);
       },
       child: Scaffold(
@@ -96,7 +98,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
 
                       final stories = parseStories(
                         storyData,
-                        storyController,
+                        _storyController,
                         widget.settings,
                         widget.mediaErrorWidget,
                         widget.mediaLoadingWidget,
@@ -105,7 +107,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                       return GestureDetector(
                         child: StoryView(
                           storyItems: stories,
-                          controller: storyController,
+                          controller: _storyController,
                           repeat: widget.repeat,
                           inline: widget.inline,
                           overlayInfoBuilder: widget.overlayInfoBuilder,
@@ -206,7 +208,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   }
 
   Future _navigateToStories(_StoriesDirection direction) {
-    storyController.stop();
+    _storyController.stop();
 
     if (direction == _StoriesDirection.next)
       return _pageController.nextPage(
@@ -222,7 +224,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   }
 
   Future<bool> _finishStoriesView() {
-    storyController?.stop();
+    _storyController?.stop();
     return Navigator.maybePop(context);
   }
 

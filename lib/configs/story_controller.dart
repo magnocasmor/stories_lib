@@ -9,7 +9,7 @@ enum PlaybackState { pause, play, stop }
 /// state when a media is loading.
 class StoryController {
   /// Stream that broadcasts the playback state of the stories.
-  final playbackNotifier = BehaviorSubject<PlaybackState>();
+  var playbackNotifier = BehaviorSubject<PlaybackState>();
 
   /// Notify listeners with a [PlaybackState.pause] state
   void pause() {
@@ -28,6 +28,8 @@ class StoryController {
   /// Remember to call dispose when the story screen is disposed to close
   /// the notifier stream.
   void dispose() {
-    playbackNotifier.close();
+    playbackNotifier.close().whenComplete(() {
+      playbackNotifier = BehaviorSubject<PlaybackState>();
+    });
   }
 }

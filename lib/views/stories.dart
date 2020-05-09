@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/views/story_publisher.dart';
@@ -28,6 +29,7 @@ class Stories extends StatefulWidget {
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final _ItemBuilder placeholderBuilder;
+  final StoryController storyController;
   final VoidCallback onAllStoriesComplete;
   final StoryPreviewBuilder previewBuilder;
   final StoryOverlayInfoBuilder overlayInfoBuilder;
@@ -37,6 +39,7 @@ class Stories extends StatefulWidget {
     @required this.settings,
     this.closeButton,
     this.previewBuilder,
+    this.storyController,
     this.myStoriesPreview,
     this.mediaErrorWidget,
     this.placeholderBuilder,
@@ -151,6 +154,7 @@ class _StoriesState extends State<Stories> {
                 inline: widget.inline,
                 settings: widget.settings,
                 selectedStoryId: story.storyId,
+                storyController: widget.storyController,
                 mediaErrorWidget: widget.mediaErrorWidget,
                 mediaLoadingWidget: widget.mediaLoadingWidget,
                 overlayInfoBuilder: widget.overlayInfoBuilder,
@@ -210,6 +214,7 @@ class MyStories extends StatefulWidget {
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final _ItemBuilder placeholderBuilder;
+  final StoryController storyController;
   final StoryOverlayInfoBuilder overlayInfoBuilder;
   final PublisherController publisherController;
   final StoryPublisherToolsBuilder toolsBuilder;
@@ -230,6 +235,7 @@ class MyStories extends StatefulWidget {
     this.toolsBuilder,
     this.onStoryPosted,
     this.publishBuilder,
+    this.storyController,
     this.overlayInfoBuilder,
     this.resultToolsBuilder,
     this.publisherController,
@@ -319,6 +325,7 @@ class _MyStoriesState extends State<MyStories> {
                 onStoryPosted: widget.onStoryPosted,
                 errorWidget: widget.mediaErrorWidget,
                 publishBuilder: widget.publishBuilder,
+                storyController: widget.storyController,
                 loadingWidget: widget.mediaLoadingWidget,
                 overlayInfoBuilder: widget.overlayInfoBuilder,
                 resultToolsBuilder: widget.resultToolsBuilder,
