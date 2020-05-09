@@ -79,13 +79,14 @@ List<StoryItem> parseStories(
           );
           break;
         case 'image':
-          final storyImage = CachedNetworkImageProvider(media);
+          // final storyImage = CachedNetworkImageProvider(media);
           storyItems.add(
-            StoryItem.pageImage(
+            StoryItem.pageGif(
               shown: _shown,
               storyId: storyId,
               caption: caption,
-              image: storyImage,
+              url: media,
+              // image: storyImage,
               duration: duration,
               viewers: storyData.views,
               storyTitle: storyTitle,

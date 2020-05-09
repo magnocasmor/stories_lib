@@ -654,10 +654,12 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     }
   }
 
-  Widget get currentView => ChangeNotifierProvider.value(
-        value: currentStory ?? widget.storyItems.last,
-        child: currentStory?.view ?? widget.storyItems.last.view,
-      );
+  Widget get currentView {
+    return ChangeNotifierProvider.value(
+      value: currentStory ?? widget.storyItems.last,
+      child: currentStory?.view ?? widget.storyItems.last.view,
+    );
+  }
 }
 
 /// Capsule holding the duration and shown property of each story. Passed down

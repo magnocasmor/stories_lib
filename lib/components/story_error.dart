@@ -7,10 +7,15 @@ class StoryError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      info,
-      style: TextStyle(
-        color: Colors.white,
+    return DecoratedBox(
+      decoration: BoxDecoration(color: Colors.black),
+      child: Center(
+        child: Text(
+          info,
+          style: TextStyle(
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }
