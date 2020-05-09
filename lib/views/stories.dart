@@ -72,8 +72,8 @@ class _StoriesState extends State<Stories> {
 
           stories.removeWhere((s) => s.documentID == widget.settings.userId);
 
-          stories.removeWhere((prev) =>
-              prev.data["stories"].every((story) => !checkRelease(story, widget.settings)));
+          stories.removeWhere(
+              (prev) => !prev.data["stories"].every((story) => allowToSee(story, widget.settings)));
 
           final storyPreviews = parseStoriesPreview(widget.settings.languageCode, stories);
 
@@ -194,9 +194,9 @@ class _StoriesState extends State<Stories> {
           isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
         );
 
-    if (widget.settings.releases is List && widget.settings.releases.isNotEmpty) {
-      query = query.where('releases', arrayContainsAny: widget.settings.releases);
-    }
+    // if (widget.settings.releases is List && widget.settings.releases.isNotEmpty) {
+    //   query = query.where('releases', arrayContainsAny: widget.settings.releases);
+    // }
 
     return query.orderBy('last_update', descending: widget.settings.sortByDescUpdate).snapshots();
   }

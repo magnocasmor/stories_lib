@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/configs/stories_settings.dart';
 import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/models/stories_collection.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 List<String> storyIds(List<DocumentSnapshot> stories) {
@@ -50,8 +49,8 @@ List<StoryItem> parseStories(
     (index, storyData) {
       if (!isInIntervalToShow(storyData, settings.storyTimeValidaty)) return;
 
-      if (settings.userId != storiesCollection.storyId &&
-          !checkRelease(storyData.toJson(), settings)) return;
+      if (settings.userId != storiesCollection.storyId && !allowToSee(storyData.toJson(), settings))
+        return;
 
       final storyId = storyData.id;
       final storyPreviewImg = storiesCollection.coverImg;
@@ -143,16 +142,19 @@ List<StoryItem> parseStories(
   return storyItems;
 }
 
-bool checkRelease(Map storyData, StoriesSettings settings) {
-  return storyData["releases"] != null &&
-      storyData["releases"].any((release) {
-        if (release is Map)
-          return settings.releases.any((release2) => mapEquals(release, release2));
-        else if (release is List)
-          return settings.releases.any((release2) => listEquals(release, release2));
-        else
-          return settings.releases.contains(release);
-      });
+bool allowToSee(Map storyData, StoriesSettings settings) {
+  return storyData["releases"] == null ||
+      storyData["releases"].isEmpty ||
+      storyData["releases"].any(
+        (release) {
+          if (release is Map)
+            return settings.releases.any((myRelease) => mapEquals(release, myRelease));
+          else if (release is List)
+            return settings.releases.any((myRelease) => listEquals(release, myRelease));
+          else
+            return settings.releases.contains(release);
+        },
+      );
 }
 
 bool hasNewStories(String userId, StoriesCollection collection, Duration storyValidaty) {

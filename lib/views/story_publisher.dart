@@ -398,6 +398,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Future compressFuture;
   VideoPlayerController controller;
   Future controllerFuture;
+  TextEditingController captionController;
 
   @override
   void initState() {
@@ -409,6 +410,9 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       controller.setLooping(true);
       controllerFuture = controller.initialize();
     }
+
+    captionController = TextEditingController();
+
     super.initState();
   }
 
@@ -426,9 +430,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       body: SafeArea(
         child: Stack(
           children: <Widget>[
-            StoryWidget(
-              story: _buildPreview(),
-            ),
+            StoryWidget(story: _buildPreview()),
             Align(
               alignment: widget.closeButtonPosition,
               child: GestureDetector(
@@ -436,6 +438,56 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
                 child: widget.closeButton,
               ),
             ),
+            Align(
+              alignment: widget.closeButtonPosition,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 56.0),
+                child: IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(
+                    Icons.text_fields,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            // SafeArea(
+            //   child: Align(
+            //     alignment: Alignment.bottomCenter,
+            //     child: Container(
+            //       width: double.infinity,
+            //       margin: EdgeInsets.only(
+            //         bottom: 24,
+            //       ),
+            //       padding: EdgeInsets.symmetric(
+            //         horizontal: 56,
+            //         vertical: 8,
+            //       ),
+            //       color: Colors.black54,
+            //       child: TextField(
+            //         controller: captionController,
+            //         decoration: InputDecoration(
+            //           border: InputBorder.none,
+            //           contentPadding: const EdgeInsets.all(0.0),
+            //           isDense: true,
+            //           hintText: "Adicione uma legenda",
+            //           hintStyle: TextStyle(
+            //             fontSize: 15,
+            //             color: Colors.white.withOpacity(0.5),
+            //           ),
+            //         ),
+            //         style: TextStyle(
+            //           fontSize: 15,
+            //           color: Colors.white,
+            //         ),
+            //         textAlign: TextAlign.center,
+            //         minLines: 1,
+            //         maxLines: 4,
+            //         keyboardType: TextInputType.multiline,
+            //       ),
+            //     ),
+            //   ),
+            // ),
             if (widget.resultToolsBuilder != null)
               Align(
                 alignment: Alignment.bottomCenter,
@@ -607,7 +659,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         "id": Uuid().v4(),
         "date": DateTime.now(),
         "media": {widget.settings.languageCode: url},
-        "releases": selectedReleases ?? widget.settings.releases,
+        "caption": {widget.settings.languageCode: captionController.text},
+        "releases": selectedReleases,
         "type": _extractType,
       };
 
