@@ -20,8 +20,7 @@ class StoriesCollectionView extends StatefulWidget {
   final Widget mediaLoadingWidget;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
-  final StoryHeaderBuilder progressBuilder;
-  final StoryHeaderPosition headerPosition;
+  final StoryOverlayInfoBuilder overlayInfoBuilder;
 
   StoriesCollectionView({
     @required this.settings,
@@ -29,8 +28,7 @@ class StoriesCollectionView extends StatefulWidget {
     @required this.selectedStoryId,
     this.inline,
     this.closeButton,
-    this.headerPosition,
-    this.progressBuilder,
+    this.overlayInfoBuilder,
     this.mediaErrorWidget,
     this.mediaLoadingWidget,
     this.closeButtonPosition,
@@ -110,24 +108,26 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                           controller: storyController,
                           repeat: widget.repeat,
                           inline: widget.inline,
-                          headerBuilder: widget.progressBuilder,
-                          headerPosition: widget.headerPosition,
+                          overlayInfoBuilder: widget.overlayInfoBuilder,
                           onStoryShow: (StoryItem item) {
                             storyData.reference.get().then(
                               (ds) async {
+                                if (ds.documentID == widget.settings.userId) return;
+
                                 final doc = ds.data;
                                 final story =
                                     doc["stories"].singleWhere((s) => s['id'] == item.storyId);
                                 final views = story["views"];
                                 final currentView = {
-                                  "user_info": widget.settings.userId,
+                                  "user_id": widget.settings.userId,
+                                  "user_name": widget.settings.username,
+                                  "cover_img": widget.settings.coverImg,
                                   "date": DateTime.now(),
                                 };
 
                                 if (views is List) {
-                                  final hasView = views.any(
-                                    (v) => v["user_info"] == widget.settings.userId,
-                                  );
+                                  final hasView =
+                                      views.any((v) => v["user_id"] == widget.settings.userId);
 
                                   if (!hasView) {
                                     views.add(currentView);

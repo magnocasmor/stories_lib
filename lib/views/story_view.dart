@@ -10,11 +10,12 @@ import 'package:stories_lib/components/story_widget.dart';
 import 'package:stories_lib/configs/story_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-typedef StoryHeaderBuilder = Widget Function(
+typedef StoryOverlayInfoBuilder = Widget Function(
   BuildContext context,
   int currentIndex,
   ImageProvider image,
   String title,
+  List viewers,
   DateTime postDate,
   List<PageData> pageData,
   Animation animation,
@@ -29,6 +30,8 @@ class StoryItem extends ChangeNotifier {
   final String storyTitle;
 
   final DateTime postDate;
+
+  final List viewers;
 
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
@@ -51,6 +54,7 @@ class StoryItem extends ChangeNotifier {
     @required this.view,
     @required this.storyId,
     @required this.postDate,
+    @required this.viewers,
     this.storyTitle,
     this.storyPreviewImg,
     Duration duration = const Duration(seconds: 3),
@@ -68,6 +72,7 @@ class StoryItem extends ChangeNotifier {
   /// what inline/full-page means.
   static StoryItem text({
     @required String text,
+    @required List viewers,
     @required String storyId,
     @required Color backgroundColor,
     TextStyle style,
@@ -93,6 +98,7 @@ class StoryItem extends ChangeNotifier {
     ] /** white text */);
 
     return StoryItem(
+      viewers: viewers,
       storyId: storyId,
       postDate: postDate,
       storyTitle: storyTitle,
@@ -129,6 +135,7 @@ class StoryItem extends ChangeNotifier {
   /// You can provide any image provider for [image].
   static StoryItem pageImage({
     @required String storyId,
+    @required List viewers,
     @required ImageProvider image,
     String caption,
     String storyTitle,
@@ -142,6 +149,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
+      viewers: viewers,
       storyId: storyId,
       postDate: postDate,
       storyTitle: storyTitle,
@@ -161,6 +169,7 @@ class StoryItem extends ChangeNotifier {
   /// Shorthand for creating inline image page.
   static StoryItem inlineImage({
     @required String storyId,
+    @required List viewers,
     @required ImageProvider image,
     Text caption,
     String storyTitle,
@@ -172,6 +181,7 @@ class StoryItem extends ChangeNotifier {
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
+      viewers: viewers,
       storyId: storyId,
       postDate: postDate,
       storyTitle: storyTitle,
@@ -211,6 +221,7 @@ class StoryItem extends ChangeNotifier {
 
   static StoryItem pageGif({
     @required String url,
+    @required List viewers,
     @required String storyId,
     String caption,
     String storyTitle,
@@ -226,6 +237,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
     return StoryItem(
+      viewers: viewers,
       storyId: storyId,
       postDate: postDate,
       storyTitle: storyTitle,
@@ -249,6 +261,7 @@ class StoryItem extends ChangeNotifier {
   /// Shorthand for creating inline image page.
   static StoryItem inlineGif({
     @required String url,
+    @required List viewers,
     @required String storyId,
     Text caption,
     String storyTitle,
@@ -265,6 +278,7 @@ class StoryItem extends ChangeNotifier {
     Duration duration = const Duration(seconds: 3),
   }) {
     return StoryItem(
+      viewers: viewers,
       storyId: storyId,
       postDate: postDate,
       storyTitle: storyTitle,
@@ -318,6 +332,7 @@ class StoryItem extends ChangeNotifier {
 
   static StoryItem pageVideo({
     @required String url,
+    @required List viewers,
     @required String storyId,
     String caption,
     String storyTitle,
@@ -333,6 +348,7 @@ class StoryItem extends ChangeNotifier {
   }) {
     assert(videoFit != null, "[videoFit] should not be null");
     return StoryItem(
+      viewers: viewers,
       storyId: storyId,
       postDate: postDate,
       storyTitle: storyTitle,
@@ -375,13 +391,10 @@ class StoryView extends StatefulWidget {
 
   final VoidCallback previousOnFirstStory;
 
-  final StoryHeaderBuilder headerBuilder;
+  final StoryOverlayInfoBuilder overlayInfoBuilder;
 
   /// Callback for when a story is currently being shown.
   final ValueChanged<StoryItem> onStoryShow;
-
-  /// Where the progress indicator should be placed.
-  final StoryHeaderPosition headerPosition;
 
   /// Should the story be repeated forever?
   final bool repeat;
@@ -398,14 +411,12 @@ class StoryView extends StatefulWidget {
     this.controller,
     this.onComplete,
     this.onStoryShow,
-    this.headerBuilder,
+    this.overlayInfoBuilder,
     this.previousOnFirstStory,
     this.repeat = false,
     this.inline = false,
-    this.headerPosition = StoryHeaderPosition.top,
   })  : assert(storyItems != null && storyItems.length > 0,
             "[storyItems] should not be null or empty"),
-        assert(headerPosition != null, "[progressPosition] cannot be null"),
         assert(repeat != null, "[repeat] cannot be null"),
         assert(inline != null, "[inline] cannot be null");
 
@@ -508,32 +519,17 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       child: Stack(
         children: <Widget>[
           currentView,
-          Align(
-            alignment: widget.headerPosition == StoryHeaderPosition.top
-                ? Alignment.topCenter
-                : Alignment.bottomCenter,
-            child: widget.headerBuilder?.call(
-                  context,
-                  widget.storyItems.indexOf(currentStory),
-                  CachedNetworkImageProvider(currentStory.storyPreviewImg ?? ""),
-                  currentStory.storyTitle,
-                  currentStory.postDate,
-                  widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
-                  this.currentAnimation,
-                ) ??
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
-                  ),
-                  child: PageBar(
-                    widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
-                    this.currentAnimation,
-                    key: UniqueKey(),
-                    indicatorHeight: widget.inline ? IndicatorHeight.small : IndicatorHeight.large,
-                  ),
-                ),
-          ),
+          if (widget.overlayInfoBuilder != null)
+            widget.overlayInfoBuilder(
+              context,
+              widget.storyItems.indexOf(currentStory),
+              CachedNetworkImageProvider(currentStory.storyPreviewImg ?? ""),
+              currentStory.storyTitle,
+              currentStory.viewers,
+              currentStory.postDate,
+              widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
+              this.currentAnimation,
+            )
         ],
       ),
     );

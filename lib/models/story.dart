@@ -9,9 +9,9 @@ class Story {
   final DateTime date;
   final List<Map> views;
   final Color backgroundColor;
+  final List<dynamic> releases;
   final Map<String, String> media;
   final Map<String, String> caption;
-  final List<dynamic> releases;
 
   Story({
     @required this.id,

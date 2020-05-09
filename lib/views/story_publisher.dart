@@ -56,8 +56,7 @@ class StoryPublisher extends StatefulWidget {
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
-  final StoryHeaderPosition headerPosition;
-  final StoryHeaderBuilder storyHeaderBuilder;
+  final StoryOverlayInfoBuilder overlayInfoBuilder;
   final StoryPublisherToolsBuilder toolsBuilder;
   final PublisherController publisherController;
   final StoryPublisherButtonBuilder publishBuilder;
@@ -73,11 +72,10 @@ class StoryPublisher extends StatefulWidget {
     this.publishBuilder,
     this.onStoryPosted,
     this.resultToolsBuilder,
-    this.storyHeaderBuilder,
+    this.overlayInfoBuilder,
     this.publisherController,
     this.hasPublish = false,
     this.backgroundBetweenStories,
-    this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
     this.videoDuration = const Duration(seconds: 10),
   }) : super(key: key);
@@ -233,9 +231,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         inline: false,
         settings: widget.settings,
         storiesIds: [widget.settings.userId],
-        headerPosition: widget.headerPosition,
         selectedStoryId: widget.settings.userId,
-        progressBuilder: widget.storyHeaderBuilder,
+        overlayInfoBuilder: widget.overlayInfoBuilder,
         // sortingOrderDesc: true,
         backgroundBetweenStories: widget.backgroundBetweenStories,
       ),

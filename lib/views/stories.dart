@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:stories_lib/configs/publisher_controller.dart';
-import 'package:stories_lib/configs/settings.dart';
 import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/views/story_publisher.dart';
 import 'package:stories_lib/utils/stories_helpers.dart';
 import 'package:stories_lib/configs/stories_settings.dart';
 import 'package:stories_lib/models/stories_collection.dart';
+import 'package:stories_lib/configs/publisher_controller.dart';
 import 'package:stories_lib/views/stories_collection_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -30,9 +29,8 @@ class Stories extends StatefulWidget {
   final Color backgroundBetweenStories;
   final _ItemBuilder placeholderBuilder;
   final VoidCallback onAllStoriesComplete;
-  final StoryHeaderPosition headerPosition;
   final StoryPreviewBuilder previewBuilder;
-  final StoryHeaderBuilder storyHeaderBuilder;
+  final StoryOverlayInfoBuilder overlayInfoBuilder;
   final RouteTransitionsBuilder storyOpenTransition;
 
   Stories({
@@ -44,14 +42,13 @@ class Stories extends StatefulWidget {
     this.placeholderBuilder,
     this.previewListPadding,
     this.previewPlaceholder,
-    this.storyHeaderBuilder,
+    this.overlayInfoBuilder,
     this.mediaLoadingWidget,
     this.storyOpenTransition,
     this.onAllStoriesComplete,
     this.repeat = false,
     this.inline = false,
     this.backgroundBetweenStories = Colors.black,
-    this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
   });
 
@@ -156,8 +153,7 @@ class _StoriesState extends State<Stories> {
                 selectedStoryId: story.storyId,
                 mediaErrorWidget: widget.mediaErrorWidget,
                 mediaLoadingWidget: widget.mediaLoadingWidget,
-                headerPosition: widget.headerPosition,
-                progressBuilder: widget.storyHeaderBuilder,
+                overlayInfoBuilder: widget.overlayInfoBuilder,
                 closeButton: widget.closeButton,
                 closeButtonPosition: widget.closeButtonPosition,
                 backgroundBetweenStories: widget.backgroundBetweenStories,
@@ -214,8 +210,7 @@ class MyStories extends StatefulWidget {
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final _ItemBuilder placeholderBuilder;
-  final StoryHeaderBuilder headerBuilder;
-  final StoryHeaderPosition headerPosition;
+  final StoryOverlayInfoBuilder overlayInfoBuilder;
   final PublisherController publisherController;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
@@ -235,12 +230,11 @@ class MyStories extends StatefulWidget {
     this.toolsBuilder,
     this.onStoryPosted,
     this.publishBuilder,
-    this.headerBuilder,
+    this.overlayInfoBuilder,
     this.resultToolsBuilder,
     this.publisherController,
     this.repeat = false,
     this.inline = false,
-    this.headerPosition = StoryHeaderPosition.top,
     this.closeButtonPosition = Alignment.topRight,
     this.backgroundBetweenStories = Colors.black,
   });
@@ -325,9 +319,8 @@ class _MyStoriesState extends State<MyStories> {
                 onStoryPosted: widget.onStoryPosted,
                 errorWidget: widget.mediaErrorWidget,
                 publishBuilder: widget.publishBuilder,
-                headerPosition: widget.headerPosition,
                 loadingWidget: widget.mediaLoadingWidget,
-                storyHeaderBuilder: widget.headerBuilder,
+                overlayInfoBuilder: widget.overlayInfoBuilder,
                 resultToolsBuilder: widget.resultToolsBuilder,
                 publisherController: widget.publisherController,
                 closeButtonPosition: widget.closeButtonPosition,

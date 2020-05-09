@@ -92,7 +92,7 @@ class _HomeState extends State<Home> {
       myStoriesPreview: myStories(),
       previewBuilder: previewBuilder,
       placeholderBuilder: placeholderBuilder,
-      storyHeaderBuilder: (context, currentIndex, previewImage, title, postDate, datas, animation) {
+      overlayInfoBuilder: (context, currentIndex, previewImage, title, postDate, datas, animation) {
         return Column(
           children: <Widget>[
             Row(

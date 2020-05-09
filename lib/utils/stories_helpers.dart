@@ -71,6 +71,7 @@ List<StoryItem> parseStories(
               storyId: storyId,
               duration: duration,
               storyTitle: storyTitle,
+              viewers: storyData.views,
               postDate: storyData.date,
               storyPreviewImg: storyPreviewImg,
               backgroundColor: storyData.backgroundColor,
@@ -86,6 +87,7 @@ List<StoryItem> parseStories(
               caption: caption,
               image: storyImage,
               duration: duration,
+              viewers: storyData.views,
               storyTitle: storyTitle,
               postDate: storyData.date,
               storyPreviewImg: storyPreviewImg,
@@ -100,6 +102,7 @@ List<StoryItem> parseStories(
               storyId: storyId,
               caption: caption,
               duration: duration,
+              viewers: storyData.views,
               storyTitle: storyTitle,
               postDate: storyData.date,
               controller: storyController,
@@ -117,6 +120,7 @@ List<StoryItem> parseStories(
               storyId: storyId,
               caption: caption,
               storyTitle: storyTitle,
+              viewers: storyData.views,
               postDate: storyData.date,
               controller: storyController,
               storyPreviewImg: storyPreviewImg,
@@ -154,12 +158,12 @@ bool hasNewStories(String userId, StoriesCollection collection, Duration storyVa
   return collection.stories.any(
     (s) =>
         isInIntervalToShow(s, storyValidaty) &&
-        (s.views?.every((v) => v["user_info"] != userId) ?? true),
+        (s.views?.every((v) => v["user_id"] != userId) ?? true),
   );
 }
 
 bool isViewed(Story story, String userId) {
-  return story.views?.any((v) => v["user_info"] == userId) ?? false;
+  return story.views?.any((v) => v["user_id"] == userId) ?? false;
 }
 
 bool isInIntervalToShow(Story story, Duration storyValidaty) {
