@@ -24,19 +24,27 @@ import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 
 enum StoryType { text, image, video, gif }
 
+enum ExternalMediaStatus { valid, does_not_exist, duration_exceeded }
+
 typedef StoryPublisherToolsBuilder = Widget Function(
   BuildContext,
   StoryType,
   CameraLensDirection,
   void Function(StoryType),
   void Function(CameraLensDirection),
-  void Function(String, StoryType),
+  Future<ExternalMediaStatus> Function(File, StoryType),
 );
 
 typedef StoryPublisherPreviewToolsBuilder = Widget Function(
   BuildContext,
   File,
-  void Function({List selectedReleases}),
+  StoryType,
+  void Function({
+    File newStoryFile,
+    String caption,
+    List<dynamic> selectedReleases,
+    bool needCompress,
+  }),
 );
 
 typedef StoryPublisherButtonBuilder = Widget Function(
@@ -80,7 +88,8 @@ class StoryPublisher extends StatefulWidget {
     this.backgroundBetweenStories,
     this.closeButtonPosition = Alignment.topRight,
     this.videoDuration = const Duration(seconds: 10),
-  }) : super(key: key);
+  })  : assert(videoDuration != null, "The [videoDuration] can't be null"),
+        super(key: key);
 
   @override
   _StoryPublisherState createState() => _StoryPublisherState();
@@ -333,11 +342,28 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     _goToStoryResult();
   }
 
-  void _sendExternalMedia(String path, StoryType type) async {
-    storyPath = path;
+  Future<ExternalMediaStatus> _sendExternalMedia(File file, StoryType type) async {
+    if (!file.existsSync()) {
+      return ExternalMediaStatus.does_not_exist;
+    }
+
+    storyPath = file.path;
     this.type = type;
 
+    if (type == StoryType.video) {
+      final videoCtrl = VideoPlayerController.file(file);
+
+      await videoCtrl.initialize();
+
+      if (videoCtrl.value.initialized) {
+        if (videoCtrl.value.duration.inSeconds > widget.videoDuration.inSeconds)
+          return ExternalMediaStatus.duration_exceeded;
+      }
+    }
+
     _goToStoryResult();
+
+    return ExternalMediaStatus.valid;
   }
 
   void _goToStoryResult() {
@@ -398,7 +424,6 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Future compressFuture;
   VideoPlayerController controller;
   Future controllerFuture;
-  TextEditingController captionController;
 
   @override
   void initState() {
@@ -410,8 +435,6 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       controller.setLooping(true);
       controllerFuture = controller.initialize();
     }
-
-    captionController = TextEditingController();
 
     super.initState();
   }
@@ -438,61 +461,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
                 child: widget.closeButton,
               ),
             ),
-            Align(
-              alignment: widget.closeButtonPosition,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 56.0),
-                child: IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(
-                    Icons.text_fields,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            // SafeArea(
-            //   child: Align(
-            //     alignment: Alignment.bottomCenter,
-            //     child: Container(
-            //       width: double.infinity,
-            //       margin: EdgeInsets.only(
-            //         bottom: 24,
-            //       ),
-            //       padding: EdgeInsets.symmetric(
-            //         horizontal: 56,
-            //         vertical: 8,
-            //       ),
-            //       color: Colors.black54,
-            //       child: TextField(
-            //         controller: captionController,
-            //         decoration: InputDecoration(
-            //           border: InputBorder.none,
-            //           contentPadding: const EdgeInsets.all(0.0),
-            //           isDense: true,
-            //           hintText: "Adicione uma legenda",
-            //           hintStyle: TextStyle(
-            //             fontSize: 15,
-            //             color: Colors.white.withOpacity(0.5),
-            //           ),
-            //         ),
-            //         style: TextStyle(
-            //           fontSize: 15,
-            //           color: Colors.white,
-            //         ),
-            //         textAlign: TextAlign.center,
-            //         minLines: 1,
-            //         maxLines: 4,
-            //         keyboardType: TextInputType.multiline,
-            //       ),
-            //     ),
-            //   ),
-            // ),
             if (widget.resultToolsBuilder != null)
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: widget.resultToolsBuilder(context, storyFile, _sendStory),
-              ),
+              widget.resultToolsBuilder(context, storyFile, widget.type, _sendStory),
           ],
         ),
       ),
@@ -548,9 +518,19 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     }
   }
 
-  Future<void> _sendStory({List<dynamic> selectedReleases}) async {
+  Future<void> _sendStory(
+      {File newStoryFile,
+      String caption,
+      List<dynamic> selectedReleases,
+      bool needCompress = false}) async {
     try {
       widget.publisherController.addStatus(PublisherStatus.compressing);
+      if (newStoryFile is File && newStoryFile.existsSync()) {
+        if (needCompress)
+          _compress();
+        else
+          compressedPath = newStoryFile.path;
+      }
       await compressFuture;
 
       if (compressedPath is! String) throw Exception("Fail to compress story");
@@ -560,7 +540,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
       if (url is! String) throw Exception("Fail to upload story");
 
-      await _sendToFirestore(url, selectedReleases: selectedReleases);
+      await _sendToFirestore(url, caption: caption, selectedReleases: selectedReleases);
 
       widget.publisherController.addStatus(PublisherStatus.complete);
 
@@ -644,7 +624,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     }
   }
 
-  Future<void> _sendToFirestore(String url, {List<dynamic> selectedReleases}) async {
+  Future<void> _sendToFirestore(String url,
+      {String caption, List<dynamic> selectedReleases}) async {
     try {
       final firestore = Firestore.instance;
 
@@ -659,7 +640,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         "id": Uuid().v4(),
         "date": DateTime.now(),
         "media": {widget.settings.languageCode: url},
-        "caption": {widget.settings.languageCode: captionController.text},
+        "caption": {widget.settings.languageCode: caption},
         "releases": selectedReleases,
         "type": _extractType,
       };

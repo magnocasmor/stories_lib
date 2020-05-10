@@ -37,17 +37,16 @@ Future<String> fixExifRotation(String imagePath, {bool isFront = false}) async {
       if (isFront)
         fixedImage = img.copyRotate(originalImage, -90);
       else
-        fixedImage = img.copyRotate(originalImage, 90);
-      break;
+      fixedImage = img.copyRotate(originalImage, 90);
       break;
     case 3:
       if (isFront)
         fixedImage = img.copyRotate(originalImage, 90);
       else
-        fixedImage = img.copyRotate(originalImage, -90);
+      fixedImage = img.copyRotate(originalImage, -90);
       break;
     case 8:
-      fixedImage = img.copyRotate(originalImage, 180);
+      // fixedImage = img.copyRotate(originalImage, 180);
       break;
     default:
       fixedImage = img.copyRotate(originalImage, 0);
