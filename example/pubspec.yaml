@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  image_picker: ^0.6.6+1
 
   cupertino_icons: ^0.1.2
   stories_lib:
@@ -22,4 +23,3 @@ dev_dependencies:
 flutter:
 
   uses-material-design: true
-

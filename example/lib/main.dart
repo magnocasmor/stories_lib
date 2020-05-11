@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,19 +12,15 @@ import 'package:stories_lib/views/story_publisher.dart';
 void main() async {
   // timeDilation = 5.0;
   WidgetsFlutterBinding.ensureInitialized();
-  var uid;
-  final FirebaseUser user = await FirebaseAuth.instance.currentUser();
-  uid = user.uid;
-  SystemChrome.setPreferredOrientations(
-          [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown])
-      .then((_) => runApp(MyApp(user: user)));
-  runApp(MyApp(user: user));
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]).then((_) => runApp(MyApp()));
 }
 
 class MyApp extends StatelessWidget {
-  final FirebaseUser user;
 
-  const MyApp({Key key, this.user}) : super(key: key);
+  const MyApp({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +28,13 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: Themes.darkTheme,
         darkTheme: Themes.darkTheme,
-        home: Home(user: user));
+        home: Home());
   }
 }
 
 class Home extends StatefulWidget {
-  final FirebaseUser user;
 
-  const Home({Key key, this.user}) : super(key: key);
+  const Home({Key key}) : super(key: key);
 
   @override
   _HomeState createState() => _HomeState();
@@ -55,11 +49,11 @@ class _HomeState extends State<Home> {
     super.initState();
 
     settings = StoriesSettings(
-      userId: widget.user.uid,
+      userId: "user_uid",
       languageCode: 'pt',
-      username: widget.user.displayName,
+      username: "Jubscleiton",
       storyTimeValidaty: const Duration(hours: 12),
-      coverImg: widget.user.photoUrl,
+      coverImg: "https://images.unsplash.com/photo-1468218457742-ee484fe2fe4c?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1053&q=80",
       sortByDescUpdate: true,
       collectionDbName: 'stories_db',
       storyDuration: const Duration(seconds: 5),
@@ -92,7 +86,8 @@ class _HomeState extends State<Home> {
       myStoriesPreview: myStories(),
       previewBuilder: previewBuilder,
       placeholderBuilder: placeholderBuilder,
-      overlayInfoBuilder: (context, currentIndex, previewImage, title, postDate, datas, animation) {
+      overlayInfoBuilder:
+          (context, currentIndex, previewImage, title, views, postDate, datas, animation) {
         return Column(
           children: <Widget>[
             Row(
@@ -206,7 +201,6 @@ class _HomeState extends State<Home> {
     return MyStories(
       settings: settings,
       publisherController: controller,
-      
       closeButton: closeButton(),
       placeholderBuilder: placeholderBuilder,
       storyOpenTransition: transition,
@@ -367,7 +361,7 @@ class _HomeState extends State<Home> {
           ),
         );
       },
-      resultToolsBuilder: (context, storyFile, sendStory) {
+      resultToolsBuilder: (context, storyFile, type, sendStory) {
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
