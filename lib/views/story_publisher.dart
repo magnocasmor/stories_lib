@@ -65,9 +65,11 @@ class StoryPublisher extends StatefulWidget {
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
-  final StoryOverlayInfoBuilder overlayInfoBuilder;
+  final VoidCallback onStoryCollectionClosed;
+  final VoidCallback onStoryCollectionOpenned;
   final StoryPublisherToolsBuilder toolsBuilder;
   final PublisherController publisherController;
+  final StoryOverlayInfoBuilder overlayInfoBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
@@ -85,6 +87,8 @@ class StoryPublisher extends StatefulWidget {
     this.overlayInfoBuilder,
     this.publisherController,
     this.hasPublish = false,
+    this.onStoryCollectionClosed,
+    this.onStoryCollectionOpenned,
     this.backgroundBetweenStories,
     this.closeButtonPosition = Alignment.topRight,
     this.videoDuration = const Duration(seconds: 10),
@@ -109,6 +113,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   @override
   void initState() {
+    widget.onStoryCollectionOpenned?.call();
+
     cameraInitialization = initializeController(direction: CameraLensDirection.front);
 
     type = StoryType.image;
@@ -126,6 +132,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   void dispose() {
     videoTimer?.cancel();
     cameraController?.dispose();
+    widget.onStoryCollectionClosed?.call();
     animationController?.dispose();
     super.dispose();
   }
@@ -381,6 +388,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
             closeButtonPosition: widget.closeButtonPosition,
             publisherController: widget.publisherController,
             backgroundBetweenStories: widget.backgroundBetweenStories,
+            onMyStoriesClosed: widget.onStoryCollectionClosed,
           );
         },
       ),
@@ -396,6 +404,7 @@ class _StoryPublisherResult extends StatefulWidget {
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
+  final VoidCallback onMyStoriesClosed;
   final PublisherController publisherController;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
@@ -410,6 +419,7 @@ class _StoryPublisherResult extends StatefulWidget {
     this.resultToolsBuilder,
     this.closeButtonPosition,
     this.backgroundBetweenStories,
+    this.onMyStoriesClosed,
   })  : assert(filePath != null, "The [filePath] can't be null"),
         assert(type != null, "The [type] can't be null"),
         super(key: key);
@@ -443,6 +453,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   void dispose() {
     controller?.pause();
     controller?.dispose();
+    // widget.onMyStoriesClosed?.call();
     super.dispose();
   }
 

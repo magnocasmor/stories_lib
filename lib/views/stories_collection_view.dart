@@ -20,6 +20,8 @@ class StoriesCollectionView extends StatefulWidget {
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
+  final VoidCallback onStoryCollectionClosed;
+  final VoidCallback onStoryCollectionOpenned;
   final StoryOverlayInfoBuilder overlayInfoBuilder;
 
   StoriesCollectionView({
@@ -34,6 +36,8 @@ class StoriesCollectionView extends StatefulWidget {
     this.mediaLoadingWidget,
     this.closeButtonPosition,
     this.backgroundBetweenStories,
+    this.onStoryCollectionClosed,
+    this.onStoryCollectionOpenned,
     this.repeat = false,
   });
 
@@ -49,6 +53,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   @override
   void initState() {
     super.initState();
+    widget.onStoryCollectionOpenned?.call();
     _storyController = widget.storyController ?? StoryController();
     _pageController = PageController(initialPage: indexOfStory(widget.selectedStoryId));
   }
@@ -56,6 +61,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   @override
   void dispose() {
     _storyController.dispose();
+    widget.onStoryCollectionClosed?.call();
     super.dispose();
   }
 

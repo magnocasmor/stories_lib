@@ -32,6 +32,8 @@ class Stories extends StatefulWidget {
   final StoryController storyController;
   final VoidCallback onAllStoriesComplete;
   final StoryPreviewBuilder previewBuilder;
+  final VoidCallback onStoryCollectionClosed;
+  final VoidCallback onStoryCollectionOpenned;
   final StoryOverlayInfoBuilder overlayInfoBuilder;
   final RouteTransitionsBuilder storyOpenTransition;
 
@@ -49,6 +51,8 @@ class Stories extends StatefulWidget {
     this.mediaLoadingWidget,
     this.storyOpenTransition,
     this.onAllStoriesComplete,
+    this.onStoryCollectionClosed,
+    this.onStoryCollectionOpenned,
     this.repeat = false,
     this.inline = false,
     this.backgroundBetweenStories = Colors.black,
@@ -142,7 +146,8 @@ class _StoriesState extends State<Stories> {
               ),
             ),
       onTap: () async {
-        Navigator.push(
+        widget.onStoryCollectionOpenned?.call();
+        await Navigator.push(
           context,
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 250),
@@ -154,17 +159,20 @@ class _StoriesState extends State<Stories> {
                 inline: widget.inline,
                 settings: widget.settings,
                 selectedStoryId: story.storyId,
+                closeButton: widget.closeButton,
                 storyController: widget.storyController,
                 mediaErrorWidget: widget.mediaErrorWidget,
-                mediaLoadingWidget: widget.mediaLoadingWidget,
                 overlayInfoBuilder: widget.overlayInfoBuilder,
-                closeButton: widget.closeButton,
+                mediaLoadingWidget: widget.mediaLoadingWidget,
                 closeButtonPosition: widget.closeButtonPosition,
+                onStoryCollectionClosed: widget.onStoryCollectionClosed,
+                onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
                 backgroundBetweenStories: widget.backgroundBetweenStories,
               );
             },
           ),
         );
+        widget.onStoryCollectionClosed?.call();
       },
     );
   }
@@ -179,7 +187,7 @@ class _StoriesState extends State<Stories> {
       padding: widget.previewListPadding,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           widget.myStoriesPreview ?? Container(),
           for (int i = 0; i < itemCount; i++) builder(context, i),
@@ -215,6 +223,8 @@ class MyStories extends StatefulWidget {
   final Color backgroundBetweenStories;
   final _ItemBuilder placeholderBuilder;
   final StoryController storyController;
+  final VoidCallback onStoryCollectionClosed;
+  final VoidCallback onStoryCollectionOpenned;
   final StoryOverlayInfoBuilder overlayInfoBuilder;
   final PublisherController publisherController;
   final StoryPublisherToolsBuilder toolsBuilder;
@@ -239,6 +249,8 @@ class MyStories extends StatefulWidget {
     this.overlayInfoBuilder,
     this.resultToolsBuilder,
     this.publisherController,
+    this.onStoryCollectionClosed,
+    this.onStoryCollectionOpenned,
     this.repeat = false,
     this.inline = false,
     this.closeButtonPosition = Alignment.topRight,
@@ -310,8 +322,8 @@ class _MyStoriesState extends State<MyStories> {
               errorWidget: (context, url, error) => Icon(Icons.error),
             )
           : widget.publishStoryBuilder?.call(context, null, hasPublish, hasNewPublish),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 250),
@@ -331,6 +343,8 @@ class _MyStoriesState extends State<MyStories> {
                 resultToolsBuilder: widget.resultToolsBuilder,
                 publisherController: widget.publisherController,
                 closeButtonPosition: widget.closeButtonPosition,
+                onStoryCollectionClosed: widget.onStoryCollectionClosed,
+                onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
                 backgroundBetweenStories: widget.backgroundBetweenStories,
               );
             },
