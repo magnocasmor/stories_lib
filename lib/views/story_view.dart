@@ -42,7 +42,7 @@ class StoryItem extends ChangeNotifier {
 
   final DateTime postDate;
 
-  final List viewers;
+  final List<Map<String, dynamic>> viewers;
 
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
@@ -83,9 +83,9 @@ class StoryItem extends ChangeNotifier {
   /// what inline/full-page means.
   static StoryItem text({
     @required String text,
-    @required List viewers,
     @required String storyId,
     @required Color backgroundColor,
+    @required List<Map<String, dynamic>> viewers,
     TextStyle style,
     String storyTitle,
     DateTime postDate,
@@ -146,8 +146,8 @@ class StoryItem extends ChangeNotifier {
   /// You can provide any image provider for [image].
   static StoryItem pageImage({
     @required String storyId,
-    @required List viewers,
     @required ImageProvider image,
+    @required List<Map<String, dynamic>> viewers,
     String caption,
     String storyTitle,
     DateTime postDate,
@@ -180,8 +180,8 @@ class StoryItem extends ChangeNotifier {
   /// Shorthand for creating inline image page.
   static StoryItem inlineImage({
     @required String storyId,
-    @required List viewers,
     @required ImageProvider image,
+    @required List<Map<String, dynamic>> viewers,
     Text caption,
     String storyTitle,
     DateTime postDate,
@@ -232,8 +232,8 @@ class StoryItem extends ChangeNotifier {
 
   static StoryItem pageGif({
     @required String url,
-    @required List viewers,
     @required String storyId,
+    @required List<Map<String, dynamic>> viewers,
     String caption,
     String storyTitle,
     DateTime postDate,
@@ -272,8 +272,8 @@ class StoryItem extends ChangeNotifier {
   /// Shorthand for creating inline image page.
   static StoryItem inlineGif({
     @required String url,
-    @required List viewers,
     @required String storyId,
+    @required List<Map<String, dynamic>> viewers,
     Text caption,
     String storyTitle,
     DateTime postDate,
@@ -343,8 +343,8 @@ class StoryItem extends ChangeNotifier {
 
   static StoryItem pageVideo({
     @required String url,
-    @required List viewers,
     @required String storyId,
+    @required List<Map<String, dynamic>> viewers,
     String caption,
     String storyTitle,
     DateTime postDate,

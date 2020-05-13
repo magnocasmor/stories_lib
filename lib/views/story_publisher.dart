@@ -123,8 +123,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   void dispose() {
     videoTimer?.cancel();
     cameraController?.dispose();
-    widget.onStoryCollectionClosed?.call();
     animationController?.dispose();
+    widget.onStoryCollectionClosed?.call();
     super.dispose();
   }
 
@@ -346,6 +346,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
             filePath: storyPath,
             settings: widget.settings,
             closeButton: widget.closeButton,
+            controller: widget.storyController,
             onStoryPosted: widget.onStoryPosted,
             resultToolsBuilder: widget.resultToolsBuilder,
             closeButtonPosition: widget.closeButtonPosition,
@@ -365,6 +366,7 @@ class _StoryPublisherResult extends StatefulWidget {
   final Widget closeButton;
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
+  final StoryController controller;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final VoidCallback onMyStoriesClosed;
@@ -377,6 +379,7 @@ class _StoryPublisherResult extends StatefulWidget {
     @required this.settings,
     @required this.filePath,
     @required this.publisherController,
+    this.controller,
     this.closeButton,
     this.onStoryPosted,
     this.resultToolsBuilder,
@@ -397,6 +400,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Future compressFuture;
   VideoPlayerController controller;
   Future controllerFuture;
+  StreamSubscription playbackSubscription;
 
   @override
   void initState() {
@@ -409,6 +413,16 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       controllerFuture = controller.initialize();
     }
 
+    playbackSubscription = widget.controller?.playbackNotifier?.listen(
+      (playbackStatus) {
+        if (playbackStatus == PlaybackState.play) {
+          controller?.play();
+        } else if (playbackStatus == PlaybackState.pause) {
+          controller?.pause();
+        }
+      },
+    );
+
     super.initState();
   }
 
@@ -416,6 +430,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   void dispose() {
     controller?.pause();
     controller?.dispose();
+    playbackSubscription?.cancel();
     // widget.onMyStoriesClosed?.call();
     super.dispose();
   }

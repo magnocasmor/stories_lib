@@ -7,11 +7,11 @@ class Story {
   final String id;
   final String type;
   final DateTime date;
-  final List<Map> views;
   final Color backgroundColor;
   final List<dynamic> releases;
   final Map<String, String> media;
   final Map<String, String> caption;
+  final List<Map<String, dynamic>> views;
 
   Story({
     @required this.id,
@@ -27,9 +27,9 @@ class Story {
   factory Story.fromJson(dynamic json) {
     if (json == null || json.isEmpty) return null;
 
-    List<Map> views;
+    List<Map<String, dynamic>> views;
 
-    if (json['views'] is List) views = List<Map>.from(json['views']);
+    if (json['views'] is List) views = List<Map<String, dynamic>>.from(json['views']);
 
     List<dynamic> releases;
     if (json['releases'] is List) releases = List.from(json['releases']);
