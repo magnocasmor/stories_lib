@@ -162,8 +162,8 @@ class _StoriesState extends State<Stories> {
                 closeButton: widget.closeButton,
                 storyController: widget.storyController,
                 mediaErrorWidget: widget.mediaErrorWidget,
-                overlayInfoBuilder: widget.overlayInfoBuilder,
                 mediaLoadingWidget: widget.mediaLoadingWidget,
+                overlayInfoBuilder: widget.overlayInfoBuilder,
                 closeButtonPosition: widget.closeButtonPosition,
                 onStoryCollectionClosed: widget.onStoryCollectionClosed,
                 onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
@@ -225,29 +225,29 @@ class MyStories extends StatefulWidget {
   final StoryController storyController;
   final VoidCallback onStoryCollectionClosed;
   final VoidCallback onStoryCollectionOpenned;
-  final StoryOverlayInfoBuilder overlayInfoBuilder;
   final PublisherController publisherController;
   final StoryPublisherToolsBuilder toolsBuilder;
   final StoryPublisherButtonBuilder publishBuilder;
   final RouteTransitionsBuilder storyOpenTransition;
-  final StoryPublisherPreviewBuilder publishStoryBuilder;
+  final MyStoryOverlayInfoBuilder overlayInfoBuilder;
+  final StoryPublisherPreviewBuilder previewStoryBuilder;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
   MyStories({
     @required this.settings,
     this.closeButton,
-    this.publishStoryBuilder,
-    this.mediaErrorWidget,
-    this.placeholderBuilder,
-    this.previewPlaceholder,
-    this.mediaLoadingWidget,
-    this.storyOpenTransition,
     this.toolsBuilder,
     this.onStoryPosted,
     this.publishBuilder,
     this.storyController,
+    this.mediaErrorWidget,
     this.overlayInfoBuilder,
     this.resultToolsBuilder,
+    this.placeholderBuilder,
+    this.previewPlaceholder,
+    this.mediaLoadingWidget,
+    this.storyOpenTransition,
+    this.previewStoryBuilder,
     this.publisherController,
     this.onStoryCollectionClosed,
     this.onStoryCollectionOpenned,
@@ -317,11 +317,11 @@ class _MyStoriesState extends State<MyStories> {
               imageUrl: coverImg,
               placeholder: (context, url) => widget.previewPlaceholder,
               imageBuilder: (context, image) {
-                return widget.publishStoryBuilder?.call(context, image, hasPublish, hasNewPublish);
+                return widget.previewStoryBuilder?.call(context, image, hasPublish, hasNewPublish);
               },
               errorWidget: (context, url, error) => Icon(Icons.error),
             )
-          : widget.publishStoryBuilder?.call(context, null, hasPublish, hasNewPublish),
+          : widget.previewStoryBuilder?.call(context, null, hasPublish, hasNewPublish),
       onTap: () async {
         await Navigator.push(
           context,
@@ -329,24 +329,10 @@ class _MyStoriesState extends State<MyStories> {
             transitionDuration: const Duration(milliseconds: 250),
             transitionsBuilder: widget.storyOpenTransition,
             pageBuilder: (context, anim, anim2) {
-              return StoryPublisher(
-                hasPublish: hasPublish,
-                settings: widget.settings,
-                closeButton: widget.closeButton,
-                toolsBuilder: widget.toolsBuilder,
-                onStoryPosted: widget.onStoryPosted,
-                errorWidget: widget.mediaErrorWidget,
-                publishBuilder: widget.publishBuilder,
-                storyController: widget.storyController,
-                loadingWidget: widget.mediaLoadingWidget,
-                overlayInfoBuilder: widget.overlayInfoBuilder,
-                resultToolsBuilder: widget.resultToolsBuilder,
-                publisherController: widget.publisherController,
-                closeButtonPosition: widget.closeButtonPosition,
-                onStoryCollectionClosed: widget.onStoryCollectionClosed,
-                onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
-                backgroundBetweenStories: widget.backgroundBetweenStories,
-              );
+              if (hasPublish)
+                return myStories;
+              else
+                return publisher;
             },
           ),
         );
@@ -354,8 +340,72 @@ class _MyStoriesState extends State<MyStories> {
     );
   }
 
+  void goToPublisher() => Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 250),
+          transitionsBuilder: widget.storyOpenTransition,
+          pageBuilder: (context, anim, anim2) => publisher,
+        ),
+      );
+
+  Widget get publisher => StoryPublisher(
+        settings: widget.settings,
+        closeButton: widget.closeButton,
+        toolsBuilder: widget.toolsBuilder,
+        onStoryPosted: widget.onStoryPosted,
+        errorWidget: widget.mediaErrorWidget,
+        publisherBuilder: widget.publishBuilder,
+        storyController: widget.storyController,
+        loadingWidget: widget.mediaLoadingWidget,
+        resultToolsBuilder: widget.resultToolsBuilder,
+        publisherController: widget.publisherController,
+        closeButtonPosition: widget.closeButtonPosition,
+        onStoryCollectionClosed: widget.onStoryCollectionClosed,
+        onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
+        backgroundBetweenStories: widget.backgroundBetweenStories,
+      );
+
+  Widget get myStories => StoriesCollectionView(
+        repeat: false,
+        inline: false,
+        settings: widget.settings,
+        closeButton: widget.closeButton,
+        storiesIds: [widget.settings.userId],
+        overlayInfoBuilder: overlayInfoBuilder,
+        storyController: widget.storyController,
+        selectedStoryId: widget.settings.userId,
+        closeButtonPosition: widget.closeButtonPosition,
+        onStoryCollectionClosed: widget.onStoryCollectionClosed,
+        onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
+        // sortingOrderDesc: true,
+        backgroundBetweenStories: widget.backgroundBetweenStories,
+      );
+
   Stream<DocumentSnapshot> get _storiesStream => _firestore
       .collection(widget.settings.collectionDbName)
       .document(widget.settings.userId)
       .snapshots();
+
+  Widget overlayInfoBuilder(
+    BuildContext context,
+    int index,
+    ImageProvider image,
+    String title,
+    List viewers,
+    DateTime date,
+    List<PageData> pages,
+    Animation<double> animation,
+  ) {
+    return widget.overlayInfoBuilder(
+      context,
+      index,
+      image,
+      viewers,
+      date,
+      pages,
+      animation,
+      goToPublisher,
+    );
+  }
 }

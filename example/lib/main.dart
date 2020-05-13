@@ -204,7 +204,7 @@ class _HomeState extends State<Home> {
       closeButton: closeButton(),
       placeholderBuilder: placeholderBuilder,
       storyOpenTransition: transition,
-      publishStoryBuilder: (context, image, hasPublish, hasNewPublish) {
+      previewStoryBuilder: (context, image, hasPublish, hasNewPublish) {
         return Padding(
           padding: const EdgeInsets.all(4.0),
           child: Column(

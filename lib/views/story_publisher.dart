@@ -18,7 +18,6 @@ import 'package:stories_lib/configs/stories_settings.dart';
 import 'package:stories_lib/components/story_loading.dart';
 import 'package:stories_lib/components/fitted_container.dart';
 import 'package:stories_lib/configs/publisher_controller.dart';
-import 'package:stories_lib/views/stories_collection_view.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 
@@ -55,7 +54,6 @@ typedef StoryPublisherButtonBuilder = Widget Function(
 );
 
 class StoryPublisher extends StatefulWidget {
-  final bool hasPublish;
   final Widget closeButton;
   final Widget errorWidget;
   final Widget loadingWidget;
@@ -69,8 +67,7 @@ class StoryPublisher extends StatefulWidget {
   final VoidCallback onStoryCollectionOpenned;
   final StoryPublisherToolsBuilder toolsBuilder;
   final PublisherController publisherController;
-  final StoryOverlayInfoBuilder overlayInfoBuilder;
-  final StoryPublisherButtonBuilder publishBuilder;
+  final StoryPublisherButtonBuilder publisherBuilder;
   final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
   const StoryPublisher({
@@ -80,13 +77,11 @@ class StoryPublisher extends StatefulWidget {
     this.closeButton,
     this.toolsBuilder,
     this.loadingWidget,
-    this.publishBuilder,
+    this.publisherBuilder,
     this.onStoryPosted,
     this.storyController,
     this.resultToolsBuilder,
-    this.overlayInfoBuilder,
     this.publisherController,
-    this.hasPublish = false,
     this.onStoryCollectionClosed,
     this.onStoryCollectionOpenned,
     this.backgroundBetweenStories,
@@ -105,11 +100,9 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   Timer videoTimer;
   Animation<double> animation;
   Future cameraInitialization;
-  PageController pageController;
   CameraLensDirection direction;
   CameraController cameraController;
   AnimationController animationController;
-  bool showPublishes = true;
 
   @override
   void initState() {
@@ -122,8 +115,6 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     animationController = AnimationController(vsync: this, duration: widget.videoDuration);
 
     animation = animationController.drive(Tween(begin: 0.0, end: 1.0));
-
-    pageController = PageController();
 
     super.initState();
   }
@@ -141,14 +132,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Stack(
       children: <Widget>[
-        PageView(
-          pageSnapping: true,
-          controller: pageController,
-          children: <Widget>[
-            if (widget.hasPublish) myStories(),
-            publishStory(),
-          ],
-        ),
+        publishStory(),
         Align(
           alignment: widget.closeButtonPosition,
           child: GestureDetector(
@@ -206,8 +190,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                             mainAxisAlignment: MainAxisAlignment.end,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: <Widget>[
-                              if (widget.publishBuilder != null)
-                                widget.publishBuilder(context, type, animation, _processStory),
+                              if (widget.publisherBuilder != null)
+                                widget.publisherBuilder(context, type, animation, _processStory),
                               if (widget.toolsBuilder != null)
                                 Flexible(
                                   child: IgnorePointer(
@@ -233,27 +217,6 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget myStories() {
-    return WillPopScope(
-      onWillPop: () {
-        showPublishes = false;
-        pageController?.nextPage(duration: const Duration(milliseconds: 250), curve: Curves.ease);
-        return Future.value(false);
-      },
-      child: StoriesCollectionView(
-        repeat: false,
-        inline: false,
-        settings: widget.settings,
-        storiesIds: [widget.settings.userId],
-        storyController: widget.storyController,
-        selectedStoryId: widget.settings.userId,
-        overlayInfoBuilder: widget.overlayInfoBuilder,
-        // sortingOrderDesc: true,
-        backgroundBetweenStories: widget.backgroundBetweenStories,
       ),
     );
   }

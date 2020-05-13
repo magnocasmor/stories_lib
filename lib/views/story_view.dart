@@ -15,10 +15,21 @@ typedef StoryOverlayInfoBuilder = Widget Function(
   int currentIndex,
   ImageProvider image,
   String title,
-  List viewers,
+  List<Map<String, dynamic>> viewers,
   DateTime postDate,
   List<PageData> pageData,
-  Animation animation,
+  Animation<double> animation,
+);
+
+typedef MyStoryOverlayInfoBuilder = Widget Function(
+  BuildContext context,
+  int currentIndex,
+  ImageProvider image,
+  List<Map<String, dynamic>> viewers,
+  DateTime postDate,
+  List<PageData> pageData,
+  Animation<double> animation,
+  VoidCallback goToPublisher,
 );
 
 /// This is a representation of a story item (or page).
