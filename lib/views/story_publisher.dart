@@ -487,15 +487,15 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Widget _buildPreview() {
     switch (widget.type) {
       case StoryType.image:
-        return 
-        // RepaintBoundary(
-        //   key: _globalKey,
-        //   child: Stack(
-        //     children: <Widget>[
-              Image.file(
-                storyFile,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.high,
+        return
+            // RepaintBoundary(
+            //   key: _globalKey,
+            //   child: Stack(
+            //     children: <Widget>[
+            Image.file(
+          storyFile,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
           //     ),
           //     Container(color: Colors.red, width: 100, height: 100)
           //   ],
@@ -651,8 +651,11 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     }
   }
 
-  Future<void> _sendToFirestore(String url,
-      {String caption, List<dynamic> selectedReleases}) async {
+  Future<void> _sendToFirestore(
+    String url, {
+    String caption,
+    List<dynamic> selectedReleases,
+  }) async {
     try {
       final firestore = Firestore.instance;
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/views/story_publisher.dart';
 import 'package:stories_lib/utils/stories_helpers.dart';
+import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/configs/stories_settings.dart';
 import 'package:stories_lib/models/stories_collection.dart';
 import 'package:stories_lib/configs/publisher_controller.dart';
@@ -221,7 +221,6 @@ class MyStories extends StatefulWidget {
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
-  final _ItemBuilder placeholderBuilder;
   final StoryController storyController;
   final VoidCallback onStoryCollectionClosed;
   final VoidCallback onStoryCollectionOpenned;
@@ -243,7 +242,6 @@ class MyStories extends StatefulWidget {
     this.mediaErrorWidget,
     this.overlayInfoBuilder,
     this.resultToolsBuilder,
-    this.placeholderBuilder,
     this.previewPlaceholder,
     this.mediaLoadingWidget,
     this.storyOpenTransition,
@@ -298,10 +296,8 @@ class _MyStoriesState extends State<MyStories> {
               return _storyItem(myPreview.coverImg, hasPublish, hasNewPublish);
             }
           }
-          return _storyItem(widget.settings.coverImg, false, false);
-        } else {
-          return widget.placeholderBuilder?.call(context, 0) ?? LimitedBox();
         }
+        return _storyItem(widget.settings.coverImg, false, false);
       },
     );
   }
