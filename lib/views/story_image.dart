@@ -31,7 +31,7 @@ class ImageLoader {
 
       final imageBytes = file.readAsBytesSync();
 
-      this._state.add(LoadState.success);
+      // this._state.add(LoadState.loading);
 
       final codec = await PaintingBinding.instance.instantiateImageCodec(imageBytes);
 

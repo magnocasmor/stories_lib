@@ -286,7 +286,7 @@ class _MyStoriesState extends State<MyStories> {
                 orElse: () => null,
               );
 
-              final hasPublish = myPreview != null && myPreview.stories.isNotEmpty;
+              final hasPublish = myPreview != null && (myPreview.stories?.isNotEmpty ?? false);
 
               storyPreviews.remove(myPreview);
 
