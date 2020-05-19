@@ -133,7 +133,19 @@ class _StoriesState extends State<Stories> {
                   ),
                 );
               },
-              errorWidget: (context, url, error) => Icon(Icons.error),
+              errorWidget: (context, url, error) {
+                debugPrint(error.toString());
+                return widget.previewBuilder(
+                  context,
+                  null,
+                  story.title[widget.settings.languageCode],
+                  hasNewStories(
+                    widget.settings.userId,
+                    story,
+                    widget.settings.storyTimeValidaty,
+                  ),
+                );
+              },
             )
           : widget.previewBuilder(
               context,
@@ -315,7 +327,10 @@ class _MyStoriesState extends State<MyStories> {
               imageBuilder: (context, image) {
                 return widget.previewStoryBuilder?.call(context, image, hasPublish, hasNewPublish);
               },
-              errorWidget: (context, url, error) => Icon(Icons.error),
+              errorWidget: (context, url, error) {
+                debugPrint(error.toString());
+                return widget.previewStoryBuilder?.call(context, null, hasPublish, hasNewPublish);
+              },
             )
           : widget.previewStoryBuilder?.call(context, null, hasPublish, hasNewPublish),
       onTap: () async {

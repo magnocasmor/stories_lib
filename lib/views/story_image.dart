@@ -23,11 +23,9 @@ class ImageLoader {
   ImageLoader(this.url, {this.requestHeaders});
 
   /// Load image from disk cache first, if not found then load from network.
-  /// `onComplete` is called when [imageBytes] become available.
   Future<void> loadImage() async {
     try {
-      final file =
-          await DefaultCacheManager().getSingleFile(this.url, headers: this.requestHeaders);
+      final file = await DefaultCacheManager().getSingleFile(this.url, headers: this.requestHeaders);
 
       final imageBytes = file.readAsBytesSync();
 
@@ -148,8 +146,7 @@ class _StoryImageState extends State<StoryImage> {
               ),
             );
           } else {
-            return widget.mediaLoadingWidget ??
-                StoryLoading();
+            return widget.mediaLoadingWidget ?? StoryLoading();
           }
         },
       ),
@@ -160,8 +157,8 @@ class _StoryImageState extends State<StoryImage> {
     widget.controller?.pause();
 
     await widget.imageLoader.loadImage().catchError((e, s) {
-      print(e);
-      print(s);
+      debugPrint(e);
+      debugPrint(s);
 
       streamFrame.addError(e);
     });

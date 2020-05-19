@@ -12,7 +12,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import 'package:path/path.dart' show join, basename;
+import 'package:path/path.dart' show join, basename, extension;
 import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:video_compress/video_compress.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -317,7 +317,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   }
 
   Future<ExternalMediaStatus> _sendExternalMedia(File file, StoryType type) async {
-    if (!file.existsSync()) {
+    if (file == null || !file.existsSync()) {
       return ExternalMediaStatus.does_not_exist;
     }
 
@@ -624,23 +624,31 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     try {
       final fileName = basename(path);
 
+      final fileExt = extension(path);
+
       final storageReference = FirebaseStorage.instance
           .ref()
           .child("stories")
           .child(widget.settings.userId)
           .child(fileName);
 
-      final StorageUploadTask uploadTask = storageReference.putFile(File(path));
+      final StorageUploadTask uploadTask = storageReference.putFile(
+        File(path),
+        StorageMetadata(
+          contentType: widget.type == StoryType.video ? "video/mp4" : "image/$fileExt",
+        ),
+      );
 
       var subs;
       subs = uploadTask.events.listen((event) {
-        print((event.snapshot.bytesTransferred / event.snapshot.totalByteCount) * 100);
+        debugPrint(
+            ((event.snapshot.bytesTransferred / event.snapshot.totalByteCount) * 100).toString());
         if (event.type == StorageTaskEventType.success ||
             event.type == StorageTaskEventType.success) subs.cancel();
       });
 
-      final StorageTaskSnapshot downloadUrl = (await uploadTask.onComplete);
-      final String url = (await downloadUrl.ref.getDownloadURL());
+      final StorageTaskSnapshot downloadUrl = await uploadTask.onComplete;
+      final String url = await downloadUrl.ref.getDownloadURL();
 
       return url;
     } catch (e, s) {
@@ -696,7 +704,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
           }));
       }
     } catch (e, s) {
-      debugPrint(e);
+      debugPrint(e.toString());
       debugPrint(s.toString());
     }
   }
