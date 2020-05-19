@@ -37,8 +37,8 @@ class VideoLoader {
 
       return _videoFile;
     } catch (e, s) {
-      print(e);
-      print(s);
+      debugPrint(e.toString());
+      debugPrint(s.toString());
 
       _state.add(LoadState.failure);
 
@@ -134,30 +134,36 @@ class _StoryVideoState extends State<StoryVideo> {
   }
 
   Future<void> initializeController() async {
-    if (playerController is VideoPlayerController && playerController.value.initialized) return;
+    try {
+      if (playerController is VideoPlayerController && playerController.value.initialized) return;
 
-    widget.controller?.pause();
+      widget.controller?.pause();
 
-    final videoFile = await widget.videoLoader.loadVideo();
+      final videoFile = await widget.videoLoader.loadVideo();
 
-    this.playerController = VideoPlayerController.file(videoFile);
+      this.playerController = VideoPlayerController.file(videoFile);
 
-    await playerController.initialize();
+      await playerController.initialize();
 
-    Provider.of<StoryItem>(context, listen: false).duration = playerController.value.duration;
+      Provider.of<StoryItem>(context, listen: false).duration = playerController.value.duration;
 
-    widget.controller.play();
+      widget.controller.play();
 
-    if (widget.controller != null) {
-      playerController.addListener(checkIfVideoFinished);
-      streamSubscription = widget.controller.playbackNotifier.listen((playbackState) {
-        if (playbackState == PlaybackState.play) {
-          playerController.play();
-        } else {
-          playerController.pause();
-          if (playbackState == PlaybackState.stop) streamSubscription.cancel();
-        }
-      });
+      if (widget.controller != null) {
+        playerController.addListener(checkIfVideoFinished);
+        streamSubscription = widget.controller.playbackNotifier.listen((playbackState) {
+          if (playbackState == PlaybackState.play) {
+            playerController.play();
+          } else {
+            playerController.pause();
+            if (playbackState == PlaybackState.stop) streamSubscription.cancel();
+          }
+        });
+      }
+    } catch (e, s) {
+      debugPrint(e.toString());
+      debugPrint(s.toString());
+      rethrow;
     }
   }
 
