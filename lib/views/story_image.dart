@@ -25,11 +25,12 @@ class ImageLoader {
   /// Load image from disk cache first, if not found then load from network.
   Future<void> loadImage() async {
     try {
-      final file = await DefaultCacheManager().getSingleFile(this.url, headers: this.requestHeaders);
+      this._state.add(LoadState.loading);
+
+      final file =
+          await DefaultCacheManager().getSingleFile(this.url, headers: this.requestHeaders);
 
       final imageBytes = file.readAsBytesSync();
-
-      // this._state.add(LoadState.loading);
 
       final codec = await PaintingBinding.instance.instantiateImageCodec(imageBytes);
 

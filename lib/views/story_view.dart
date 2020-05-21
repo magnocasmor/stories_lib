@@ -155,7 +155,7 @@ class StoryItem extends ChangeNotifier {
     Widget mediaErrorWidget,
     Widget mediaLoadingWidget,
     bool shown = false,
-    BoxFit imageFit = BoxFit.fitHeight,
+    BoxFit imageFit = BoxFit.cover,
     Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");
@@ -243,7 +243,7 @@ class StoryItem extends ChangeNotifier {
     StoryController controller,
     Map<String, dynamic> requestHeaders,
     bool shown = false,
-    BoxFit imageFit = BoxFit.fitHeight,
+    BoxFit imageFit = BoxFit.cover,
     Duration duration = const Duration(seconds: 3),
   }) {
     assert(imageFit != null, "[imageFit] should not be null");

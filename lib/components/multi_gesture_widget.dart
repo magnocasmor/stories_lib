@@ -5,7 +5,14 @@ import 'package:flutter/gestures.dart';
 
 class MultiGestureWidget extends StatefulWidget {
   final Widget child;
-  MultiGestureWidget({this.child});
+  final double minScale;
+  final double maxScale;
+
+  MultiGestureWidget({
+    @required this.child,
+    this.minScale = 0.8,
+    this.maxScale = 2.5,
+  }) : assert(minScale != null && maxScale != null);
 
   @override
   _MultiGestureWidgetState createState() => _MultiGestureWidgetState();
@@ -34,7 +41,7 @@ class _MultiGestureWidgetState extends State<MultiGestureWidget> {
     return Transform(
       transform: matrix,
       alignment: Alignment.center,
-      child: MultiGestureDetector(
+      child: _MultiGestureDetector(
         onPanStart: (initial) {
           lastOffset = this.offset;
         },
@@ -50,13 +57,10 @@ class _MultiGestureWidgetState extends State<MultiGestureWidget> {
         onScaleUpdate: (focus, scale, rotate) {
           setState(() {
             angle = lastAngle + rotate;
-            this.scale = lastScale * scale;
+            this.scale = (lastScale * scale).clamp(widget.minScale, widget.maxScale);
           });
         },
-        child: TextField(
-          expands: false,
-          textAlign: TextAlign.center,
-        ),
+        child: widget.child,
       ),
     );
   }
@@ -68,7 +72,7 @@ class _MultiGestureWidgetState extends State<MultiGestureWidget> {
   }
 }
 
-class MultiGestureDetector extends StatefulWidget {
+class _MultiGestureDetector extends StatefulWidget {
   final Widget child;
   final void Function(Offset initialPoint) onPanStart;
   final void Function(Offset initialPoint, Offset delta) onPanUpdate;
@@ -81,7 +85,7 @@ class MultiGestureDetector extends StatefulWidget {
   final void Function(double dx) onHorizontalDragUpdate;
   final void Function(double dy) onVerticalDragUpdate;
 
-  MultiGestureDetector({
+  _MultiGestureDetector({
     this.child,
     this.onPanStart,
     this.onPanUpdate,
@@ -94,10 +98,10 @@ class MultiGestureDetector extends StatefulWidget {
   });
 
   @override
-  _MultiGestureDetectorState createState() => _MultiGestureDetectorState();
+  __MultiGestureDetectorState createState() => __MultiGestureDetectorState();
 }
 
-class _MultiGestureDetectorState extends State<MultiGestureDetector> {
+class __MultiGestureDetectorState extends State<_MultiGestureDetector> {
   final List<Touch> _touches = [];
   double _initialScalingDistance;
 

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
+import 'package:stories_lib/components/multi_gesture_widget.dart';
 import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/utils/fix_image_orientation.dart';
 import 'package:stories_lib/views/story_view.dart';
@@ -48,6 +49,7 @@ typedef StoryPublisherPreviewToolsBuilder = Widget Function(
     List<dynamic> selectedReleases,
     bool needCompress,
   }),
+  void Function(List<Widget>),
 );
 
 typedef StoryPublisherButtonBuilder = Widget Function(
@@ -64,6 +66,7 @@ class StoryPublisher extends StatefulWidget {
   final Duration videoDuration;
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
+  final List<Widget> mediaAttachments;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
@@ -83,6 +86,7 @@ class StoryPublisher extends StatefulWidget {
     this.loadingWidget,
     this.publisherBuilder,
     this.onStoryPosted,
+    this.mediaAttachments,
     this.storyController,
     this.resultToolsBuilder,
     this.publisherController,
@@ -352,6 +356,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
             closeButton: widget.closeButton,
             controller: widget.storyController,
             onStoryPosted: widget.onStoryPosted,
+            mediaAttachments: widget.mediaAttachments,
             resultToolsBuilder: widget.resultToolsBuilder,
             closeButtonPosition: widget.closeButtonPosition,
             publisherController: widget.publisherController,
@@ -371,6 +376,7 @@ class _StoryPublisherResult extends StatefulWidget {
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
   final StoryController controller;
+  final List<Widget> mediaAttachments;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final VoidCallback onMyStoriesClosed;
@@ -385,6 +391,7 @@ class _StoryPublisherResult extends StatefulWidget {
     @required this.publisherController,
     this.controller,
     this.closeButton,
+    this.mediaAttachments,
     this.onStoryPosted,
     this.resultToolsBuilder,
     this.closeButtonPosition,
@@ -400,12 +407,20 @@ class _StoryPublisherResult extends StatefulWidget {
 
 class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   File storyFile;
+
   String compressedPath;
+
   Future compressFuture;
+
   VideoPlayerController controller;
+
   Future controllerFuture;
+
   StreamSubscription playbackSubscription;
-  // final _globalKey = GlobalKey();
+
+  List<Widget> mediaAttachments = <Widget>[];
+
+  final _globalKey = GlobalKey();
 
   @override
   void initState() {
@@ -444,6 +459,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: widget.backgroundBetweenStories,
+      resizeToAvoidBottomPadding: false,
       body: SafeArea(
         child: Stack(
           children: <Widget>[
@@ -456,50 +472,63 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
               ),
             ),
             if (widget.resultToolsBuilder != null)
-              widget.resultToolsBuilder(context, storyFile, widget.type, _sendStory),
+              Builder(
+                builder: (context) {
+                  return widget.resultToolsBuilder(
+                      context, storyFile, widget.type, _sendStory, insertAttachment);
+                },
+              ),
           ],
         ),
       ),
     );
   }
 
-  // Future<void> _capturePng() async {
-  //   try {
-  //     print('inside');
-  //     RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
-  //     ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-  //     ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  //     var pngBytes = byteData.buffer.asUint8List();
-  //     var bs64 = base64Encode(pngBytes);
-  //     print(pngBytes);
-  //     print(bs64);
-  //     final temp = await getTemporaryDirectory();
-  //     final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.png');
+  void insertAttachment(List<Widget> attachments) {
+    setState(() => mediaAttachments = attachments);
+  }
 
-  //     final file = await File(newPath).writeAsBytes(pngBytes);
+  Future<void> _capturePng() async {
+    try {
+      RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      var pngBytes = byteData.buffer.asUint8List();
+      var bs64 = base64Encode(pngBytes);
+      print(pngBytes);
+      print(bs64);
+      final temp = await getTemporaryDirectory();
+      final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.png');
 
-  //     compressedPath = file.path;
-  //   } catch (e) {
-  //     print(e);
-  //   }
-  // }
+      final file = await File(newPath).writeAsBytes(pngBytes);
+
+      compressedPath = file.path;
+    } catch (e) {
+      print(e);
+    }
+  }
 
   Widget _buildPreview() {
     switch (widget.type) {
       case StoryType.image:
-        return
-            // RepaintBoundary(
-            //   key: _globalKey,
-            //   child: Stack(
-            //     children: <Widget>[
-            Image.file(
-          storyFile,
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.high,
-          //     ),
-          //     Container(color: Colors.red, width: 100, height: 100)
-          //   ],
-          // ),
+        return RepaintBoundary(
+          key: _globalKey,
+          child: Stack(
+            children: <Widget>[
+              Positioned.fill(
+                child: Image.file(
+                  storyFile,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.high,
+                ),
+              ),
+              for (var render in mediaAttachments)
+                Align(
+                  alignment: Alignment.center,
+                  child: MultiGestureWidget(child: render),
+                )
+            ],
+          ),
         );
         break;
       case StoryType.video:
@@ -558,7 +587,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
           compressedPath = newStoryFile.path;
       }
       await compressFuture;
-      // await _capturePng();
+      await _capturePng();
 
       if (compressedPath is! String) throw Exception("Fail to compress story");
 

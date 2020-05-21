@@ -232,6 +232,7 @@ class MyStories extends StatefulWidget {
   final Widget previewPlaceholder;
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
+  final List<Widget> mediaAttachments;
   final Color backgroundBetweenStories;
   final StoryController storyController;
   final VoidCallback onStoryCollectionClosed;
@@ -249,6 +250,7 @@ class MyStories extends StatefulWidget {
     this.closeButton,
     this.toolsBuilder,
     this.onStoryPosted,
+    this.mediaAttachments,
     this.publishBuilder,
     this.storyController,
     this.mediaErrorWidget,
@@ -369,6 +371,7 @@ class _MyStoriesState extends State<MyStories> {
         publisherBuilder: widget.publishBuilder,
         storyController: widget.storyController,
         loadingWidget: widget.mediaLoadingWidget,
+        mediaAttachments: widget.mediaAttachments,
         resultToolsBuilder: widget.resultToolsBuilder,
         publisherController: widget.publisherController,
         closeButtonPosition: widget.closeButtonPosition,
