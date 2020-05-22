@@ -1,15 +1,28 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 class StoriesSettings {
   final String userId;
+
   final String coverImg;
+
   final String username;
+
   final String languageCode;
+
   final bool sortByDescUpdate;
+
   final List<dynamic> releases;
+
   final Duration storyDuration;
+
   final String collectionDbName;
+
   final Duration storyTimeValidaty;
+
+  final bool repeat;
+
+  final bool inline;
 
   StoriesSettings({
     @required this.userId,
@@ -17,6 +30,8 @@ class StoriesSettings {
     this.coverImg,
     this.username,
     this.releases,
+    this.repeat = false,
+    this.inline = false,
     this.languageCode = 'pt',
     this.sortByDescUpdate = true,
     this.storyDuration = const Duration(seconds: 3),

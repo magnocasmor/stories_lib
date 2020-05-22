@@ -14,11 +14,14 @@ typedef _ItemBuilder = Widget Function(BuildContext, int);
 
 typedef StoryPreviewBuilder = Widget Function(BuildContext, ImageProvider, String, bool);
 
-typedef StoryPublisherPreviewBuilder = Widget Function(BuildContext, ImageProvider, bool, bool);
+typedef StoryPublisherPreviewBuilder = Widget Function(
+  BuildContext context,
+  ImageProvider coverImg,
+  bool hasStories,
+  bool hasNewStories,
+);
 
 class Stories extends StatefulWidget {
-  final bool repeat;
-  final bool inline;
   final Widget closeButton;
   final Widget mediaErrorWidget;
   final StoriesSettings settings;
@@ -28,7 +31,7 @@ class Stories extends StatefulWidget {
   final EdgeInsets previewListPadding;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
-  final _ItemBuilder placeholderBuilder;
+  // final _ItemBuilder placeholderBuilder;
   final StoryController storyController;
   final VoidCallback onAllStoriesComplete;
   final StoryPreviewBuilder previewBuilder;
@@ -44,7 +47,6 @@ class Stories extends StatefulWidget {
     this.storyController,
     this.myStoriesPreview,
     this.mediaErrorWidget,
-    this.placeholderBuilder,
     this.previewListPadding,
     this.previewPlaceholder,
     this.overlayInfoBuilder,
@@ -53,8 +55,6 @@ class Stories extends StatefulWidget {
     this.onAllStoriesComplete,
     this.onStoryCollectionClosed,
     this.onStoryCollectionOpenned,
-    this.repeat = false,
-    this.inline = false,
     this.backgroundBetweenStories = Colors.black,
     this.closeButtonPosition = Alignment.topRight,
   });
@@ -103,7 +103,7 @@ class _StoriesState extends State<Stories> {
           return _storiesList(
             itemCount: 4,
             builder: (context, index) {
-              return widget.placeholderBuilder?.call(context, index) ?? LimitedBox();
+              return widget.previewPlaceholder ?? LimitedBox();
             },
           );
         }
@@ -120,7 +120,7 @@ class _StoriesState extends State<Stories> {
       child: story.coverImg != null
           ? CachedNetworkImage(
               imageUrl: story.coverImg,
-              placeholder: (context, url) => widget.previewPlaceholder,
+              // placeholder: (context, url) => widget.previewPlaceholder,
               imageBuilder: (context, image) {
                 return widget.previewBuilder(
                   context,
@@ -167,8 +167,6 @@ class _StoriesState extends State<Stories> {
             pageBuilder: (context, anim, anim2) {
               return StoriesCollectionView(
                 storiesIds: storyIds,
-                repeat: widget.repeat,
-                inline: widget.inline,
                 settings: widget.settings,
                 selectedStoryId: story.storyId,
                 closeButton: widget.closeButton,
@@ -223,8 +221,6 @@ class _StoriesState extends State<Stories> {
 }
 
 class MyStories extends StatefulWidget {
-  final bool repeat;
-  final bool inline;
   final Widget closeButton;
   final Widget mediaErrorWidget;
   final StoriesSettings settings;
@@ -232,7 +228,6 @@ class MyStories extends StatefulWidget {
   final Widget previewPlaceholder;
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
-  final List<Widget> mediaAttachments;
   final Color backgroundBetweenStories;
   final StoryController storyController;
   final VoidCallback onStoryCollectionClosed;
@@ -250,7 +245,6 @@ class MyStories extends StatefulWidget {
     this.closeButton,
     this.toolsBuilder,
     this.onStoryPosted,
-    this.mediaAttachments,
     this.publishBuilder,
     this.storyController,
     this.mediaErrorWidget,
@@ -263,8 +257,6 @@ class MyStories extends StatefulWidget {
     this.publisherController,
     this.onStoryCollectionClosed,
     this.onStoryCollectionOpenned,
-    this.repeat = false,
-    this.inline = false,
     this.closeButtonPosition = Alignment.topRight,
     this.backgroundBetweenStories = Colors.black,
   });
@@ -325,7 +317,7 @@ class _MyStoriesState extends State<MyStories> {
       child: coverImg is String
           ? CachedNetworkImage(
               imageUrl: coverImg,
-              placeholder: (context, url) => widget.previewPlaceholder,
+              // placeholder: (context, url) => widget.previewPlaceholder,
               imageBuilder: (context, image) {
                 return widget.previewStoryBuilder?.call(context, image, hasPublish, hasNewPublish);
               },
@@ -371,7 +363,6 @@ class _MyStoriesState extends State<MyStories> {
         publisherBuilder: widget.publishBuilder,
         storyController: widget.storyController,
         loadingWidget: widget.mediaLoadingWidget,
-        mediaAttachments: widget.mediaAttachments,
         resultToolsBuilder: widget.resultToolsBuilder,
         publisherController: widget.publisherController,
         closeButtonPosition: widget.closeButtonPosition,
@@ -381,8 +372,6 @@ class _MyStoriesState extends State<MyStories> {
       );
 
   Widget get myStories => StoriesCollectionView(
-        repeat: false,
-        inline: false,
         settings: widget.settings,
         closeButton: widget.closeButton,
         storiesIds: [widget.settings.userId],

@@ -9,8 +9,6 @@ import 'package:stories_lib/configs/story_controller.dart';
 enum _StoriesDirection { next, previous }
 
 class StoriesCollectionView extends StatefulWidget {
-  final bool repeat;
-  final bool inline;
   final Widget closeButton;
   final String selectedStoryId;
   final List<String> storiesIds;
@@ -28,7 +26,6 @@ class StoriesCollectionView extends StatefulWidget {
     @required this.settings,
     @required this.storiesIds,
     @required this.selectedStoryId,
-    this.inline,
     this.closeButton,
     this.storyController,
     this.overlayInfoBuilder,
@@ -38,7 +35,6 @@ class StoriesCollectionView extends StatefulWidget {
     this.backgroundBetweenStories,
     this.onStoryCollectionClosed,
     this.onStoryCollectionOpenned,
-    this.repeat = false,
   });
 
   @override
@@ -114,8 +110,8 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                         child: StoryView(
                           storyItems: stories,
                           controller: _storyController,
-                          repeat: widget.repeat,
-                          inline: widget.inline,
+                          repeat: widget.settings.repeat,
+                          inline: widget.settings.inline,
                           overlayInfoBuilder: widget.overlayInfoBuilder,
                           onStoryShow: (StoryItem item) {
                             storyData.reference.get().then(

@@ -66,7 +66,6 @@ class StoryPublisher extends StatefulWidget {
   final Duration videoDuration;
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
-  final List<Widget> mediaAttachments;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
@@ -86,7 +85,6 @@ class StoryPublisher extends StatefulWidget {
     this.loadingWidget,
     this.publisherBuilder,
     this.onStoryPosted,
-    this.mediaAttachments,
     this.storyController,
     this.resultToolsBuilder,
     this.publisherController,
@@ -356,7 +354,6 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
             closeButton: widget.closeButton,
             controller: widget.storyController,
             onStoryPosted: widget.onStoryPosted,
-            mediaAttachments: widget.mediaAttachments,
             resultToolsBuilder: widget.resultToolsBuilder,
             closeButtonPosition: widget.closeButtonPosition,
             publisherController: widget.publisherController,
@@ -376,7 +373,6 @@ class _StoryPublisherResult extends StatefulWidget {
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
   final StoryController controller;
-  final List<Widget> mediaAttachments;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final VoidCallback onMyStoriesClosed;
@@ -391,7 +387,6 @@ class _StoryPublisherResult extends StatefulWidget {
     @required this.publisherController,
     this.controller,
     this.closeButton,
-    this.mediaAttachments,
     this.onStoryPosted,
     this.resultToolsBuilder,
     this.closeButtonPosition,
