@@ -22,12 +22,12 @@ typedef StoryPublisherPreviewBuilder = Widget Function(
 );
 
 class Stories extends StatefulWidget {
-  final Widget closeButton;
-  final Widget mediaErrorWidget;
   final StoriesSettings settings;
-  final Widget mediaLoadingWidget;
-  final Widget previewPlaceholder;
   final MyStories myStoriesPreview;
+  final Widget closeButton;
+  final Widget errorWidget;
+  final Widget loadingWidget;
+  final Widget previewPlaceholder;
   final EdgeInsets previewListPadding;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
@@ -46,11 +46,11 @@ class Stories extends StatefulWidget {
     this.previewBuilder,
     this.storyController,
     this.myStoriesPreview,
-    this.mediaErrorWidget,
+    this.errorWidget,
     this.previewListPadding,
     this.previewPlaceholder,
     this.overlayInfoBuilder,
-    this.mediaLoadingWidget,
+    this.loadingWidget,
     this.storyOpenTransition,
     this.onAllStoriesComplete,
     this.onStoryCollectionClosed,
@@ -171,8 +171,8 @@ class _StoriesState extends State<Stories> {
                 selectedStoryId: story.storyId,
                 closeButton: widget.closeButton,
                 storyController: widget.storyController,
-                mediaErrorWidget: widget.mediaErrorWidget,
-                mediaLoadingWidget: widget.mediaLoadingWidget,
+                mediaErrorWidget: widget.errorWidget,
+                mediaLoadingWidget: widget.loadingWidget,
                 overlayInfoBuilder: widget.overlayInfoBuilder,
                 closeButtonPosition: widget.closeButtonPosition,
                 onStoryCollectionClosed: widget.onStoryCollectionClosed,
