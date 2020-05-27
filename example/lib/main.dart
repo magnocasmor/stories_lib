@@ -84,7 +84,7 @@ class _HomeState extends State<Home> {
       settings: settings,
       previewListPadding: const EdgeInsets.all(8.0),
       myStoriesPreview: myStories(),
-      previewBuilder: previewBuilder,
+      preview: previewBuilder,
       placeholderBuilder: placeholderBuilder,
       overlayInfoBuilder:
           (context, currentIndex, previewImage, title, views, postDate, datas, animation) {
@@ -154,7 +154,7 @@ class _HomeState extends State<Home> {
           ],
         );
       },
-      storyOpenTransition: transition,
+      navigationTransition: transition,
       inline: false,
       repeat: false,
       closeButton: closeButton(),

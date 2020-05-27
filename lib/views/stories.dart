@@ -1,12 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stories_lib/components/attachment_widget.dart';
+import 'package:stories_lib/utils/story_types.dart';
 import 'package:stories_lib/views/story_publisher.dart';
 import 'package:stories_lib/utils/stories_helpers.dart';
 import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/configs/stories_settings.dart';
 import 'package:stories_lib/models/stories_collection.dart';
-import 'package:stories_lib/configs/publisher_controller.dart';
 import 'package:stories_lib/views/stories_collection_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -23,40 +25,57 @@ typedef StoryPublisherPreviewBuilder = Widget Function(
 
 class Stories extends StatefulWidget {
   final StoriesSettings settings;
+
   final MyStories myStoriesPreview;
+
+  /// The button that close the layers of the Stories with [Navigator.pop()].
   final Widget closeButton;
-  final Widget errorWidget;
-  final Widget loadingWidget;
-  final Widget previewPlaceholder;
-  final EdgeInsets previewListPadding;
+
   final Alignment closeButtonPosition;
+
+  /// Widget displayed when media fails to load.
+  final Widget mediaError;
+
+  /// Widget displayed while media load.
+  final Widget mediaPlaceholder;
+
   final Color backgroundBetweenStories;
-  // final _ItemBuilder placeholderBuilder;
+
+  /// A overlay above the [StoryView] that shows information about the current story.
+  final InfoLayerBuilder infoLayerBuilder;
+
+  /// Show the stories preview.
+  final StoriesPreviewBuilder previewBuilder;
+
+  /// Widget displayed while loading stories previews.
+  final Widget previewPlaceholder;
+
+  final EdgeInsets previewListPadding;
+
+  /// A navigation transition when preview is tapped.
+  final RouteTransitionsBuilder navigationTransition;
   final StoryController storyController;
   final VoidCallback onAllStoriesComplete;
-  final StoryPreviewBuilder previewBuilder;
   final VoidCallback onStoryCollectionClosed;
   final VoidCallback onStoryCollectionOpenned;
-  final StoryOverlayInfoBuilder overlayInfoBuilder;
-  final RouteTransitionsBuilder storyOpenTransition;
 
   Stories({
     @required this.settings,
-    this.closeButton,
-    this.previewBuilder,
     this.storyController,
     this.myStoriesPreview,
-    this.errorWidget,
-    this.previewListPadding,
-    this.previewPlaceholder,
-    this.overlayInfoBuilder,
-    this.loadingWidget,
-    this.storyOpenTransition,
     this.onAllStoriesComplete,
     this.onStoryCollectionClosed,
     this.onStoryCollectionOpenned,
-    this.backgroundBetweenStories = Colors.black,
+    this.closeButton,
     this.closeButtonPosition = Alignment.topRight,
+    this.mediaError,
+    this.mediaPlaceholder,
+    this.backgroundBetweenStories = Colors.black,
+    this.infoLayerBuilder,
+    this.previewBuilder,
+    this.previewPlaceholder,
+    this.previewListPadding,
+    this.navigationTransition,
   });
 
   @override
@@ -163,21 +182,22 @@ class _StoriesState extends State<Stories> {
           context,
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 250),
-            transitionsBuilder: widget.storyOpenTransition,
+            transitionsBuilder: widget.navigationTransition,
             pageBuilder: (context, anim, anim2) {
               return StoriesCollectionView(
-                storiesIds: storyIds,
                 settings: widget.settings,
-                selectedStoryId: story.storyId,
+                backgroundBetweenStories: widget.backgroundBetweenStories,
                 closeButton: widget.closeButton,
-                storyController: widget.storyController,
-                mediaErrorWidget: widget.errorWidget,
-                mediaLoadingWidget: widget.loadingWidget,
-                overlayInfoBuilder: widget.overlayInfoBuilder,
                 closeButtonPosition: widget.closeButtonPosition,
+                infoLayerBuilder: widget.infoLayerBuilder,
+                mediaError: widget.mediaError,
+                mediaPlaceholder: widget.mediaPlaceholder,
+                navigationTransition: widget.navigationTransition,
+                storyController: widget.storyController,
+                storiesIds: storyIds,
+                selectedStoryId: story.storyId,
                 onStoryCollectionClosed: widget.onStoryCollectionClosed,
                 onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
-                backgroundBetweenStories: widget.backgroundBetweenStories,
               );
             },
           ),
@@ -221,44 +241,95 @@ class _StoriesState extends State<Stories> {
 }
 
 class MyStories extends StatefulWidget {
-  final Widget closeButton;
-  final Widget mediaErrorWidget;
   final StoriesSettings settings;
-  final Widget mediaLoadingWidget;
-  final Widget previewPlaceholder;
   final VoidCallback onStoryPosted;
+
+  /// The button that close the layers of the Stories with [Navigator.pop()].
+  final Widget closeButton;
+
   final Alignment closeButtonPosition;
+
+  /// Widget displayed when media fails to load.
+  final Widget mediaError;
+
+  /// Widget displayed while media load.
+  final Widget mediaPlaceholder;
+
   final Color backgroundBetweenStories;
+
+  /// A overlay above the [StoryView] that shows information about the current story.
+  final MyInfoLayerBuilder infoLayerBuilder;
+
+  /// Show the stories preview.
+  final MyStoriesPreviewBuilder myPreviewBuilder;
+
+  /// Widget displayed while loading stories previews.
+  final Widget previewPlaceholder;
+
+  /// Build the button to publish stories.
+  ///
+  /// Provide the [StoryType] selected and [Animation] on video record.
+  ///
+  /// By default, on tap this widget a story with the selected [StoryType] will be
+  /// taked/record. In [StoryType.video] case, a second tap will be stop the record.
+  ///
+  /// If you want implements your own behavior, set the [defaultBehavior] to false and
+  /// use [PublisherController].
+  final TakeStoryBuilder takeStoryBuilder;
+
+  /// A overlay above [StoryPublisher] where can put some interactions to manipulate the story.
+  ///
+  /// [StoryType] indicates the current selected type. When change type by calling [PublisherController.changeType]
+  /// this widget will rebuild.
+  ///
+  /// The builder pass a [ExternalMediaCallback] to call when the user want send a external media.
+  /// You can use [ImagePicker] plugin to take the file media.
+  final Widget Function(BuildContext, StoryType, ExternalMediaCallback) publisherLayerBuilder;
+
+  /// enable/disable the default behavior of the widget built by [takeStoryBuilder].
+  ///
+  /// By default, on tap this widget a story with the selected [StoryType] will be
+  /// taked/record. In [StoryType.video] case, a second tap will be stop the record.
+  final bool defaultBehavior;
+
+  /// A overlay above the result of story taked in [_StoryPublisherResult].
+  ///
+  /// The [File] is a copy of the current story result. This can be used to save story in the device's storage.
+  ///
+  /// Provides a callback to insert [AttachmentWidget]. This widget is wrapped by [MultiGestureWidget]
+  /// above the result and can be draggable, scalable and rotated.
+  ///
+  /// To delete a specific attachment, pass a list of attachments without the [AttachmentWidget]
+  /// you want to delete.
+  final Widget Function(BuildContext, File, AddAttachment, PublishStory) resultInfoBuilder;
+
+  /// A navigation transition when preview is tapped.
+  final RouteTransitionsBuilder navigationTransition;
   final StoryController storyController;
   final VoidCallback onStoryCollectionClosed;
   final VoidCallback onStoryCollectionOpenned;
   final PublisherController publisherController;
-  final StoryPublisherToolsBuilder toolsBuilder;
-  final StoryPublisherButtonBuilder publishBuilder;
-  final RouteTransitionsBuilder storyOpenTransition;
-  final MyStoryOverlayInfoBuilder overlayInfoBuilder;
-  final StoryPublisherPreviewBuilder previewStoryBuilder;
-  final StoryPublisherPreviewToolsBuilder resultToolsBuilder;
 
   MyStories({
     @required this.settings,
-    this.closeButton,
-    this.toolsBuilder,
     this.onStoryPosted,
-    this.publishBuilder,
     this.storyController,
-    this.mediaErrorWidget,
-    this.overlayInfoBuilder,
-    this.resultToolsBuilder,
-    this.previewPlaceholder,
-    this.mediaLoadingWidget,
-    this.storyOpenTransition,
-    this.previewStoryBuilder,
     this.publisherController,
     this.onStoryCollectionClosed,
     this.onStoryCollectionOpenned,
+    this.closeButton,
     this.closeButtonPosition = Alignment.topRight,
+    this.mediaError,
+    this.mediaPlaceholder,
     this.backgroundBetweenStories = Colors.black,
+    this.infoLayerBuilder,
+    this.myPreviewBuilder,
+    this.previewPlaceholder,
+    this.takeStoryBuilder,
+    this.publisherLayerBuilder,
+    this.defaultBehavior = true,
+    this.resultInfoBuilder,
+    this.navigationTransition,
   });
 
   @override
@@ -319,20 +390,20 @@ class _MyStoriesState extends State<MyStories> {
               imageUrl: coverImg,
               // placeholder: (context, url) => widget.previewPlaceholder,
               imageBuilder: (context, image) {
-                return widget.previewStoryBuilder?.call(context, image, hasPublish, hasNewPublish);
+                return widget.myPreviewBuilder?.call(context, image, hasPublish, hasNewPublish);
               },
               errorWidget: (context, url, error) {
                 debugPrint(error.toString());
-                return widget.previewStoryBuilder?.call(context, null, hasPublish, hasNewPublish);
+                return widget.myPreviewBuilder?.call(context, null, hasPublish, hasNewPublish);
               },
             )
-          : widget.previewStoryBuilder?.call(context, null, hasPublish, hasNewPublish),
+          : widget.myPreviewBuilder?.call(context, null, hasPublish, hasNewPublish),
       onTap: () async {
         await Navigator.push(
           context,
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 250),
-            transitionsBuilder: widget.storyOpenTransition,
+            transitionsBuilder: widget.navigationTransition,
             pageBuilder: (context, anim, anim2) {
               if (hasPublish)
                 return myStories;
@@ -349,23 +420,24 @@ class _MyStoriesState extends State<MyStories> {
         context,
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 250),
-          transitionsBuilder: widget.storyOpenTransition,
+          transitionsBuilder: widget.navigationTransition,
           pageBuilder: (context, anim, anim2) => publisher,
         ),
       );
 
   Widget get publisher => StoryPublisher(
         settings: widget.settings,
+        mediaError: widget.mediaError,
         closeButton: widget.closeButton,
-        toolsBuilder: widget.toolsBuilder,
         onStoryPosted: widget.onStoryPosted,
-        errorWidget: widget.mediaErrorWidget,
-        publisherBuilder: widget.publishBuilder,
         storyController: widget.storyController,
-        loadingWidget: widget.mediaLoadingWidget,
-        resultToolsBuilder: widget.resultToolsBuilder,
+        defaultBehavior: widget.defaultBehavior,
+        mediaPlaceholder: widget.mediaPlaceholder,
+        takeStoryBuilder: widget.takeStoryBuilder,
+        resultInfoBuilder: widget.resultInfoBuilder,
         publisherController: widget.publisherController,
         closeButtonPosition: widget.closeButtonPosition,
+        publisherLayerBuilder: widget.publisherLayerBuilder,
         onStoryCollectionClosed: widget.onStoryCollectionClosed,
         onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
         backgroundBetweenStories: widget.backgroundBetweenStories,
@@ -373,42 +445,23 @@ class _MyStoriesState extends State<MyStories> {
 
   Widget get myStories => StoriesCollectionView(
         settings: widget.settings,
+        mediaError: widget.mediaError,
         closeButton: widget.closeButton,
         storiesIds: [widget.settings.userId],
-        overlayInfoBuilder: overlayInfoBuilder,
         storyController: widget.storyController,
         selectedStoryId: widget.settings.userId,
+        mediaPlaceholder: widget.mediaPlaceholder,
+        infoLayerBuilder: (i, t, d, b, c, a, v) =>
+            widget.infoLayerBuilder(i, t, d, b, c, a, v, goToPublisher),
         closeButtonPosition: widget.closeButtonPosition,
+        navigationTransition: widget.navigationTransition,
         onStoryCollectionClosed: widget.onStoryCollectionClosed,
-        onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
-        // sortingOrderDesc: true,
         backgroundBetweenStories: widget.backgroundBetweenStories,
+        onStoryCollectionOpenned: widget.onStoryCollectionOpenned,
       );
 
   Stream<DocumentSnapshot> get _storiesStream => _firestore
       .collection(widget.settings.collectionDbName)
       .document(widget.settings.userId)
       .snapshots();
-
-  Widget overlayInfoBuilder(
-    BuildContext context,
-    int index,
-    ImageProvider image,
-    String title,
-    List viewers,
-    DateTime date,
-    List<PageData> pages,
-    Animation<double> animation,
-  ) {
-    return widget.overlayInfoBuilder(
-      context,
-      index,
-      image,
-      viewers,
-      date,
-      pages,
-      animation,
-      goToPublisher,
-    );
-  }
 }

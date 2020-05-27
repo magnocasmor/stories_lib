@@ -16,6 +16,8 @@ class StoriesSettings {
 
   final Duration storyDuration;
 
+  final Duration videoDuration;
+
   final String collectionDbName;
 
   final Duration storyTimeValidaty;
@@ -35,6 +37,7 @@ class StoriesSettings {
     this.languageCode = 'pt',
     this.sortByDescUpdate = true,
     this.storyDuration = const Duration(seconds: 3),
+    this.videoDuration = const Duration(seconds: 10),
     this.storyTimeValidaty = const Duration(hours: 12),
   });
 }

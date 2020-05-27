@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:stories_lib/configs/settings.dart';
+import 'package:stories_lib/utils/story_types.dart';
 import 'package:stories_lib/views/story_image.dart';
 import 'package:stories_lib/views/story_video.dart';
 import 'package:stories_lib/utils/color_parser.dart';
@@ -402,8 +403,6 @@ class StoryView extends StatefulWidget {
 
   final VoidCallback previousOnFirstStory;
 
-  final StoryOverlayInfoBuilder overlayInfoBuilder;
-
   /// Callback for when a story is currently being shown.
   final ValueChanged<StoryItem> onStoryShow;
 
@@ -417,15 +416,23 @@ class StoryView extends StatefulWidget {
 
   final StoryController controller;
 
+  final InfoLayerBuilder infoLayerBuilder;
+
+  final Widget closeButton;
+
+  final Alignment closeButtonPosition;
+
   StoryView({
     @required this.storyItems,
     this.controller,
     this.onComplete,
     this.onStoryShow,
-    this.overlayInfoBuilder,
     this.previousOnFirstStory,
     this.repeat = false,
     this.inline = false,
+    this.infoLayerBuilder,
+    this.closeButton,
+    this.closeButtonPosition,
   })  : assert(storyItems != null && storyItems.length > 0,
             "[storyItems] should not be null or empty"),
         assert(repeat != null, "[repeat] cannot be null"),
@@ -530,17 +537,21 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       child: Stack(
         children: <Widget>[
           currentView,
-          if (widget.overlayInfoBuilder != null)
-            widget.overlayInfoBuilder(
-              context,
-              widget.storyItems.indexOf(currentStory),
-              CachedNetworkImageProvider(currentStory.storyPreviewImg ?? ""),
-              currentStory.storyTitle,
-              currentStory.viewers,
-              currentStory.postDate,
-              widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
-              this.currentAnimation,
-            )
+          Align(
+            alignment: widget.closeButtonPosition,
+            child: widget.closeButton,
+          ),
+          widget.infoLayerBuilder(
+            CachedNetworkImageProvider(currentStory.storyPreviewImg ?? ""),
+            currentStory.storyTitle,
+            currentStory.postDate,
+            widget.storyItems.map((it) => PageData(it.duration, it.shown)).toList(),
+            widget.storyItems.indexOf(currentStory),
+            this.currentAnimation,
+            currentStory.viewers,
+          ),
+
+          // decoration.
         ],
       ),
     );

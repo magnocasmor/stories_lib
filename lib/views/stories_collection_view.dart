@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:stories_lib/utils/story_types.dart';
 import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:stories_lib/utils/stories_helpers.dart';
@@ -9,32 +10,34 @@ import 'package:stories_lib/configs/story_controller.dart';
 enum _StoriesDirection { next, previous }
 
 class StoriesCollectionView extends StatefulWidget {
+  final StoriesSettings settings;
   final Widget closeButton;
+  final Alignment closeButtonPosition;
+  final Widget mediaError;
+  final Widget mediaPlaceholder;
+  final Color backgroundBetweenStories;
+  final InfoLayerBuilder infoLayerBuilder;
+  final RouteTransitionsBuilder navigationTransition;
+  final StoryController storyController;
   final String selectedStoryId;
   final List<String> storiesIds;
-  final Widget mediaErrorWidget;
-  final StoriesSettings settings;
-  final Widget mediaLoadingWidget;
-  final Alignment closeButtonPosition;
-  final Color backgroundBetweenStories;
-  final StoryController storyController;
   final VoidCallback onStoryCollectionClosed;
   final VoidCallback onStoryCollectionOpenned;
-  final StoryOverlayInfoBuilder overlayInfoBuilder;
 
   StoriesCollectionView({
-    @required this.settings,
     @required this.storiesIds,
     @required this.selectedStoryId,
-    this.closeButton,
-    this.storyController,
-    this.overlayInfoBuilder,
-    this.mediaErrorWidget,
-    this.mediaLoadingWidget,
-    this.closeButtonPosition,
-    this.backgroundBetweenStories,
     this.onStoryCollectionClosed,
     this.onStoryCollectionOpenned,
+    this.settings,
+    this.storyController,
+    this.closeButton,
+    this.closeButtonPosition,
+    this.mediaError,
+    this.mediaPlaceholder,
+    this.backgroundBetweenStories,
+    this.infoLayerBuilder,
+    this.navigationTransition,
   });
 
   @override
@@ -51,12 +54,13 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     super.initState();
     widget.onStoryCollectionOpenned?.call();
     _storyController = widget.storyController ?? StoryController();
+
     _pageController = PageController(initialPage: indexOfStory(widget.selectedStoryId));
   }
 
   @override
   void dispose() {
-    _storyController.dispose();
+    _storyController?.dispose();
     widget.onStoryCollectionClosed?.call();
     super.dispose();
   }
@@ -80,10 +84,10 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
               return Stack(
                 children: <Widget>[
                   FutureBuilder<DocumentSnapshot>(
-                    future: getStories(widget.storiesIds[index]),
+                    future: getStories(widget.settings, widget.storiesIds[index]),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return widget.mediaLoadingWidget ??
+                        return widget.mediaPlaceholder ??
                             Center(
                               child: SizedBox(
                                 width: 70,
@@ -102,17 +106,19 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                         storyData,
                         _storyController,
                         widget.settings,
-                        widget.mediaErrorWidget,
-                        widget.mediaLoadingWidget,
+                        widget.mediaError,
+                        widget.mediaPlaceholder,
                       );
 
                       return GestureDetector(
                         child: StoryView(
                           storyItems: stories,
-                          controller: _storyController,
+                          closeButton: widget.closeButton,
+                          closeButtonPosition: widget.closeButtonPosition,
+                          infoLayerBuilder: widget.infoLayerBuilder,
                           repeat: widget.settings.repeat,
                           inline: widget.settings.inline,
-                          overlayInfoBuilder: widget.overlayInfoBuilder,
+                          controller: _storyController,
                           onStoryShow: (StoryItem item) {
                             storyData.reference.get().then(
                               (ds) async {
@@ -179,11 +185,11 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     );
   }
 
-  Future<DocumentSnapshot> getStories(String storyId) => _firestore
-          .collection(widget.settings.collectionDbName)
+  Future<DocumentSnapshot> getStories(StoriesSettings settings, String storyId) => _firestore
+          .collection(settings.collectionDbName)
           .where(
             'last_update',
-            isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
+            isGreaterThanOrEqualTo: DateTime.now().subtract(settings.storyTimeValidaty),
           )
           .getDocuments()
           .then(
