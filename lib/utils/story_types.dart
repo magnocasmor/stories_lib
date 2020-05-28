@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:stories_lib/views/story_publisher.dart';
-import 'package:stories_lib/components/attachment_widget.dart';
 
 import '../views/story_view.dart';
 
-typedef StoriesPreviewBuilder = Widget Function(BuildContext, ImageProvider, String, bool);
+typedef PublishStory = void Function({List<dynamic> selectedReleases});
 
 typedef ExternalMediaCallback = Future<ExternalMediaStatus> Function(File, StoryType);
+
+typedef StoriesPreviewBuilder = Widget Function(BuildContext, ImageProvider, String, bool);
 
 typedef MyStoriesPreviewBuilder = Widget Function(BuildContext, ImageProvider, bool, bool);
 
@@ -15,8 +16,7 @@ typedef TakeStoryBuilder = Widget Function(StoryType, Animation<double>, void Fu
 
 typedef PublishLayerBuilder = Widget Function(BuildContext, StoryType);
 
-typedef ResultLayerBuilder = Widget Function(BuildContext, File,
-    void Function(List<AttachmentWidget>), void Function({List<dynamic> selectedReleases}));
+typedef ResultLayerBuilder = Widget Function(BuildContext, PublishStory);
 
 typedef InfoLayerBuilder = Widget Function(
   ImageProvider,
@@ -38,7 +38,3 @@ typedef MyInfoLayerBuilder = Widget Function(
   List<Map<String, dynamic>>,
   VoidCallback,
 );
-
-typedef AddAttachment = void Function(List<AttachmentWidget>);
-
-typedef PublishStory = void Function({List<dynamic> selectedReleases});

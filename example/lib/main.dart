@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -271,20 +269,12 @@ class _HomeState extends State<Home> {
       navigationTransition: storyScreenTransition,
       publisherLayerBuilder: publisherLayer,
       takeStoryBuilder: takeStoryButton,
-      resultInfoBuilder: resultInfo,
-      onStoryPosted: () {
-        Navigator.popUntil(context, (route) => route.isFirst);
-      },
+      resultInfoBuilder: resultInfoBuilder,
     );
     return myStories;
   }
 
-  Widget resultInfo(
-    BuildContext context,
-    File file,
-    AddAttachment addAttachment,
-    PublishStory publishStory,
-  ) {
+  Widget resultInfoBuilder(BuildContext context, PublishStory publishStory) {
     return Positioned(
       top: 80.0,
       right: 16.0,
@@ -297,14 +287,14 @@ class _HomeState extends State<Home> {
           GestureDetector(
             child: Icon(Icons.text_fields, color: Colors.white),
             onTap: () {
-              addAttachment([
+              publisherController.addAttachment(
                 AttachmentWidget(
                   key: UniqueKey(),
                   child: FlutterLogo(
                     size: 100.0,
                   ),
                 ),
-              ]);
+              );
             },
           ),
           Spacer(),
@@ -319,7 +309,10 @@ class _HomeState extends State<Home> {
               ),
               FloatingActionButton(
                 child: Icon(Icons.send, color: Colors.white),
-                onPressed: publishStory,
+                onPressed: () {
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                  publishStory();
+                },
               ),
             ],
           ),
@@ -369,13 +362,23 @@ class _HomeState extends State<Home> {
           child: Stack(
             children: <Widget>[
               Positioned.fill(
-                child: CircularProgressIndicator(
-                  value: 1.0,
-                  backgroundColor: Colors.white,
-                  strokeWidth: 3.0,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    hasNewPublish ? Colors.purpleAccent : (hasPublish ? Colors.grey : Colors.grey),
-                  ),
+                child: StreamBuilder<PublisherStatus>(
+                  initialData: PublisherStatus.none,
+                  stream: publisherController.stream,
+                  builder: (context, snapshot) {
+                    final sending = snapshot.data == PublisherStatus.compressing ||
+                        snapshot.data == PublisherStatus.sending;
+                    return CircularProgressIndicator(
+                      value: sending ? null : 1.0,
+                      backgroundColor: Colors.white,
+                      strokeWidth: 3.0,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        hasNewPublish
+                            ? Colors.purpleAccent
+                            : (hasPublish ? Colors.grey : Colors.grey),
+                      ),
+                    );
+                  },
                 ),
               ),
               Padding(
@@ -435,7 +438,7 @@ class _HomeState extends State<Home> {
                         onTap: () async {
                           final file = await ImagePicker.pickVideo(source: ImageSource.gallery);
                           Navigator.pop(context);
-                          publisherController.sendExternal(file, StoryType.image);
+                          publisherController.sendExternal(file, StoryType.video);
                         },
                       ),
                     ],

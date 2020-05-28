@@ -2,26 +2,18 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stories_lib/components/attachment_widget.dart';
-import 'package:stories_lib/utils/story_types.dart';
-import 'package:stories_lib/views/story_publisher.dart';
-import 'package:stories_lib/utils/stories_helpers.dart';
-import 'package:stories_lib/configs/story_controller.dart';
-import 'package:stories_lib/configs/stories_settings.dart';
-import 'package:stories_lib/models/stories_collection.dart';
-import 'package:stories_lib/views/stories_collection_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../components/attachment_widget.dart';
+import '../configs/stories_settings.dart';
+import '../configs/story_controller.dart';
+import '../models/stories_collection.dart';
+import '../utils/stories_helpers.dart';
+import '../utils/story_types.dart';
+import '../views/stories_collection_view.dart';
+import '../views/story_publisher.dart';
+
 typedef _ItemBuilder = Widget Function(BuildContext, int);
-
-typedef StoryPreviewBuilder = Widget Function(BuildContext, ImageProvider, String, bool);
-
-typedef StoryPublisherPreviewBuilder = Widget Function(
-  BuildContext context,
-  ImageProvider coverImg,
-  bool hasStories,
-  bool hasNewStories,
-);
 
 class Stories extends StatefulWidget {
   final StoriesSettings settings;
@@ -281,16 +273,7 @@ class MyStories extends StatefulWidget {
   ///
   /// [StoryType] indicates the current selected type. When change type by calling [PublisherController.changeType]
   /// this widget will rebuild.
-  ///
-  /// The builder pass a [ExternalMediaCallback] to call when the user want send a external media.
-  /// You can use [ImagePicker] plugin to take the file media.
   final PublishLayerBuilder publisherLayerBuilder;
-
-  /// enable/disable the default behavior of the widget built by [takeStoryBuilder].
-  ///
-  /// By default, on tap this widget a story with the selected [StoryType] will be
-  /// taked/record. In [StoryType.video] case, a second tap will be stop the record.
-  final bool defaultBehavior;
 
   /// A overlay above the result of story taked in [_StoryPublisherResult].
   ///
@@ -327,7 +310,6 @@ class MyStories extends StatefulWidget {
     this.previewPlaceholder,
     this.takeStoryBuilder,
     this.publisherLayerBuilder,
-    this.defaultBehavior = true,
     this.resultInfoBuilder,
     this.navigationTransition,
   });
@@ -431,7 +413,6 @@ class _MyStoriesState extends State<MyStories> {
         closeButton: widget.closeButton,
         onStoryPosted: widget.onStoryPosted,
         storyController: widget.storyController,
-        defaultBehavior: widget.defaultBehavior,
         mediaPlaceholder: widget.mediaPlaceholder,
         takeStoryBuilder: widget.takeStoryBuilder,
         resultInfoBuilder: widget.resultInfoBuilder,

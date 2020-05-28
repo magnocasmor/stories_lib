@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
+import 'package:stories_lib/components/attachment_widget.dart';
 import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/utils/fix_image_orientation.dart';
 import 'package:stories_lib/utils/story_types.dart';
@@ -27,7 +28,7 @@ enum StoryType { text, image, video, gif }
 
 enum ExternalMediaStatus { valid, does_not_exist, duration_exceeded }
 
-enum PublisherStatus { none, showingResult, compressing, sending, complete, failure }
+enum PublisherStatus { none, compressing, sending, failure }
 
 class PublisherController {
   final _uploadStatus = StreamController<PublisherStatus>()..add(PublisherStatus.none);
@@ -85,7 +86,17 @@ class PublisherController {
   }
 
   Future<ExternalMediaStatus> sendExternal(File file, StoryType type) {
-   return _publisherState._sendExternalMedia(file, type);
+    return _publisherState._sendExternalMedia(file, type);
+  }
+
+  void addAttachment(AttachmentWidget attachment) {
+    assert(_resultState != null, "No [_StoryPublisherResult] attached to controller");
+    _resultState.addAttachment(attachment);
+  }
+
+  void removeAttachment(AttachmentWidget attachment) {
+    assert(_resultState != null, "No [_StoryPublisherResult] attached to controller");
+    _resultState.removeAttachment(attachment);
   }
 
   void dispose() {
@@ -105,7 +116,6 @@ class StoryPublisher extends StatefulWidget {
   final Widget mediaPlaceholder;
   final TakeStoryBuilder takeStoryBuilder;
   final PublishLayerBuilder publisherLayerBuilder;
-  final bool defaultBehavior;
   final ResultLayerBuilder resultInfoBuilder;
   final VoidCallback onStoryPosted;
   final VoidCallback onStoryCollectionClosed;
@@ -126,7 +136,6 @@ class StoryPublisher extends StatefulWidget {
     this.mediaPlaceholder,
     this.takeStoryBuilder,
     this.publisherLayerBuilder,
-    this.defaultBehavior,
     this.resultInfoBuilder,
     this.enableSafeArea = true,
   }) : super(key: key);
@@ -442,8 +451,6 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
     publisherController?._attachResult(this);
 
-    publisherController.addStatus(PublisherStatus.showingResult);
-
     storyFile = File(widget.filePath);
     if (widget.type == StoryType.video) {
       controller = VideoPlayerController.file(storyFile);
@@ -485,7 +492,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         child: Stack(
           children: <Widget>[
             StoryWidget(story: _buildPreview()),
-            widget.resultInfoBuilder(context, storyFile, insertAttachment, _sendStory),
+            widget.resultInfoBuilder(context, _sendStory),
             Align(
               alignment: widget.closeButtonPosition,
               child: GestureDetector(
@@ -499,8 +506,12 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     );
   }
 
-  void insertAttachment(List<Widget> attachments) {
-    setState(() => mediaAttachments = attachments);
+  void addAttachment(AttachmentWidget attachment) {
+    setState(() => mediaAttachments.add(attachment));
+  }
+
+  void removeAttachment(AttachmentWidget attachment) {
+    setState(() => mediaAttachments.remove(attachment));
   }
 
   Future<void> _capturePng() async {
@@ -607,7 +618,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
       await _sendToFirestore(url, caption: caption, selectedReleases: selectedReleases);
 
-      publisherController.addStatus(PublisherStatus.complete);
+      publisherController.addStatus(PublisherStatus.none);
 
       widget.onStoryPosted?.call();
     } catch (e) {
