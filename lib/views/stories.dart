@@ -284,7 +284,7 @@ class MyStories extends StatefulWidget {
   ///
   /// The builder pass a [ExternalMediaCallback] to call when the user want send a external media.
   /// You can use [ImagePicker] plugin to take the file media.
-  final Widget Function(BuildContext, StoryType, ExternalMediaCallback) publisherLayerBuilder;
+  final PublishLayerBuilder publisherLayerBuilder;
 
   /// enable/disable the default behavior of the widget built by [takeStoryBuilder].
   ///
@@ -301,7 +301,7 @@ class MyStories extends StatefulWidget {
   ///
   /// To delete a specific attachment, pass a list of attachments without the [AttachmentWidget]
   /// you want to delete.
-  final Widget Function(BuildContext, File, AddAttachment, PublishStory) resultInfoBuilder;
+  final ResultLayerBuilder resultInfoBuilder;
 
   /// A navigation transition when preview is tapped.
   final RouteTransitionsBuilder navigationTransition;

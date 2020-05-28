@@ -3,8 +3,6 @@ import 'dart:ui' as ui;
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
-import 'package:stories_lib/components/attachment_widget.dart';
-import 'package:stories_lib/components/multi_gesture_widget.dart';
 import 'package:stories_lib/configs/story_controller.dart';
 import 'package:stories_lib/utils/fix_image_orientation.dart';
 import 'package:stories_lib/utils/story_types.dart';
@@ -36,7 +34,9 @@ class PublisherController {
 
   Stream _stream;
 
-  GlobalKey<_StoryPublisherState> _publisherState;
+  _StoryPublisherState _publisherState;
+
+  _StoryPublisherResultState _resultState;
 
   PublisherController() {
     _stream = _uploadStatus.stream.asBroadcastStream();
@@ -48,7 +48,7 @@ class PublisherController {
     _uploadStatus?.add(status);
   }
 
-  void _attachPublisher(Key p) {
+  void _attachPublisher(_StoryPublisherState p) {
     _publisherState = p;
   }
 
@@ -56,19 +56,36 @@ class PublisherController {
     _publisherState = null;
   }
 
+  void _attachResult(_StoryPublisherResultState r) {
+    _resultState = r;
+  }
+
+  void _detachResult() {
+    _resultState = null;
+  }
+
   void switchCamera() {
-    if (_publisherState != null) {
-      var direction;
-      switch (_publisherState.currentState.direction) {
-        case CameraLensDirection.front:
-          direction = CameraLensDirection.back;
-          break;
-        default:
-          direction = CameraLensDirection.front;
-          break;
-      }
-      _publisherState.currentState._changeLens(direction);
+    assert(_publisherState != null, "No [StoryPublisher] attached to controller");
+
+    var direction;
+    switch (_publisherState.direction) {
+      case CameraLensDirection.front:
+        direction = CameraLensDirection.back;
+        break;
+      default:
+        direction = CameraLensDirection.front;
+        break;
     }
+    _publisherState._changeLens(direction);
+  }
+
+  void changeType(StoryType type) {
+    assert(_publisherState != null, "No [StoryPublisher] attached to controller");
+    _publisherState._changeType(type);
+  }
+
+  Future<ExternalMediaStatus> sendExternal(File file, StoryType type) {
+   return _publisherState._sendExternalMedia(file, type);
   }
 
   void dispose() {
@@ -77,6 +94,7 @@ class PublisherController {
 }
 
 class StoryPublisher extends StatefulWidget {
+  final bool enableSafeArea;
   final StoriesSettings settings;
   final StoryController storyController;
   final PublisherController publisherController;
@@ -110,6 +128,7 @@ class StoryPublisher extends StatefulWidget {
     this.publisherLayerBuilder,
     this.defaultBehavior,
     this.resultInfoBuilder,
+    this.enableSafeArea = true,
   }) : super(key: key);
 
   @override
@@ -129,7 +148,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   @override
   void initState() {
-    widget.publisherController?._attachPublisher(widget.key);
+    widget.publisherController?._attachPublisher(this);
 
     widget.onStoryCollectionOpenned?.call();
 
@@ -164,50 +183,54 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   Widget publishStory() {
     return Scaffold(
       backgroundColor: widget.backgroundBetweenStories,
-      body: Stack(
-        children: <Widget>[
-          Center(
-            child: FutureBuilder<void>(
-              future: cameraInitialization,
-              builder: (context, snapshot) {
-                if (snapshot.hasError)
-                  return widget.mediaError ??
-                      StoryError(
-                        info: "Open camera failed.",
+      body: SafeArea(
+        top: widget.enableSafeArea,
+        bottom: widget.enableSafeArea,
+        child: Stack(
+          children: <Widget>[
+            Center(
+              child: FutureBuilder<void>(
+                future: cameraInitialization,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError)
+                    return widget.mediaError ??
+                        StoryError(
+                          info: "Open camera failed.",
+                        );
+                  switch (snapshot.connectionState) {
+                    case ConnectionState.done:
+                      return Stack(
+                        children: <Widget>[
+                          FittedContainer(
+                            fit: BoxFit.cover,
+                            width: cameraController.value.previewSize?.height ?? 0,
+                            height: cameraController.value.previewSize?.width ?? 0,
+                            child: AspectRatio(
+                              aspectRatio: cameraController.value.aspectRatio,
+                              child: CameraPreview(cameraController),
+                            ),
+                          ),
+                          Align(
+                            alignment: widget.closeButtonPosition,
+                            child: GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: widget.closeButton,
+                            ),
+                          ),
+                          if (widget.takeStoryBuilder != null)
+                            widget.takeStoryBuilder(type, animation, _processStory),
+                          widget.publisherLayerBuilder(context, type),
+                        ],
                       );
-                switch (snapshot.connectionState) {
-                  case ConnectionState.done:
-                    return Stack(
-                      children: <Widget>[
-                        FittedContainer(
-                          fit: BoxFit.cover,
-                          width: cameraController.value.previewSize?.height ?? 0,
-                          height: cameraController.value.previewSize?.width ?? 0,
-                          child: AspectRatio(
-                            aspectRatio: cameraController.value.aspectRatio,
-                            child: CameraPreview(cameraController),
-                          ),
-                        ),
-                        Align(
-                          alignment: widget.closeButtonPosition,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: widget.closeButton,
-                          ),
-                        ),
-                        if (widget.takeStoryBuilder != null)
-                          widget.takeStoryBuilder(type, animation, _processStory),
-                        widget.publisherLayerBuilder(context, type, _sendExternalMedia),
-                      ],
-                    );
-                    break;
-                  default:
-                    return widget.mediaPlaceholder ?? StoryLoading();
-                }
-              },
+                      break;
+                    default:
+                      return widget.mediaPlaceholder ?? StoryLoading();
+                  }
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -327,8 +350,9 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     return ExternalMediaStatus.valid;
   }
 
-  void _goToStoryResult() {
-    Navigator.push(
+  void _goToStoryResult() async {
+    widget.publisherController?._detachPublisher();
+    await Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (context, anim, anim2) {
@@ -348,10 +372,12 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         },
       ),
     );
+    widget.publisherController?._attachPublisher(this);
   }
 }
 
 class _StoryPublisherResult extends StatefulWidget {
+  final bool enableSafeArea;
   final StoriesSettings settings;
   final StoryController storyController;
   final PublisherController publisherController;
@@ -377,6 +403,7 @@ class _StoryPublisherResult extends StatefulWidget {
     this.closeButtonPosition,
     this.backgroundBetweenStories,
     this.resultInfoBuilder,
+    this.enableSafeArea = true,
   })  : assert(filePath != null, "The [filePath] can't be null"),
         assert(type != null, "The [type] can't be null"),
         super(key: key);
@@ -413,6 +440,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     publisherController = widget.publisherController;
     storyController = widget.storyController;
 
+    publisherController?._attachResult(this);
+
     publisherController.addStatus(PublisherStatus.showingResult);
 
     storyFile = File(widget.filePath);
@@ -440,6 +469,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     controller?.pause();
     controller?.dispose();
     playbackSubscription?.cancel();
+    publisherController?._detachResult();
     // widget.onMyStoriesClosed?.call();
     super.dispose();
   }
@@ -450,6 +480,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       backgroundColor: widget.backgroundBetweenStories,
       resizeToAvoidBottomPadding: false,
       body: SafeArea(
+        top: widget.enableSafeArea,
+        bottom: widget.enableSafeArea,
         child: Stack(
           children: <Widget>[
             StoryWidget(story: _buildPreview()),
@@ -494,6 +526,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         return RepaintBoundary(
           key: _globalKey,
           child: Stack(
+            fit: StackFit.loose,
             children: <Widget>[
               Positioned.fill(
                 child: Image.file(
@@ -502,11 +535,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
                   filterQuality: FilterQuality.high,
                 ),
               ),
-              for (var render in mediaAttachments)
-                Align(
-                  alignment: Alignment.center,
-                  child: MultiGestureWidget(child: render),
-                )
+              for (var render in mediaAttachments) render,
             ],
           ),
         );

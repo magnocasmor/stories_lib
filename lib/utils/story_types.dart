@@ -13,7 +13,7 @@ typedef MyStoriesPreviewBuilder = Widget Function(BuildContext, ImageProvider, b
 
 typedef TakeStoryBuilder = Widget Function(StoryType, Animation<double>, void Function(StoryType));
 
-typedef PublishLayerBuilder = Widget Function(BuildContext, StoryType, ExternalMediaCallback);
+typedef PublishLayerBuilder = Widget Function(BuildContext, StoryType);
 
 typedef ResultLayerBuilder = Widget Function(BuildContext, File,
     void Function(List<AttachmentWidget>), void Function({List<dynamic> selectedReleases}));
