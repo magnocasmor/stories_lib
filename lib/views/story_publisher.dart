@@ -5,9 +5,11 @@ import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
 import 'package:stories_lib/components/attachment_widget.dart';
 import 'package:stories_lib/configs/story_controller.dart';
+import 'package:stories_lib/utils/exceptions.dart';
 import 'package:stories_lib/utils/fix_image_orientation.dart';
 import 'package:stories_lib/utils/story_types.dart';
 import 'package:uuid/uuid.dart';
+import 'package:path/path.dart' as path;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -99,27 +101,45 @@ class PublisherController {
     _resultState.removeAttachment(attachment);
   }
 
+  Future<File> saveStory(String directory) async {
+    assert(_resultState != null, "No [_StoryPublisherResult] attached to controller");
+
+    var filePath;
+
+    if (_resultState.widget.type == StoryType.image) {
+      filePath = await _resultState._capturePng();
+    } else {
+      filePath = _resultState.widget.filePath;
+    }
+
+    final basename = path.basename(filePath);
+
+    final file = File(path.join(directory, basename));
+
+    return file.writeAsBytes(await File(filePath).readAsBytes());
+  }
+
   void dispose() {
     _uploadStatus?.close();
   }
 }
 
 class StoryPublisher extends StatefulWidget {
-  final bool enableSafeArea;
-  final StoriesSettings settings;
-  final StoryController storyController;
-  final PublisherController publisherController;
+  final Widget mediaError;
   final Widget closeButton;
+  final bool enableSafeArea;
+  final Widget mediaPlaceholder;
+  final StoriesSettings settings;
+  final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
-  final Widget mediaError;
-  final Widget mediaPlaceholder;
+  final StoryController storyController;
   final TakeStoryBuilder takeStoryBuilder;
-  final PublishLayerBuilder publisherLayerBuilder;
   final ResultLayerBuilder resultInfoBuilder;
-  final VoidCallback onStoryPosted;
   final VoidCallback onStoryCollectionClosed;
   final VoidCallback onStoryCollectionOpenned;
+  final PublisherController publisherController;
+  final PublishLayerBuilder publisherLayerBuilder;
 
   const StoryPublisher({
     Key key,
@@ -161,9 +181,9 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     widget.onStoryCollectionOpenned?.call();
 
-    cameraInitialization = initializeController(direction: CameraLensDirection.front);
+    cameraInitialization = initializeController(direction: widget.settings.initialCamera);
 
-    type = StoryType.image;
+    type = widget.settings.initialType;
 
     videoDuration = widget.settings.videoDuration;
 
@@ -186,10 +206,6 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return publishStory();
-  }
-
-  Widget publishStory() {
     return Scaffold(
       backgroundColor: widget.backgroundBetweenStories,
       body: SafeArea(
@@ -202,10 +218,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                 future: cameraInitialization,
                 builder: (context, snapshot) {
                   if (snapshot.hasError)
-                    return widget.mediaError ??
-                        StoryError(
-                          info: "Open camera failed.",
-                        );
+                    return widget.mediaError ?? StoryError(info: "Open camera failed.");
                   switch (snapshot.connectionState) {
                     case ConnectionState.done:
                       return Stack(
@@ -219,16 +232,18 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                               child: CameraPreview(cameraController),
                             ),
                           ),
-                          Align(
-                            alignment: widget.closeButtonPosition,
-                            child: GestureDetector(
-                              onTap: () => Navigator.pop(context),
-                              child: widget.closeButton,
+                          if (widget.closeButton != null)
+                            Align(
+                              alignment: widget.closeButtonPosition,
+                              child: GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: widget.closeButton,
+                              ),
                             ),
-                          ),
                           if (widget.takeStoryBuilder != null)
                             widget.takeStoryBuilder(type, animation, _processStory),
-                          widget.publisherLayerBuilder(context, type),
+                          if (widget.publisherLayerBuilder != null)
+                            widget.publisherLayerBuilder(context, type),
                         ],
                       );
                       break;
@@ -294,33 +309,47 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     }
   }
 
+  bool get isCameraReady =>
+      cameraController.value.isInitialized &&
+      !cameraController.value.isTakingPicture &&
+      !cameraController.value.isRecordingVideo;
+
   void _takePicture() async {
-    if (cameraController.value.isRecordingVideo) return;
+    if (!isCameraReady) return;
 
     storyPath = await _pathToNewFile('jpg');
+
     await cameraController.takePicture(storyPath);
+
     try {
       storyPath = await fixExifRotation(storyPath, isFront: direction == CameraLensDirection.front);
     } catch (e, s) {
-      print(e);
-      print(s);
+      debugPrint(e.toString());
+      debugPrint(s.toString());
     }
+
     setState(() => type = StoryType.image);
 
     _goToStoryResult();
   }
 
   void _startVideoRecording() async {
-    if (cameraController.value.isTakingPicture) return;
+    if (isCameraReady) return;
+
     storyPath = await _pathToNewFile('mp4');
+
     await cameraController.prepareForVideoRecording();
+
     await HapticFeedback.vibrate();
+
     await cameraController.startVideoRecording(storyPath);
 
     videoTimer?.cancel();
+
     videoTimer = Timer(videoDuration, _stopVideoRecording);
 
     setState(() => type = StoryType.video);
+
     animationController.forward();
   }
 
@@ -328,19 +357,23 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     if (cameraController.value.isTakingPicture) return;
 
     videoTimer?.cancel();
+
     animationController.stop();
+
     await cameraController.stopVideoRecording();
+
     animationController.reset();
 
     _goToStoryResult();
   }
 
-  Future<ExternalMediaStatus> _sendExternalMedia(File file, StoryType type) async {
+  Future<void> _sendExternalMedia(File file, StoryType type) async {
     if (file == null || !file.existsSync()) {
-      return ExternalMediaStatus.does_not_exist;
+      throw FileSystemException("The [File] is null or doesn't exists", file.path);
     }
 
     storyPath = file.path;
+
     this.type = type;
 
     if (type == StoryType.video) {
@@ -349,14 +382,13 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       await videoCtrl.initialize();
 
       if (videoCtrl.value.initialized) {
-        if (videoCtrl.value.duration.inSeconds > videoDuration.inSeconds)
-          return ExternalMediaStatus.duration_exceeded;
+        if (videoCtrl.value.duration.inSeconds > videoDuration.inSeconds) {
+          ExceededDurationException();
+        }
       }
     }
 
     _goToStoryResult();
-
-    return ExternalMediaStatus.valid;
   }
 
   void _goToStoryResult() async {
@@ -366,17 +398,17 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       PageRouteBuilder(
         pageBuilder: (context, anim, anim2) {
           return _StoryPublisherResult(
-            settings: widget.settings,
-            publisherController: widget.publisherController,
-            storyController: widget.storyController,
             type: type,
             filePath: storyPath,
-            onStoryPosted: widget.onStoryPosted,
-            onMyStoriesClosed: widget.onStoryCollectionClosed,
-            backgroundBetweenStories: widget.backgroundBetweenStories,
+            settings: widget.settings,
             closeButton: widget.closeButton,
-            closeButtonPosition: widget.closeButtonPosition,
+            onStoryPosted: widget.onStoryPosted,
+            enableSafeArea: widget.enableSafeArea,
+            storyController: widget.storyController,
             resultInfoBuilder: widget.resultInfoBuilder,
+            publisherController: widget.publisherController,
+            closeButtonPosition: widget.closeButtonPosition,
+            backgroundBetweenStories: widget.backgroundBetweenStories,
           );
         },
       ),
@@ -386,25 +418,23 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 }
 
 class _StoryPublisherResult extends StatefulWidget {
-  final bool enableSafeArea;
-  final StoriesSettings settings;
-  final StoryController storyController;
-  final PublisherController publisherController;
   final StoryType type;
   final String filePath;
-  final VoidCallback onStoryPosted;
-  final VoidCallback onMyStoriesClosed;
   final Widget closeButton;
+  final bool enableSafeArea;
+  final StoriesSettings settings;
+  final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
+  final StoryController storyController;
   final ResultLayerBuilder resultInfoBuilder;
+  final PublisherController publisherController;
 
   _StoryPublisherResult({
     Key key,
     @required this.type,
     @required this.filePath,
     this.onStoryPosted,
-    this.onMyStoriesClosed,
     this.settings,
     this.storyController,
     this.publisherController,
@@ -422,11 +452,9 @@ class _StoryPublisherResult extends StatefulWidget {
 }
 
 class _StoryPublisherResultState extends State<_StoryPublisherResult> {
-  File storyFile;
+  String filePath;
 
-  String compressedPath;
-
-  Future compressFuture;
+  Future future;
 
   VideoPlayerController controller;
 
@@ -434,31 +462,23 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
   StreamSubscription playbackSubscription;
 
-  List<Widget> mediaAttachments = <Widget>[];
+  List<Widget> mediaAttachments = <AttachmentWidget>[];
 
   final _globalKey = GlobalKey();
 
-  PublisherController publisherController;
-
-  StoryController storyController;
-
   @override
   void initState() {
+    widget.publisherController?._attachResult(this);
+
     _compress();
 
-    publisherController = widget.publisherController;
-    storyController = widget.storyController;
-
-    publisherController?._attachResult(this);
-
-    storyFile = File(widget.filePath);
     if (widget.type == StoryType.video) {
-      controller = VideoPlayerController.file(storyFile);
+      controller = VideoPlayerController.file(File(widget.filePath));
       controller.setLooping(true);
       controllerFuture = controller.initialize();
     }
 
-    playbackSubscription = storyController?.playbackNotifier?.listen(
+    playbackSubscription = widget.storyController?.playbackNotifier?.listen(
       (playbackStatus) {
         if (playbackStatus == PlaybackState.play) {
           controller?.play();
@@ -476,8 +496,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     controller?.pause();
     controller?.dispose();
     playbackSubscription?.cancel();
-    publisherController?._detachResult();
-    // widget.onMyStoriesClosed?.call();
+    widget.publisherController?._detachResult();
     super.dispose();
   }
 
@@ -506,29 +525,17 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     );
   }
 
-  void addAttachment(AttachmentWidget attachment) {
-    setState(() => mediaAttachments.add(attachment));
-  }
+  Future<String> _capturePng() async {
+    RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
+    ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+    ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    var pngBytes = byteData.buffer.asUint8List();
+    final temp = await getTemporaryDirectory();
+    final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.png');
 
-  void removeAttachment(AttachmentWidget attachment) {
-    setState(() => mediaAttachments.remove(attachment));
-  }
+    final file = await File(newPath).writeAsBytes(pngBytes);
 
-  Future<void> _capturePng() async {
-    try {
-      RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
-      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      var pngBytes = byteData.buffer.asUint8List();
-      final temp = await getTemporaryDirectory();
-      final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.png');
-
-      final file = await File(newPath).writeAsBytes(pngBytes);
-
-      compressedPath = file.path;
-    } catch (e) {
-      print(e);
-    }
+    return file.path;
   }
 
   Widget _buildPreview() {
@@ -541,7 +548,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
             children: <Widget>[
               Positioned.fill(
                 child: Image.file(
-                  storyFile,
+                  File(widget.filePath),
                   fit: BoxFit.cover,
                   filterQuality: FilterQuality.high,
                 ),
@@ -582,54 +589,51 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   void _compress() {
     switch (widget.type) {
       case StoryType.video:
-        compressFuture = _compressVideo().then((path) => compressedPath = path);
+        future = _compressVideo().then((path) => filePath = path);
         break;
       case StoryType.image:
-        compressFuture = _compressImage().then((path) => compressedPath = path);
+        future = _compressImage().then((path) => filePath = path);
         break;
       default:
     }
   }
 
   Future<void> _sendStory({
-    File newStoryFile,
     String caption,
-    List<dynamic> selectedReleases,
-    bool needCompress = false,
+    List<dynamic> selectedReleases = const [],
   }) async {
     try {
-      publisherController.addStatus(PublisherStatus.compressing);
+      widget.publisherController.addStatus(PublisherStatus.compressing);
 
-      if (newStoryFile is File && newStoryFile.existsSync()) {
-        if (needCompress)
-          _compress();
-        else
-          compressedPath = newStoryFile.path;
+      if (widget.type == StoryType.image) {
+        filePath = await _capturePng();
+      } else {
+        await future;
       }
-      await compressFuture;
-      await _capturePng();
 
-      if (compressedPath is! String) throw Exception("Fail to compress story");
+      if (filePath is! String) throw Exception("Fail to compress story");
 
-      publisherController.addStatus(PublisherStatus.sending);
-      final url = await _uploadFile(compressedPath);
+      widget.publisherController.addStatus(PublisherStatus.sending);
+
+      final url = await _uploadFile(filePath);
 
       if (url is! String) throw Exception("Fail to upload story");
 
-      await _sendToFirestore(url, caption: caption, selectedReleases: selectedReleases);
+      await _dbInput(url, caption: caption, selectedReleases: selectedReleases);
 
-      publisherController.addStatus(PublisherStatus.none);
+      widget.publisherController.addStatus(PublisherStatus.none);
 
       widget.onStoryPosted?.call();
     } catch (e) {
-      publisherController.addStatus(PublisherStatus.failure);
+      widget.publisherController.addStatus(PublisherStatus.failure);
     }
   }
 
   Future<String> _compressImage() async {
-    // debugPrint('image before = ${File(widget.filePath).lengthSync() / 1000} kB');
+    debugPrint('image before = ${File(widget.filePath).lengthSync() / 1000} kB');
 
     final temp = await getTemporaryDirectory();
+
     final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.jpeg');
 
     final compressed = await FlutterImageCompress.compressAndGetFile(
@@ -639,121 +643,111 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       keepExif: true,
     );
 
-    // debugPrint('image after = ${compressed.lengthSync() / 1000} kB');
+    debugPrint('image after = ${compressed.lengthSync() / 1000} kB');
 
     return compressed.path;
   }
 
   Future<String> _compressVideo() async {
-    try {
-      debugPrint('video before = ${File(widget.filePath).lengthSync() / 1000} kB');
+    debugPrint('video before = ${File(widget.filePath).lengthSync() / 1000} kB');
 
-      // final mediaInfo = await VideoCompress.compressVideo(
-      //   widget.filePath,
-      //   deleteOrigin: true,
-      //   quality: VideoQuality.MediumQuality,
-      // );
+    /// TODO: Search a way to compress video sucessfully
+    // final mediaInfo = await VideoCompress.compressVideo(
+    //   widget.filePath,
+    //   deleteOrigin: true,
+    //   quality: VideoQuality.MediumQuality,
+    // );
 
-      // compressedPath = mediaInfo.path;
+    // compressedPath = mediaInfo.path;
 
-      // debugPrint('video after = ${mediaInfo.file.lengthSync() / 1000} kB');
+    // debugPrint('video after = ${mediaInfo.file.lengthSync() / 1000} kB');
 
-      compressedPath = widget.filePath;
+    filePath = widget.filePath;
 
-      return compressedPath;
-    } catch (e, s) {
-      print(e);
-      print(s);
+    return filePath;
+  }
 
-      return null;
-    }
+  void addAttachment(AttachmentWidget attachment) {
+    setState(() => mediaAttachments.add(attachment));
+  }
+
+  void removeAttachment(AttachmentWidget attachment) {
+    setState(() => mediaAttachments.remove(attachment));
   }
 
   Future<String> _uploadFile(String path) async {
-    try {
-      final fileName = basename(path);
+    final fileName = basename(path);
 
-      final fileExt = extension(path);
+    final fileExt = extension(path);
 
-      final storageReference = FirebaseStorage.instance
-          .ref()
-          .child("stories")
-          .child(widget.settings.userId)
-          .child(fileName);
+    final storageReference = FirebaseStorage.instance
+        .ref()
+        .child("stories")
+        .child(widget.settings.userId)
+        .child(fileName);
 
-      final StorageUploadTask uploadTask = storageReference.putFile(
-        File(path),
-        StorageMetadata(
-          contentType: widget.type == StoryType.video ? "video/mp4" : "image/$fileExt",
-        ),
-      );
+    final StorageUploadTask uploadTask = storageReference.putFile(
+      File(path),
+      StorageMetadata(
+        contentType: widget.type == StoryType.video ? "video/mp4" : "image/$fileExt",
+      ),
+    );
 
-      var subs;
-      subs = uploadTask.events.listen((event) {
-        debugPrint(
-            ((event.snapshot.bytesTransferred / event.snapshot.totalByteCount) * 100).toString());
-        if (event.type == StorageTaskEventType.success ||
-            event.type == StorageTaskEventType.success) subs.cancel();
-      });
+    final StorageTaskSnapshot downloadUrl = await uploadTask.onComplete;
 
-      final StorageTaskSnapshot downloadUrl = await uploadTask.onComplete;
-      final String url = await downloadUrl.ref.getDownloadURL();
+    final String url = await downloadUrl.ref.getDownloadURL();
 
-      return url;
-    } catch (e, s) {
-      print(e);
-      print(s);
-
-      return null;
-    }
+    return url;
   }
 
-  Future<void> _sendToFirestore(
+  Future<void> _dbInput(
     String url, {
     String caption,
     List<dynamic> selectedReleases,
   }) async {
-    final settings = widget.settings;
-    try {
-      final firestore = Firestore.instance;
+    final firestore = Firestore.instance;
 
-      final collectionInfo = {
-        "cover_img": settings.coverImg,
-        "last_update": DateTime.now(),
-        "title": {settings.languageCode: settings.username},
-        "releases": settings.releases,
-      };
+    final publishDate = DateTime.now();
 
-      final storyInfo = {
-        "id": Uuid().v4(),
-        "date": DateTime.now(),
-        "media": {settings.languageCode: url},
-        "caption": {settings.languageCode: caption},
-        "releases": selectedReleases,
-        "type": _extractType,
-      };
+    final collectionInfo = {
+      "cover_img": widget.settings.coverImg,
+      "last_update": publishDate,
+      "title": {widget.settings.languageCode: widget.settings.username},
+      "releases": widget.settings.releases,
+    };
 
-      final userDoc =
-          await firestore.collection(settings.collectionDbName).document(settings.userId).get();
+    final storyInfo = {
+      "id": Uuid().v4(),
+      "date": publishDate,
+      "media": {widget.settings.languageCode: url},
+      "caption": {widget.settings.languageCode: caption},
+      "releases": selectedReleases,
+      "type": _extractType,
+    };
 
-      if (userDoc.exists) {
-        final stories = userDoc.data["stories"] ?? List();
-        if (stories is List) {
-          stories.add(storyInfo);
-          await userDoc.reference.updateData(collectionInfo
-            ..addAll({
-              "stories": stories,
-            }));
-        }
-      } else {
-        await userDoc.reference.setData(collectionInfo
-          ..addAll({
-            "stories": [storyInfo]
-          }));
-      }
-    } catch (e, s) {
-      debugPrint(e.toString());
-      debugPrint(s.toString());
+    final doc = await firestore
+        .collection(widget.settings.collectionDbName)
+        .document(widget.settings.userId)
+        .get();
+
+    if (doc.exists) {
+      final stories = doc.data["stories"] ?? List();
+
+      assert(
+          stories is List,
+          "The field [stories] in ${widget.settings.collectionDbName}/"
+          "${widget.settings.userId} need be a List");
+
+      stories.add(storyInfo);
+
+      collectionInfo.addAll({"stories": stories});
+
+      await doc.reference.updateData(collectionInfo);
+    } else {
+      collectionInfo.addAll({
+        "stories": [storyInfo]
+      });
+      await doc.reference.setData(collectionInfo);
     }
   }
 

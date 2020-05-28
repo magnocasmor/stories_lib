@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart' as provider;
 import 'package:stories_lib/components/attachment_widget.dart';
 import 'package:stories_lib/configs/stories_settings.dart';
 import 'package:stories_lib/configs/story_controller.dart';
@@ -305,7 +306,10 @@ class _HomeState extends State<Home> {
               IconButton(
                 icon: Icon(Icons.file_download),
                 color: Colors.white,
-                onPressed: null,
+                onPressed: () async {
+                  final directory = await provider.getApplicationDocumentsDirectory();
+                  await publisherController.saveStory(directory.path);
+                },
               ),
               FloatingActionButton(
                 child: Icon(Icons.send, color: Colors.white),

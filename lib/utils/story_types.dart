@@ -4,7 +4,7 @@ import 'package:stories_lib/views/story_publisher.dart';
 
 import '../views/story_view.dart';
 
-typedef PublishStory = void Function({List<dynamic> selectedReleases});
+typedef PublishStory = void Function({String caption, List<dynamic> selectedReleases});
 
 typedef ExternalMediaCallback = Future<ExternalMediaStatus> Function(File, StoryType);
 

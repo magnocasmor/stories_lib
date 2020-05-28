@@ -25,11 +25,6 @@ Future<String> fixExifRotation(String imagePath, {bool isFront = false}) async {
 
   img.Image fixedImage;
 
-  // if (height < width) {
-  print('Rotating image necessary');
-  print('======> ${exifData['Image Orientation'].printable}');
-  print('======> ${exifData['Image Orientation'].values}');
-
   final info = exifData['Image Orientation'].values.first ?? 0;
 
   switch (info) {
@@ -53,16 +48,6 @@ Future<String> fixExifRotation(String imagePath, {bool isFront = false}) async {
   }
 
   if (isFront) fixedImage = img.flipVertical(fixedImage);
-
-  // rotate
-  // if (exifData['Image Orientation'].printable.contains('Horizontal')) {
-  //   fixedImage = img.copyRotate(originalImage, info * 90);
-  // } else if (exifData['Image Orientation'].printable.contains('180')) {
-  //   fixedImage = img.copyRotate(originalImage, info * -90);
-  // } else {
-  //   fixedImage = img.copyRotate(originalImage, 0);
-  // }
-  // }
 
   // Here you can select whether you'd like to save it as png
   // or jpg with some compression
