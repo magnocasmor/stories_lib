@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:stories_lib/views/story_publisher.dart';
 
+import '../views/story_publisher.dart';
 import '../views/story_view.dart';
 
 typedef PublishStory = void Function({String caption, List<dynamic> selectedReleases});

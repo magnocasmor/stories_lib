@@ -1,12 +1,13 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
-import 'package:stories_lib/models/story.dart';
-import 'package:stories_lib/views/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stories_lib/configs/stories_settings.dart';
-import 'package:stories_lib/configs/story_controller.dart';
-import 'package:stories_lib/models/stories_collection.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+
+import '../configs/stories_settings.dart';
+import '../configs/story_controller.dart';
+import '../models/stories_collection.dart';
+import '../models/story.dart';
+import '../views/story_view.dart';
 
 List<String> storyIds(List<DocumentSnapshot> stories) {
   return stories

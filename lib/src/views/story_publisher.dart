@@ -1,30 +1,31 @@
-import 'dart:io';
-import 'dart:ui' as ui;
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/rendering.dart';
-import 'package:stories_lib/components/attachment_widget.dart';
-import 'package:stories_lib/configs/story_controller.dart';
-import 'package:stories_lib/utils/exceptions.dart';
-import 'package:stories_lib/utils/fix_image_orientation.dart';
-import 'package:stories_lib/utils/story_types.dart';
-import 'package:uuid/uuid.dart';
-import 'package:path/path.dart' as path;
+import 'dart:ui' as ui;
+
 import 'package:camera/camera.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:video_player/video_player.dart';
-import 'package:path/path.dart' show join, basename, extension;
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:video_compress/video_compress.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:stories_lib/components/story_error.dart';
-import 'package:stories_lib/components/story_widget.dart';
-import 'package:stories_lib/configs/stories_settings.dart';
-import 'package:stories_lib/components/story_loading.dart';
-import 'package:stories_lib/components/fitted_container.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path/path.dart' as path;
+import 'package:path/path.dart' show join, basename, extension;
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+import 'package:uuid/uuid.dart';
+import 'package:video_player/video_player.dart';
+
+import '../components/attachment_widget.dart';
+import '../components/fitted_container.dart';
+import '../components/story_error.dart';
+import '../components/story_loading.dart';
+import '../components/story_widget.dart';
+import '../configs/stories_settings.dart';
+import '../configs/story_controller.dart';
+import '../utils/exceptions.dart';
+import '../utils/fix_image_orientation.dart';
+import '../utils/story_types.dart';
 
 enum StoryType { text, image, video, gif }
 

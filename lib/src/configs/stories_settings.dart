@@ -1,7 +1,8 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:stories_lib/views/story_publisher.dart';
+
+import '../views/story_publisher.dart';
 
 class StoriesSettings {
   final bool repeat;

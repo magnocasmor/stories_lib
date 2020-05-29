@@ -1,11 +1,13 @@
 import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:stories_lib/utils/story_types.dart';
-import 'package:stories_lib/views/story_view.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stories_lib/utils/stories_helpers.dart';
-import 'package:stories_lib/configs/stories_settings.dart';
-import 'package:stories_lib/configs/story_controller.dart';
+import 'package:flutter/material.dart';
+
+import '../configs/stories_settings.dart';
+import '../configs/story_controller.dart';
+import '../utils/stories_helpers.dart';
+import '../utils/story_types.dart';
+import 'story_view.dart';
 
 enum _StoriesDirection { next, previous }
 

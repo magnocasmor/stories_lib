@@ -1,15 +1,17 @@
-import 'dart:ui';
 import 'dart:async';
+import 'dart:ui';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:stories_lib/configs/settings.dart';
-import 'package:stories_lib/utils/story_types.dart';
-import 'package:stories_lib/views/story_image.dart';
-import 'package:stories_lib/views/story_video.dart';
-import 'package:stories_lib/utils/color_parser.dart';
-import 'package:stories_lib/components/story_widget.dart';
-import 'package:stories_lib/configs/story_controller.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
+import '../components/story_widget.dart';
+import '../configs/settings.dart';
+import '../configs/story_controller.dart';
+import '../utils/color_parser.dart';
+import '../utils/story_types.dart';
+import '../views/story_image.dart';
+import '../views/story_video.dart';
 
 typedef StoryOverlayInfoBuilder = Widget Function(
   BuildContext context,

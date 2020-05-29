@@ -3,11 +3,12 @@ import 'dart:ui' as ui;
 import 'package:rxdart/subjects.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
-import 'package:stories_lib/configs/settings.dart';
-import 'package:stories_lib/components/story_error.dart';
-import 'package:stories_lib/configs/story_controller.dart';
-import 'package:stories_lib/components/story_loading.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+
+import '../configs/settings.dart';
+import '../components/story_error.dart';
+import '../configs/story_controller.dart';
+import '../components/story_loading.dart';
 
 /// Utitlity to load image (gif, png, jpg, etc) media just once. Resource is
 /// cached to disk with default configurations of [DefaultCacheManager].
