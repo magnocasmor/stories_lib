@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:stories_lib/stories.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart' as provider;
-import 'package:stories_lib/components/attachment_widget.dart';
-import 'package:stories_lib/configs/stories_settings.dart';
-import 'package:stories_lib/configs/story_controller.dart';
-import 'package:stories_lib/utils/story_types.dart';
-import 'package:stories_lib/views/stories.dart';
-import 'package:stories_lib/views/story_publisher.dart';
-import 'package:stories_lib/views/story_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,8 +49,8 @@ class _HomeState extends State<Home> {
       storyTimeValidaty: const Duration(hours: 12),
       coverImg:
           "https://images.unsplash.com/photo-1468218457742-ee484fe2fe4c?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1053&q=80",
-      sortByDescUpdate: true,
-      collectionDbName: "stories",
+      sortByDesc: true,
+      collectionDbPath: "stories",
       storyDuration: const Duration(seconds: 5),
       releases: [
         {"release": 1},

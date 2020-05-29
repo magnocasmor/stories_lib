@@ -1,6 +1,6 @@
-import 'package:flutter/widgets.dart';
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../configs/stories_settings.dart';
@@ -36,110 +36,113 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
 }
 
 List<StoryItem> parseStories(
-  DocumentSnapshot data,
-  StoryController storyController,
+  DocumentSnapshot document,
+  StoryController controller,
   StoriesSettings settings,
-  Widget mediaErrorWidget,
-  Widget mediaLoadingWidget,
+  Widget errorWidget,
+  Widget placeholderWidget,
 ) {
-  final storiesCollection = storiesCollectionFromDocument(data);
+  final storiesCollection = storiesCollectionFromDocument(document);
 
   final storyItems = <StoryItem>[];
 
-  storiesCollection.stories.asMap().forEach(
-    (index, storyData) {
-      if (!isInIntervalToShow(storyData, settings.storyTimeValidaty)) return;
+  for (Story story in storiesCollection.stories) {
+    final index = storiesCollection.stories.indexOf(story);
 
-      if (settings.userId != storiesCollection.storyId && !allowToSee(storyData.toJson(), settings))
-        return;
+    if (!isInIntervalToShow(story, settings.storyTimeValidaty)) {
+      continue;
+    }
 
-      final storyId = storyData.id;
-      final storyPreviewImg = storiesCollection.coverImg;
-      final storyTitle = storiesCollection.title[settings.languageCode];
-      final duration = settings.storyDuration;
-      final media = storyData.media != null ? storyData.media[settings.languageCode] : null;
-      final caption = storyData.caption != null ? storyData.caption[settings.languageCode] : null;
+    if (settings.userId != storiesCollection.storyId && !allowToSee(story.toJson(), settings)) {
+      continue;
+    }
 
-      final _shown = isViewed(storyData, settings.userId);
+    final storyId = story.id;
+    final duration = settings.storyDuration;
+    final coverImg = storiesCollection.coverImg;
+    final shown = isViewed(story, settings.userId);
+    final title = storiesCollection.title[settings.languageCode];
+    final media = story.media != null ? story.media[settings.languageCode] : null;
+    final caption = story.caption != null ? story.caption[settings.languageCode] : null;
 
-      switch (storyData.type) {
-        case 'text':
-          storyItems.add(
-            StoryItem.text(
-              text: caption,
-              shown: _shown,
-              storyId: storyId,
-              duration: duration,
-              storyTitle: storyTitle,
-              viewers: storyData.views,
-              postDate: storyData.date,
-              storyPreviewImg: storyPreviewImg,
-              backgroundColor: storyData.backgroundColor,
-            ),
-          );
-          break;
-        case 'image':
-          // final storyImage = CachedNetworkImageProvider(media);
-          storyItems.add(
-            StoryItem.pageGif(
-              shown: _shown,
-              storyId: storyId,
-              caption: caption,
-              url: media,
-              // image: storyImage,
-              duration: duration,
-              viewers: storyData.views,
-              storyTitle: storyTitle,
-              postDate: storyData.date,
-              storyPreviewImg: storyPreviewImg,
-            ),
-          );
-          break;
-        case 'gif':
-          storyItems.add(
-            StoryItem.pageGif(
-              url: media,
-              shown: _shown,
-              storyId: storyId,
-              caption: caption,
-              duration: duration,
-              viewers: storyData.views,
-              storyTitle: storyTitle,
-              postDate: storyData.date,
-              controller: storyController,
-              storyPreviewImg: storyPreviewImg,
-              mediaErrorWidget: mediaErrorWidget,
-              mediaLoadingWidget: mediaLoadingWidget,
-            ),
-          );
-          break;
-        case 'video':
-          storyItems.add(
-            StoryItem.pageVideo(
-              url: media,
-              shown: _shown,
-              storyId: storyId,
-              caption: caption,
-              storyTitle: storyTitle,
-              viewers: storyData.views,
-              postDate: storyData.date,
-              controller: storyController,
-              storyPreviewImg: storyPreviewImg,
-              mediaErrorWidget: mediaErrorWidget,
-              mediaLoadingWidget: mediaLoadingWidget,
-            ),
-          );
-          break;
-        default:
-      }
+    switch (story.type) {
+      case 'text':
+        storyItems.add(
+          StoryItem.text(
+            text: caption,
+            shown: shown,
+            storyId: storyId,
+            duration: duration,
+            storyTitle: title,
+            viewers: story.views,
+            postDate: story.date,
+            storyPreviewImg: coverImg,
+            backgroundColor: story.backgroundColor,
+          ),
+        );
+        break;
+      case 'image':
+        // final storyImage = CachedNetworkImageProvider(media);
+        storyItems.add(
+          StoryItem.pageGif(
+            shown: shown,
+            storyId: storyId,
+            caption: caption,
+            url: media,
+            // image: storyImage,
+            duration: duration,
+            viewers: story.views,
+            storyTitle: title,
+            postDate: story.date,
+            storyPreviewImg: coverImg,
+          ),
+        );
+        break;
+      case 'gif':
+        storyItems.add(
+          StoryItem.pageGif(
+            url: media,
+            shown: shown,
+            storyId: storyId,
+            caption: caption,
+            duration: duration,
+            viewers: story.views,
+            storyTitle: title,
+            postDate: story.date,
+            controller: controller,
+            storyPreviewImg: coverImg,
+            mediaErrorWidget: errorWidget,
+            mediaLoadingWidget: placeholderWidget,
+          ),
+        );
+        break;
+      case 'video':
+        storyItems.add(
+          StoryItem.pageVideo(
+            url: media,
+            shown: shown,
+            storyId: storyId,
+            caption: caption,
+            storyTitle: title,
+            viewers: story.views,
+            postDate: story.date,
+            controller: controller,
+            storyPreviewImg: coverImg,
+            mediaErrorWidget: errorWidget,
+            mediaLoadingWidget: placeholderWidget,
+          ),
+        );
+        break;
+      default:
+    }
 
-      if (index < storiesCollection.stories.length - 1 &&
-          storiesCollection.stories[index + 1].media != null) {
-        DefaultCacheManager()
-            .getSingleFile(storiesCollection.stories[index + 1].media[settings.languageCode]);
-      }
-    },
-  );
+    if (index < storiesCollection.stories.length - 1 &&
+        storiesCollection.stories[index + 1].media != null) {
+      DefaultCacheManager()
+          .getSingleFile(storiesCollection.stories[index + 1].media[settings.languageCode]);
+    }
+  }
+
   return storyItems;
 }
 
@@ -174,5 +177,6 @@ bool isInIntervalToShow(Story story, Duration storyValidaty) {
   return story.date.isAfter(DateTime.now().subtract(storyValidaty));
 }
 
-StoriesCollection storiesCollectionFromDocument(DocumentSnapshot document) =>
-    StoriesCollection.fromJson(document.data..addAll({"story_id": document.documentID}));
+StoriesCollection storiesCollectionFromDocument(DocumentSnapshot document) {
+  return StoriesCollection.fromJson(document.data..addAll({"story_id": document.documentID}));
+}

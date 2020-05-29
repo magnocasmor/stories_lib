@@ -7,12 +7,11 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:video_player/video_player.dart';
 
-import '../components/fitted_container.dart';
-import '../components/story_error.dart';
-import '../components/story_loading.dart';
-import '../configs/settings.dart';
 import '../configs/story_controller.dart';
 import '../views/story_view.dart';
+import '../widgets/fitted_container.dart';
+import '../widgets/story_error.dart';
+import '../widgets/story_loading.dart';
 
 class VideoLoader {
   final String url;

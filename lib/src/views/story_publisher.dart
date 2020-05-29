@@ -16,16 +16,16 @@ import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 
-import '../components/attachment_widget.dart';
-import '../components/fitted_container.dart';
-import '../components/story_error.dart';
-import '../components/story_loading.dart';
-import '../components/story_widget.dart';
 import '../configs/stories_settings.dart';
 import '../configs/story_controller.dart';
 import '../utils/exceptions.dart';
 import '../utils/fix_image_orientation.dart';
 import '../utils/story_types.dart';
+import '../widgets/attachment_widget.dart';
+import '../widgets/fitted_container.dart';
+import '../widgets/story_error.dart';
+import '../widgets/story_loading.dart';
+import '../widgets/story_widget.dart';
 
 enum StoryType { text, image, video, gif }
 
@@ -36,13 +36,20 @@ enum PublisherStatus { none, compressing, sending, failure }
 class PublisherController {
   final _uploadStatus = StreamController<PublisherStatus>()..add(PublisherStatus.none);
 
+  final StoryType initialType;
+
+  final CameraLensDirection initialCamera;
+
   Stream _stream;
 
   _StoryPublisherState _publisherState;
 
   _StoryPublisherResultState _resultState;
 
-  PublisherController() {
+  PublisherController({
+    this.initialType = StoryType.image,
+    this.initialCamera = CameraLensDirection.front,
+  }) {
     _stream = _uploadStatus.stream.asBroadcastStream();
   }
 
@@ -182,9 +189,10 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     widget.onStoryCollectionOpenned?.call();
 
-    cameraInitialization = initializeController(direction: widget.settings.initialCamera);
+    cameraInitialization =
+        initializeController(direction: widget.publisherController.initialCamera);
 
-    type = widget.settings.initialType;
+    type = widget.publisherController.initialType;
 
     videoDuration = widget.settings.videoDuration;
 
@@ -727,7 +735,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     };
 
     final doc = await firestore
-        .collection(widget.settings.collectionDbName)
+        .collection(widget.settings.collectionDbPath)
         .document(widget.settings.userId)
         .get();
 
@@ -736,7 +744,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
       assert(
           stories is List,
-          "The field [stories] in ${widget.settings.collectionDbName}/"
+          "The field [stories] in ${widget.settings.collectionDbPath}/"
           "${widget.settings.userId} need be a List");
 
       stories.add(storyInfo);

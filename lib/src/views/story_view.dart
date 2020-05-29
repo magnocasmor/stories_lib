@@ -5,13 +5,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../components/story_widget.dart';
-import '../configs/settings.dart';
 import '../configs/story_controller.dart';
 import '../utils/color_parser.dart';
+import '../utils/progress_bar_data.dart';
 import '../utils/story_types.dart';
 import '../views/story_image.dart';
 import '../views/story_video.dart';
+import '../widgets/story_widget.dart';
+
+enum LoadState { loading, success, failure }
 
 typedef StoryOverlayInfoBuilder = Widget Function(
   BuildContext context,
@@ -683,125 +685,5 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       value: currentStory ?? widget.storyItems.last,
       child: currentStory?.view ?? widget.storyItems.last.view,
     );
-  }
-}
-
-/// Capsule holding the duration and shown property of each story. Passed down
-/// to the pages bar to render the page indicators.
-class PageData {
-  final bool shown;
-  final Duration duration;
-
-  PageData(this.duration, this.shown);
-}
-
-/// Horizontal bar displaying a row of [StoryProgressIndicator] based on the
-/// [pages] provided.
-class PageBar extends StatefulWidget {
-  final List<PageData> pages;
-  final Animation<double> animation;
-  final IndicatorHeight indicatorHeight;
-
-  PageBar(
-    this.pages,
-    this.animation, {
-    this.indicatorHeight = IndicatorHeight.large,
-    Key key,
-  }) : super(key: key);
-
-  @override
-  State<StatefulWidget> createState() {
-    return PageBarState();
-  }
-}
-
-class PageBarState extends State<PageBar> {
-  double spacing = 4;
-
-  @override
-  void initState() {
-    super.initState();
-
-    int count = widget.pages.length;
-    spacing = count > 15 ? 1 : count > 10 ? 2 : 4;
-  }
-
-  bool isPlaying(PageData page) {
-    return widget.pages.firstWhere((it) => !it.shown, orElse: () => null) == page;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: widget.pages.map(
-        (it) {
-          return Expanded(
-            child: Container(
-              padding: EdgeInsets.only(right: widget.pages.last == it ? 0 : this.spacing),
-              child: AnimatedBuilder(
-                  animation: widget.animation,
-                  builder: (context, snapshot) {
-                    return StoryProgressIndicator(
-                      isPlaying(it) ? widget.animation.value : it.shown ? 1 : 0,
-                      indicatorHeight: widget.indicatorHeight == IndicatorHeight.large ? 5 : 3,
-                    );
-                  }),
-            ),
-          );
-        },
-      ).toList(),
-    );
-  }
-}
-
-/// Custom progress bar. Supposed to be lighter than the
-/// original [ProgressIndicator], and rounded at the sides.
-class StoryProgressIndicator extends StatelessWidget {
-  /// From `0.0` to `1.0`, determines the progress of the indicator
-  final double value;
-  final double indicatorHeight;
-
-  StoryProgressIndicator(
-    this.value, {
-    this.indicatorHeight = 5,
-  }) : assert(indicatorHeight != null && indicatorHeight > 0,
-            "[indicatorHeight] should not be null or less than 1");
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size.fromHeight(
-        this.indicatorHeight,
-      ),
-      foregroundPainter: IndicatorOval(
-        Colors.grey.withOpacity(0.8),
-        this.value,
-      ),
-      painter: IndicatorOval(
-        Colors.white.withOpacity(0.4),
-        1.0,
-      ),
-    );
-  }
-}
-
-class IndicatorOval extends CustomPainter {
-  final Color color;
-  final double widthFactor;
-
-  IndicatorOval(this.color, this.widthFactor);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = this.color;
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            Rect.fromLTWH(0, 0, size.width * this.widthFactor, size.height), Radius.circular(3)),
-        paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return true;
   }
 }
