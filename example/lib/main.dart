@@ -68,17 +68,22 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Stories")),
-      body: Stories(
+      body: Stories.withMyStories(
         settings: settings,
-        storyController: storyController,
         closeButton: closeButton(),
-        infoLayerBuilder: storyInfoLayer,
-        navigationTransition: storyScreenTransition,
+        myPreviewBuilder: myPreview,
         previewBuilder: storyPreview,
-        myStoriesPreview: myStories(),
+        storyController: storyController,
+        infoLayerBuilder: storyInfoLayer,
+        takeStoryBuilder: takeStoryButton,
+        resultInfoBuilder: resultInfoBuilder,
+        myInfoLayerBuilder: myStoryInfoLayer,
+        publisherLayerBuilder: publisherLayer,
         previewListPadding: EdgeInsets.all(8.0),
         backgroundBetweenStories: Colors.black,
         closeButtonPosition: Alignment.topRight,
+        publisherController: publisherController,
+        navigationTransition: storyScreenTransition,
       ),
     );
   }
@@ -251,22 +256,6 @@ class _HomeState extends State<Home> {
       position: animation.drive(tween),
       child: child,
     );
-  }
-
-  Widget myStories() {
-    var myStories = MyStories(
-      settings: settings,
-      storyController: storyController,
-      publisherController: publisherController,
-      closeButton: closeButton(),
-      infoLayerBuilder: myStoryInfoLayer,
-      myPreviewBuilder: myPreview,
-      navigationTransition: storyScreenTransition,
-      publisherLayerBuilder: publisherLayer,
-      takeStoryBuilder: takeStoryButton,
-      resultInfoBuilder: resultInfoBuilder,
-    );
-    return myStories;
   }
 
   Widget resultInfoBuilder(BuildContext context, PublishStory publishStory) {

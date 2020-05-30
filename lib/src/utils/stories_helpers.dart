@@ -35,16 +35,16 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
   }).toList();
 }
 
-List<StoryItem> parseStories(
+List<StoryWrap> parseStories(
   DocumentSnapshot document,
   StoryController controller,
   StoriesSettings settings,
   Widget errorWidget,
-  Widget placeholderWidget,
+  Widget loadingWidget,
 ) {
   final storiesCollection = storiesCollectionFromDocument(document);
 
-  final storyItems = <StoryItem>[];
+  final wraps = <StoryWrap>[];
 
   for (Story story in storiesCollection.stories) {
     final index = storiesCollection.stories.indexOf(story);
@@ -57,79 +57,58 @@ List<StoryItem> parseStories(
       continue;
     }
 
-    final storyId = story.id;
     final duration = settings.storyDuration;
-    final coverImg = storiesCollection.coverImg;
     final shown = isViewed(story, settings.userId);
-    final title = storiesCollection.title[settings.languageCode];
     final media = story.media != null ? story.media[settings.languageCode] : null;
     final caption = story.caption != null ? story.caption[settings.languageCode] : null;
 
     switch (story.type) {
       case 'text':
-        storyItems.add(
-          StoryItem.text(
+        wraps.add(
+          StoryWrap.text(
             text: caption,
             shown: shown,
-            storyId: storyId,
             duration: duration,
-            storyTitle: title,
-            viewers: story.views,
-            postDate: story.date,
-            storyPreviewImg: coverImg,
             backgroundColor: story.backgroundColor,
           ),
         );
         break;
       case 'image':
         // final storyImage = CachedNetworkImageProvider(media);
-        storyItems.add(
-          StoryItem.pageGif(
+        wraps.add(
+          StoryWrap.pageGif(
             shown: shown,
-            storyId: storyId,
             caption: caption,
             url: media,
-            // image: storyImage,
             duration: duration,
-            viewers: story.views,
-            storyTitle: title,
-            postDate: story.date,
-            storyPreviewImg: coverImg,
+            // image: storyImage,
+            errorWidget: errorWidget,
+            loadingWidget: loadingWidget,
           ),
         );
         break;
       case 'gif':
-        storyItems.add(
-          StoryItem.pageGif(
+        wraps.add(
+          StoryWrap.pageGif(
             url: media,
             shown: shown,
-            storyId: storyId,
             caption: caption,
             duration: duration,
-            viewers: story.views,
-            storyTitle: title,
-            postDate: story.date,
             controller: controller,
-            storyPreviewImg: coverImg,
-            mediaErrorWidget: errorWidget,
-            mediaLoadingWidget: placeholderWidget,
+            errorWidget: errorWidget,
+            loadingWidget: loadingWidget,
           ),
         );
         break;
       case 'video':
-        storyItems.add(
-          StoryItem.pageVideo(
+        wraps.add(
+          StoryWrap.pageVideo(
             url: media,
             shown: shown,
-            storyId: storyId,
             caption: caption,
-            storyTitle: title,
-            viewers: story.views,
-            postDate: story.date,
             controller: controller,
-            storyPreviewImg: coverImg,
-            mediaErrorWidget: errorWidget,
-            mediaLoadingWidget: placeholderWidget,
+            errorWidget: errorWidget,
+            loadingWidget: loadingWidget,
           ),
         );
         break;
@@ -138,12 +117,13 @@ List<StoryItem> parseStories(
 
     if (index < storiesCollection.stories.length - 1 &&
         storiesCollection.stories[index + 1].media != null) {
-      DefaultCacheManager()
-          .getSingleFile(storiesCollection.stories[index + 1].media[settings.languageCode]);
+      final next = storiesCollection.stories[index + 1];
+
+      DefaultCacheManager().getSingleFile(next.media[settings.languageCode]);
     }
   }
 
-  return storyItems;
+  return wraps;
 }
 
 bool allowToSee(Map storyData, StoriesSettings settings) {

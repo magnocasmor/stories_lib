@@ -23,10 +23,10 @@ class Stories extends StatefulWidget {
   final Alignment closeButtonPosition;
 
   /// Widget displayed when media fails to load.
-  final Widget mediaError;
+  final Widget errorWidget;
 
   /// Widget displayed while media load.
-  final Widget mediaPlaceholder;
+  final Widget loadingWidget;
 
   final Color backgroundBetweenStories;
 
@@ -67,11 +67,11 @@ class Stories extends StatefulWidget {
 
   Stories({
     @required this.settings,
-    this.mediaError,
+    this.errorWidget,
     this.closeButton,
     this.previewBuilder,
     this.storyController,
-    this.mediaPlaceholder,
+    this.loadingWidget,
     this.infoLayerBuilder,
     this.previewPlaceholder,
     this.previewListPadding,
@@ -87,11 +87,11 @@ class Stories extends StatefulWidget {
 
   Stories.withMyStories({
     @required this.settings,
-    this.mediaError,
+    this.errorWidget,
     this.closeButton,
     this.previewBuilder,
     this.storyController,
-    this.mediaPlaceholder,
+    this.loadingWidget,
     this.infoLayerBuilder,
     this.previewPlaceholder,
     this.previewListPadding,
@@ -113,14 +113,14 @@ class Stories extends StatefulWidget {
     PublishLayerBuilder publisherLayerBuilder,
   }) : myStoriesPreview = MyStories(
           settings: settings,
-          mediaError: mediaError,
+          errorWidget: errorWidget,
           topSafeArea: topSafeArea,
           closeButton: closeButton,
           onStoryPosted: onStoryPosted,
           bottomSafeArea: bottomSafeArea,
           storyController: storyController,
           myPreviewBuilder: myPreviewBuilder,
-          mediaPlaceholder: mediaPlaceholder,
+          loadingWidget: loadingWidget,
           takeStoryBuilder: takeStoryBuilder,
           infoLayerBuilder: myInfoLayerBuilder,
           resultInfoBuilder: resultInfoBuilder,
@@ -190,7 +190,7 @@ class _StoriesState extends State<Stories> {
     return GestureDetector(
       child: CachedNetworkImage(
         imageUrl: story.coverImg ?? "",
-        // placeholder: (context, url) => widget.previewPlaceholder,
+        placeholder: (context, url) => widget.previewPlaceholder,
         imageBuilder: (context, image) {
           return widget.previewBuilder(
             context,
@@ -228,15 +228,15 @@ class _StoriesState extends State<Stories> {
               return StoriesCollectionView(
                 storiesIds: storyIds,
                 settings: widget.settings,
-                mediaError: widget.mediaError,
+                errorWidget: widget.errorWidget,
                 selectedStoryId: story.storyId,
                 topSafeArea: widget.topSafeArea,
                 closeButton: widget.closeButton,
+                loadingWidget: widget.loadingWidget,
                 bottomSafeArea: widget.bottomSafeArea,
                 storyController: widget.storyController,
                 onStoriesClosed: widget.onStoriesClosed,
                 onStoriesOpenned: widget.onStoriesOpenned,
-                mediaPlaceholder: widget.mediaPlaceholder,
                 infoLayerBuilder: widget.infoLayerBuilder,
                 closeButtonPosition: widget.closeButtonPosition,
                 navigationTransition: widget.navigationTransition,
@@ -302,10 +302,10 @@ class MyStories extends StatefulWidget {
   final Alignment closeButtonPosition;
 
   /// Widget displayed when media fails to load.
-  final Widget mediaError;
+  final Widget errorWidget;
 
   /// Widget displayed while media load.
-  final Widget mediaPlaceholder;
+  final Widget loadingWidget;
 
   final Color backgroundBetweenStories;
 
@@ -349,13 +349,13 @@ class MyStories extends StatefulWidget {
 
   MyStories({
     @required this.settings,
-    this.mediaError,
+    this.errorWidget,
     this.closeButton,
+    this.loadingWidget,
     this.onStoryPosted,
     this.storyController,
     this.onStoriesClosed,
     this.onStoriesOpenned,
-    this.mediaPlaceholder,
     this.infoLayerBuilder,
     this.myPreviewBuilder,
     this.takeStoryBuilder,
@@ -460,18 +460,18 @@ class _MyStoriesState extends State<MyStories> {
   Widget get publisher {
     return StoryPublisher(
       settings: widget.settings,
-      mediaError: widget.mediaError,
+      errorWidget: widget.errorWidget,
       closeButton: widget.closeButton,
       onStoryPosted: widget.onStoryPosted,
+      loadingWidget: widget.loadingWidget,
       storyController: widget.storyController,
-      mediaPlaceholder: widget.mediaPlaceholder,
       takeStoryBuilder: widget.takeStoryBuilder,
       resultInfoBuilder: widget.resultInfoBuilder,
       publisherController: widget.publisherController,
       closeButtonPosition: widget.closeButtonPosition,
-      publisherLayerBuilder: widget.publisherLayerBuilder,
       onStoryCollectionClosed: widget.onStoriesClosed,
       onStoryCollectionOpenned: widget.onStoriesOpenned,
+      publisherLayerBuilder: widget.publisherLayerBuilder,
       backgroundBetweenStories: widget.backgroundBetweenStories,
     );
   }
@@ -479,19 +479,19 @@ class _MyStoriesState extends State<MyStories> {
   Widget get myStories {
     return StoriesCollectionView(
       settings: widget.settings,
-      mediaError: widget.mediaError,
+      errorWidget: widget.errorWidget,
       closeButton: widget.closeButton,
+      loadingWidget: widget.loadingWidget,
       storiesIds: [widget.settings.userId],
       storyController: widget.storyController,
       selectedStoryId: widget.settings.userId,
-      mediaPlaceholder: widget.mediaPlaceholder,
-      infoLayerBuilder: (i, t, d, b, c, a, v) =>
-          widget.infoLayerBuilder(i, t, d, b, c, a, v, goToPublisher),
+      onStoriesClosed: widget.onStoriesClosed,
+      onStoriesOpenned: widget.onStoriesOpenned,
       closeButtonPosition: widget.closeButtonPosition,
       navigationTransition: widget.navigationTransition,
-      onStoriesClosed: widget.onStoriesClosed,
       backgroundBetweenStories: widget.backgroundBetweenStories,
-      onStoriesOpenned: widget.onStoriesOpenned,
+      infoLayerBuilder: (i, t, d, b, c, a, v) =>
+          widget.infoLayerBuilder(i, t, d, b, c, a, v, goToPublisher),
     );
   }
 

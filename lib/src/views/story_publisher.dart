@@ -27,116 +27,19 @@ import '../widgets/story_error.dart';
 import '../widgets/story_loading.dart';
 import '../widgets/story_widget.dart';
 
+part '../configs/publisher_controller.dart';
+
 enum StoryType { text, image, video, gif }
 
 enum ExternalMediaStatus { valid, does_not_exist, duration_exceeded }
 
 enum PublisherStatus { none, compressing, sending, failure }
 
-class PublisherController {
-  final _uploadStatus = StreamController<PublisherStatus>()..add(PublisherStatus.none);
-
-  final StoryType initialType;
-
-  final CameraLensDirection initialCamera;
-
-  Stream _stream;
-
-  _StoryPublisherState _publisherState;
-
-  _StoryPublisherResultState _resultState;
-
-  PublisherController({
-    this.initialType = StoryType.image,
-    this.initialCamera = CameraLensDirection.front,
-  }) {
-    _stream = _uploadStatus.stream.asBroadcastStream();
-  }
-
-  Stream<PublisherStatus> get stream => _stream;
-
-  void addStatus(PublisherStatus status) {
-    _uploadStatus?.add(status);
-  }
-
-  void _attachPublisher(_StoryPublisherState p) {
-    _publisherState = p;
-  }
-
-  void _detachPublisher() {
-    _publisherState = null;
-  }
-
-  void _attachResult(_StoryPublisherResultState r) {
-    _resultState = r;
-  }
-
-  void _detachResult() {
-    _resultState = null;
-  }
-
-  void switchCamera() {
-    assert(_publisherState != null, "No [StoryPublisher] attached to controller");
-
-    var direction;
-    switch (_publisherState.direction) {
-      case CameraLensDirection.front:
-        direction = CameraLensDirection.back;
-        break;
-      default:
-        direction = CameraLensDirection.front;
-        break;
-    }
-    _publisherState._changeLens(direction);
-  }
-
-  void changeType(StoryType type) {
-    assert(_publisherState != null, "No [StoryPublisher] attached to controller");
-    _publisherState._changeType(type);
-  }
-
-  Future<ExternalMediaStatus> sendExternal(File file, StoryType type) {
-    return _publisherState._sendExternalMedia(file, type);
-  }
-
-  void addAttachment(AttachmentWidget attachment) {
-    assert(_resultState != null, "No [_StoryPublisherResult] attached to controller");
-    _resultState.addAttachment(attachment);
-  }
-
-  void removeAttachment(AttachmentWidget attachment) {
-    assert(_resultState != null, "No [_StoryPublisherResult] attached to controller");
-    _resultState.removeAttachment(attachment);
-  }
-
-  Future<File> saveStory(String directory) async {
-    assert(_resultState != null, "No [_StoryPublisherResult] attached to controller");
-
-    var filePath;
-
-    if (_resultState.widget.type == StoryType.image) {
-      filePath = await _resultState._capturePng();
-    } else {
-      filePath = _resultState.widget.filePath;
-    }
-
-    final basename = path.basename(filePath);
-
-    final file = File(path.join(directory, basename));
-
-    return file.writeAsBytes(await File(filePath).readAsBytes());
-  }
-
-  void dispose() {
-    _uploadStatus?.close();
-  }
-}
-
 class StoryPublisher extends StatefulWidget {
-  final Widget mediaError;
+  final Widget errorWidget;
   final Widget closeButton;
   final bool enableSafeArea;
-  final Widget mediaPlaceholder;
+  final Widget loadingWidget;
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
@@ -160,8 +63,8 @@ class StoryPublisher extends StatefulWidget {
     this.closeButton,
     this.closeButtonPosition,
     this.backgroundBetweenStories,
-    this.mediaError,
-    this.mediaPlaceholder,
+    this.errorWidget,
+    this.loadingWidget,
     this.takeStoryBuilder,
     this.publisherLayerBuilder,
     this.resultInfoBuilder,
@@ -227,7 +130,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                 future: cameraInitialization,
                 builder: (context, snapshot) {
                   if (snapshot.hasError)
-                    return widget.mediaError ?? StoryError(info: "Open camera failed.");
+                    return widget.errorWidget ?? StoryError(info: "Open camera failed.");
                   switch (snapshot.connectionState) {
                     case ConnectionState.done:
                       return Stack(
@@ -257,7 +160,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                       );
                       break;
                     default:
-                      return widget.mediaPlaceholder ?? StoryLoading();
+                      return widget.loadingWidget ?? StoryLoading();
                   }
                 },
               ),
@@ -343,7 +246,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
   }
 
   void _startVideoRecording() async {
-    if (isCameraReady) return;
+    if (!isCameraReady) return;
 
     storyPath = await _pathToNewFile('mp4');
 

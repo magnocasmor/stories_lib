@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -14,34 +15,34 @@ enum _StoriesDirection { next, previous }
 
 class StoriesCollectionView extends StatefulWidget {
   final bool topSafeArea;
-  final Widget mediaError;
-  final bool bottomSafeArea;
+  final Widget errorWidget;
   final Widget closeButton;
+  final bool bottomSafeArea;
+  final Widget loadingWidget;
   final String selectedStoryId;
-  final Widget mediaPlaceholder;
   final List<String> storiesIds;
   final StoriesSettings settings;
+  final VoidCallback onStoriesClosed;
+  final VoidCallback onStoriesOpenned;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
   final InfoLayerBuilder infoLayerBuilder;
-  final VoidCallback onStoriesClosed;
-  final VoidCallback onStoriesOpenned;
   final RouteTransitionsBuilder navigationTransition;
 
   StoriesCollectionView({
     @required this.storiesIds,
     @required this.selectedStoryId,
     this.settings,
-    this.mediaError,
+    this.errorWidget,
     this.closeButton,
+    this.loadingWidget,
     this.storyController,
-    this.mediaPlaceholder,
-    this.infoLayerBuilder,
-    this.closeButtonPosition,
-    this.onStoriesOpenned,
-    this.navigationTransition,
     this.onStoriesClosed,
+    this.infoLayerBuilder,
+    this.onStoriesOpenned,
+    this.closeButtonPosition,
+    this.navigationTransition,
     this.backgroundBetweenStories,
     this.topSafeArea = true,
     this.bottomSafeArea = false,
@@ -53,21 +54,28 @@ class StoriesCollectionView extends StatefulWidget {
 
 class _StoriesCollectionViewState extends State<StoriesCollectionView> {
   final firestore = Firestore.instance;
+
   PageController pageController;
+
   StoryController storyController;
 
   @override
   void initState() {
     widget.onStoriesOpenned?.call();
+
     storyController = widget.storyController ?? StoryController();
+
     pageController = PageController(initialPage: indexOfStory(widget.selectedStoryId));
+
     super.initState();
   }
 
   @override
   void dispose() {
     storyController?.dispose();
+
     widget.onStoriesClosed?.call();
+
     super.dispose();
   }
 
@@ -76,6 +84,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     return WillPopScope(
       onWillPop: () {
         storyController?.stop();
+
         return Future.value(true);
       },
       child: Scaffold(
@@ -94,19 +103,32 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                     future: getStories(widget.settings, widget.storiesIds[index]),
                     builder: (context, snapshot) {
                       final stories = parseItems(snapshot.data);
+
                       if (stories != null) {
                         return GestureDetector(
                           child: StoryView(
-                            storyItems: stories,
+                            stories: stories,
                             controller: storyController,
                             repeat: widget.settings.repeat,
                             inline: widget.settings.inline,
                             closeButton: widget.closeButton,
                             onComplete: _nextGroupedStories,
-                            infoLayerBuilder: widget.infoLayerBuilder,
-                            previousOnFirstStory: _previousGroupedStories,
+                            infoLayerBuilder: (bars, currentIndex, animation) {
+                              final collection = storiesCollectionFromDocument(snapshot.data);
+
+                              return widget.infoLayerBuilder(
+                                CachedNetworkImageProvider(collection.coverImg ?? ""),
+                                collection.title[widget.settings.languageCode],
+                                collection.stories[currentIndex].date,
+                                bars,
+                                currentIndex,
+                                animation,
+                                collection.stories[currentIndex].views,
+                              );
+                            },
+                            onPreviousFirstStory: _previousGroupedStories,
                             closeButtonPosition: widget.closeButtonPosition,
-                            onStoryShow: (item) => setViewed(snapshot.data, item),
+                            onShowing: (item) => setViewed(snapshot.data, item),
                           ),
                           onVerticalDragUpdate: (details) {
                             if (details.delta.dy > 0) {
@@ -122,7 +144,7 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                           },
                         );
                       } else {
-                        return widget.mediaPlaceholder ?? Center(child: StoryLoading());
+                        return widget.loadingWidget ?? Center(child: StoryLoading());
                       }
                     },
                   ),
@@ -143,45 +165,43 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     );
   }
 
-  void setViewed(DocumentSnapshot data, StoryItem item) {
-    data.reference.get().then(
-      (ds) async {
-        if (ds.documentID == widget.settings.userId) return;
+  void setViewed(DocumentSnapshot data, int index) async {
+    if (index == null) throw NullThrownError();
 
-        final doc = ds.data;
-        final story = doc["stories"].singleWhere((s) => s['id'] == item.storyId);
-        final views = story["views"];
-        final currentView = {
-          "user_id": widget.settings.userId,
-          "user_name": widget.settings.username,
-          "cover_img": widget.settings.coverImg,
-          "date": DateTime.now(),
-        };
+    final ds = await data.reference.get();
 
-        if (views is List) {
-          final hasView = views.any((v) => v["user_id"] == widget.settings.userId);
+    if (ds.documentID == widget.settings.userId) return;
 
-          if (!hasView) {
-            views.add(currentView);
-          }
-        } else {
-          story["views"] = [currentView];
-        }
+    final doc = ds.data;
+    final story = doc["stories"][index];
+    final views = story["views"];
+    final currentView = {
+      "user_id": widget.settings.userId,
+      "user_name": widget.settings.username,
+      "cover_img": widget.settings.coverImg,
+      "date": DateTime.now(),
+    };
 
-        ds.reference.updateData(doc);
-      },
-    );
+    if (views is List) {
+      final hasView = views.any((v) => v["user_id"] == widget.settings.userId);
+
+      if (!hasView) views.add(currentView);
+    } else {
+      story["views"] = [currentView];
+    }
+
+    ds.reference.updateData(doc);
   }
 
-  List<StoryItem> parseItems(DocumentSnapshot data) {
+  List<StoryWrap> parseItems(DocumentSnapshot data) {
     if (data == null) return null;
 
     return parseStories(
       data,
       storyController,
       widget.settings,
-      widget.mediaError,
-      widget.mediaPlaceholder,
+      widget.errorWidget,
+      widget.loadingWidget,
     );
   }
 
