@@ -43,7 +43,7 @@ class _HomeState extends State<Home> {
     super.initState();
 
     settings = StoriesSettings(
-      userId: "00000000000",
+      userId: "HSAanDNIAhndiuhANSIDhasid",
       languageCode: 'pt',
       username: "Jubscleiton",
       storyTimeValidaty: const Duration(hours: 12),
@@ -84,6 +84,12 @@ class _HomeState extends State<Home> {
         closeButtonPosition: Alignment.topRight,
         publisherController: publisherController,
         navigationTransition: storyScreenTransition,
+        onStoriesOpenned: () {
+          SystemChrome.setEnabledSystemUIOverlays([]);
+        },
+        onStoriesClosed: () {
+          SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
+        },
       ),
     );
   }
@@ -140,13 +146,12 @@ class _HomeState extends State<Home> {
       top: 16.0,
       right: 16.0,
       left: 16.0,
+      bottom: 16.0,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Flexible(
-            child: progressBar(bars: bars, current: current, anim: anim),
-          ),
+          progressBar(bars: bars, current: current, anim: anim),
           storyHeader(image: image, title: title, date: date),
         ],
       ),
@@ -189,7 +194,7 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   Text(
-                    "${date.second.toString()}s",
+                    "${DateTime.now().difference(date).inMinutes} min",
                     style: TextStyle(
                       color: Colors.white54,
                       fontSize: 10.0,
@@ -291,7 +296,9 @@ class _HomeState extends State<Home> {
                 color: Colors.white,
                 onPressed: () async {
                   final directory = await provider.getApplicationDocumentsDirectory();
-                  await publisherController.saveStory(directory.path);
+                  final file = await publisherController.saveStory(directory.path);
+
+                  print("Saved in ${file.path}");
                 },
               ),
               FloatingActionButton(
@@ -484,24 +491,49 @@ class _HomeState extends State<Home> {
     List viewers,
     VoidCallback goToPublisher,
   ) {
-    return Positioned(
+    return Positioned.fill(
       top: 16.0,
-      right: 16.0,
-      left: 16.0,
-      bottom: 16.0,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Flexible(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: progressBar(bars: bars, current: current, anim: anim),
           ),
-          storyHeader(
-            image: image,
-            title: "Você",
-            date: date,
-            onImagePressed: goToPublisher,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: storyHeader(
+              image: image,
+              title: "Você",
+              date: date,
+              onImagePressed: goToPublisher,
+            ),
           ),
+          Spacer(),
+          if (viewers != null && viewers.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.black45, Colors.transparent],
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: viewers.map<Widget>((v) {
+                  return Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child:
+                        CircleAvatar(radius: 16.0, backgroundImage: NetworkImage(v["cover_img"])),
+                  );
+                }).toList(),
+              ),
+            )
         ],
       ),
     );
