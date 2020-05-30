@@ -18,7 +18,7 @@ typedef TakeStoryBuilder = Widget Function(
 
 typedef PublishLayerBuilder = Widget Function(BuildContext, StoryType);
 
-typedef ResultLayerBuilder = Widget Function(BuildContext, PublishStory);
+typedef ResultLayerBuilder = Widget Function(BuildContext, StoryType, PublishStory);
 
 typedef InfoLayerBuilder = Widget Function(
   ImageProvider,

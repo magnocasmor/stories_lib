@@ -76,6 +76,11 @@ class StoriesSettings {
   /// is less than [storyTimeValidaty], then user can see the stories.
   final Duration storyTimeValidaty;
 
+  /// Minimun duration in seconds of video record.
+  ///
+  /// Default is 2 seconds.
+  final int minVideoRecord;
+
   StoriesSettings({
     @required this.userId,
     @required this.collectionDbPath,
@@ -86,6 +91,7 @@ class StoriesSettings {
     this.maxFileSize = 5,
     this.storyQuality = 80,
     this.sortByDesc = true,
+    this.minVideoRecord = 2,
     this.languageCode = 'pt',
     this.releases = const [],
     this.storyDuration = const Duration(seconds: 5),

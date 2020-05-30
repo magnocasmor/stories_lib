@@ -285,7 +285,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     animationController.reset();
 
-    if (videoTimer.tick < 3) {
+    if (videoTimer.tick < widget.settings.minVideoRecord) {
       storyPath = null;
       throw ShortDurationException();
     }
@@ -453,7 +453,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         child: Stack(
           children: <Widget>[
             StoryWidget(story: _buildPreview()),
-            widget.resultInfoBuilder(context, _sendStory),
+            widget.resultInfoBuilder(context, widget.type, _sendStory),
             Align(
               alignment: widget.closeButtonPosition,
               child: GestureDetector(

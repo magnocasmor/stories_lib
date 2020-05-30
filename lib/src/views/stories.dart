@@ -85,6 +85,7 @@ class Stories extends StatefulWidget {
     this.closeButtonPosition = Alignment.topRight,
   }) : myStoriesPreview = null;
 
+  /// Build a stories preview list with [MyStories] and same shared widgets.
   Stories.withMyStories({
     @required this.settings,
     this.errorWidget,
@@ -111,28 +112,30 @@ class Stories extends StatefulWidget {
     PublisherController publisherController,
     MyStoriesPreviewBuilder myPreviewBuilder,
     PublishLayerBuilder publisherLayerBuilder,
-  }) : myStoriesPreview = MyStories(
-          settings: settings,
-          errorWidget: errorWidget,
-          topSafeArea: topSafeArea,
-          closeButton: closeButton,
-          loadingWidget: loadingWidget,
-          onStoryPosted: onStoryPosted,
-          bottomSafeArea: bottomSafeArea,
-          storyController: storyController,
-          onStoriesClosed: onStoriesClosed,
-          myPreviewBuilder: myPreviewBuilder,
-          takeStoryBuilder: takeStoryBuilder,
-          infoLayerBuilder: myInfoLayerBuilder,
-          resultInfoBuilder: resultInfoBuilder,
-          publisherController: publisherController,
-          closeButtonPosition: closeButtonPosition,
-          previewPlaceholder: myPreviewPlaceholder,
-          navigationTransition: navigationTransition,
-          publisherLayerBuilder: publisherLayerBuilder,
-          backgroundBetweenStories: backgroundBetweenStories,
-          onStoriesOpenned: onStoriesOpenned,
-        );
+  }) : myStoriesPreview = myPreviewBuilder != null
+            ? MyStories(
+                settings: settings,
+                errorWidget: errorWidget,
+                topSafeArea: topSafeArea,
+                closeButton: closeButton,
+                loadingWidget: loadingWidget,
+                onStoryPosted: onStoryPosted,
+                bottomSafeArea: bottomSafeArea,
+                storyController: storyController,
+                onStoriesClosed: onStoriesClosed,
+                myPreviewBuilder: myPreviewBuilder,
+                takeStoryBuilder: takeStoryBuilder,
+                infoLayerBuilder: myInfoLayerBuilder,
+                resultInfoBuilder: resultInfoBuilder,
+                publisherController: publisherController,
+                closeButtonPosition: closeButtonPosition,
+                previewPlaceholder: myPreviewPlaceholder,
+                navigationTransition: navigationTransition,
+                publisherLayerBuilder: publisherLayerBuilder,
+                backgroundBetweenStories: backgroundBetweenStories,
+                onStoriesOpenned: onStoriesOpenned,
+              )
+            : null;
 
   @override
   _StoriesState createState() => _StoriesState();

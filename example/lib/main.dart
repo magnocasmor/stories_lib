@@ -266,7 +266,7 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget resultInfoBuilder(BuildContext context, PublishStory publishStory) {
+  Widget resultInfoBuilder(BuildContext context, StoryType type, PublishStory publishStory) {
     return Positioned(
       top: 80.0,
       right: 16.0,
