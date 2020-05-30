@@ -97,7 +97,7 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     play();
 
     if (widget.controller != null) {
-      subscription = widget.controller.playbackNotifier.listen(
+      widget.controller.addListener(
         (playbackStatus) {
           if (playbackStatus == PlaybackState.play) {
             unpause();
@@ -105,7 +105,7 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
             pause();
           }
         },
-      );
+      ).then((subs) => subscription = subs);
     }
 
     super.initState();
@@ -159,7 +159,7 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
           if (widget.infoLayerBuilder != null)
             AnimatedOpacity(
               curve: Curves.easeInOutCubic,
-              opacity: animationController.isAnimating ? 1.0 : 0.0,
+              opacity: (animationController?.isAnimating ?? true) ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 500),
               child: widget.infoLayerBuilder(
                 widget.stories.map((it) => PageData(it.duration, it.shown)).toList(),

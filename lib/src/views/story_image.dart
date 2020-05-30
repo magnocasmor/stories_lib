@@ -29,20 +29,19 @@ class ImageLoader {
   /// Load image from cache and/or download, depending on availability and age.
   Future<void> loadImage() async {
     try {
-      this._state.add(LoadState.loading);
+      _state.add(LoadState.loading);
 
-      final file =
-          await DefaultCacheManager().getSingleFile(this.url, headers: this.requestHeaders);
+      final file = await DefaultCacheManager().getSingleFile(url, headers: requestHeaders);
 
       final imageBytes = file.readAsBytesSync();
 
       final codec = await PaintingBinding.instance.instantiateImageCodec(imageBytes);
 
-      this._frames = codec;
+      _frames = codec;
 
-      this._state.add(LoadState.success);
+      _state.add(LoadState.success);
     } catch (e) {
-      this._state.add(LoadState.failure);
+      _state.add(LoadState.failure);
 
       rethrow;
     }
@@ -102,7 +101,7 @@ class _StoryImageState extends State<StoryImage> {
   @override
   void initState() {
     if (widget.controller != null) {
-      this.subscription = widget.controller.playbackNotifier.listen(
+      widget.controller.addListener(
         (playbackState) {
           // for the case of gifs we need to pause/play
           if (widget.imageLoader._frames == null) {
@@ -115,7 +114,7 @@ class _StoryImageState extends State<StoryImage> {
             forward();
           }
         },
-      );
+      ).then((subs) => subscription = subs);
     }
 
     initializeImage();
@@ -125,9 +124,9 @@ class _StoryImageState extends State<StoryImage> {
 
   @override
   void dispose() {
+    subscription?.cancel();
     timer?.cancel();
     frame.close();
-    subscription?.cancel();
     // widget.imageLoader.state.close();
     super.dispose();
   }
@@ -166,24 +165,24 @@ class _StoryImageState extends State<StoryImage> {
       },
     );
 
-    widget.controller?.play();
+    await forward();
 
-    forward();
+    widget.controller?.play();
   }
 
-  void forward() async {
+  Future<void> forward() async {
     this.timer?.cancel();
 
-    if (widget.controller != null &&
-        widget.controller.playbackNotifier.value == PlaybackState.pause) {
-      return;
-    }
+    // if (widget.controller != null &&
+    //     widget.controller.playbackNotifier.value == PlaybackState.pause) {
+    //   return;
+    // }
 
     final nextFrame = await widget.imageLoader.nextFrame;
 
     frame.add(nextFrame.image);
 
-    if (nextFrame.duration > Duration(milliseconds: 0)) {
+    if (nextFrame.duration > Duration.zero) {
       timer = Timer(nextFrame.duration, forward);
     }
   }

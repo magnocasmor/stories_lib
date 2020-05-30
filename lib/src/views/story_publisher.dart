@@ -179,7 +179,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       orElse: () => cameras.first,
     );
 
-    cameraController = CameraController(selectedCamera, ResolutionPreset.medium);
+    cameraController = CameraController(selectedCamera, ResolutionPreset.high);
 
     storyPath = null;
 
@@ -420,7 +420,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       controllerFuture = controller.initialize();
     }
 
-    playbackSubscription = widget.storyController?.playbackNotifier?.listen(
+    widget.storyController.addListener(
       (playbackStatus) {
         if (playbackStatus == PlaybackState.play) {
           controller?.play();
@@ -428,7 +428,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
           controller?.pause();
         }
       },
-    );
+    ).then((subs) => playbackSubscription = subs);
 
     super.initState();
   }

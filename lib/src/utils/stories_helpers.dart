@@ -82,6 +82,7 @@ List<StoryWrap> parseStories(
             url: media,
             duration: duration,
             // image: storyImage,
+            controller: controller,
             errorWidget: errorWidget,
             loadingWidget: loadingWidget,
           ),
