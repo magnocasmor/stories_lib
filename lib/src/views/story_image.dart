@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'package:rxdart/subjects.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
-import 'package:stories_lib/configs/settings.dart';
-import 'package:stories_lib/components/story_error.dart';
-import 'package:stories_lib/configs/story_controller.dart';
-import 'package:stories_lib/components/story_loading.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:rxdart/subjects.dart';
+import 'package:stories_lib/src/views/story_view.dart';
+
+import '../configs/story_controller.dart';
+import '../widgets/story_error.dart';
+import '../widgets/story_loading.dart';
 
 /// Utitlity to load image (gif, png, jpg, etc) media just once. Resource is
 /// cached to disk with default configurations of [DefaultCacheManager].
@@ -16,13 +18,15 @@ class ImageLoader {
 
   final Map<String, dynamic> requestHeaders;
 
-  final _state = BehaviorSubject<LoadState>()..add(LoadState.loading); // by default
+  final _state = BehaviorSubject<LoadState>()..add(LoadState.loading);
 
   ui.Codec _frames;
 
   ImageLoader(this.url, {this.requestHeaders});
 
-  /// Load image from disk cache first, if not found then load from network.
+  Future<ui.FrameInfo> get nextFrame async => await this._frames.getNextFrame();
+
+  /// Load image from cache and/or download, depending on availability and age.
   Future<void> loadImage() async {
     try {
       this._state.add(LoadState.loading);
@@ -43,45 +47,43 @@ class ImageLoader {
       rethrow;
     }
   }
-
-  Future<ui.FrameInfo> get nextFrame => this._frames.getNextFrame();
 }
 
-/// Widget to display animated gifs or still images. Shows a loader while image
-/// is being loaded. Listens to playback states from [controller] to pause and
-/// forward animated media.
+/// Widget to display animated gifs or still images. Shows a loader while image is being loaded.
+///
+/// Listens to playback states from [controller] to pause andforward animated media.
 class StoryImage extends StatefulWidget {
   final BoxFit fit;
+  final Widget errorWidget;
+  final Widget loadingWidget;
   final ImageLoader imageLoader;
-  final Widget mediaErrorWidget;
-  final Widget mediaLoadingWidget;
   final StoryController controller;
 
   StoryImage({
     Key key,
     @required this.imageLoader,
-    this.fit,
     this.controller,
-    this.mediaErrorWidget,
-    this.mediaLoadingWidget,
+    this.errorWidget,
+    this.loadingWidget,
+    this.fit = BoxFit.cover,
   }) : super(key: key ?? UniqueKey());
 
   /// Use this shorthand to fetch images/gifs from the provided [url]
   factory StoryImage.url({
     Key key,
-    String url,
-    Widget mediaErrorWidget,
-    Widget mediaLoadingWidget,
+    @required String url,
+    Widget errorWidget,
+    Widget loadingWidget,
     StoryController controller,
-    BoxFit fit = BoxFit.fitWidth,
+    BoxFit fit = BoxFit.cover,
     Map<String, dynamic> requestHeaders,
   }) {
     return StoryImage(
       key: key,
       fit: fit,
       controller: controller,
-      mediaErrorWidget: mediaErrorWidget,
-      mediaLoadingWidget: mediaLoadingWidget,
+      errorWidget: errorWidget,
+      loadingWidget: loadingWidget,
       imageLoader: ImageLoader(url, requestHeaders: requestHeaders),
     );
   }
@@ -91,18 +93,16 @@ class StoryImage extends StatefulWidget {
 }
 
 class _StoryImageState extends State<StoryImage> {
-  final streamFrame = BehaviorSubject<ui.Image>();
+  final frame = BehaviorSubject<ui.Image>();
 
   Timer timer;
 
-  StreamSubscription<PlaybackState> streamSubscription;
+  StreamSubscription<PlaybackState> subscription;
 
   @override
   void initState() {
-    super.initState();
-
     if (widget.controller != null) {
-      this.streamSubscription = widget.controller.playbackNotifier.listen(
+      this.subscription = widget.controller.playbackNotifier.listen(
         (playbackState) {
           // for the case of gifs we need to pause/play
           if (widget.imageLoader._frames == null) {
@@ -119,52 +119,55 @@ class _StoryImageState extends State<StoryImage> {
     }
 
     initializeImage();
+
+    super.initState();
   }
 
   @override
   void dispose() {
     timer?.cancel();
-    streamFrame.close();
-    streamSubscription?.cancel();
+    frame.close();
+    subscription?.cancel();
     // widget.imageLoader.state.close();
-
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: StreamBuilder<Object>(
-        stream: streamFrame.stream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return widget.mediaErrorWidget ?? StoryError();
-          } else if (snapshot.hasData) {
-            return SizedBox.expand(
-              child: RawImage(
-                image: snapshot.data,
-                fit: widget.fit,
-              ),
-            );
-          } else {
-            return widget.mediaLoadingWidget ?? StoryLoading();
-          }
-        },
-      ),
+    return StreamBuilder<Object>(
+      stream: frame.stream,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return SizedBox.expand(
+            child: RawImage(
+              fit: widget.fit,
+              image: snapshot.data,
+              filterQuality: FilterQuality.high,
+            ),
+          );
+        } else if (snapshot.hasError) {
+          return widget.errorWidget ?? StoryError();
+        } else {
+          return widget.loadingWidget ?? StoryLoading();
+        }
+      },
     );
   }
 
   Future<void> initializeImage() async {
     widget.controller?.pause();
 
-    await widget.imageLoader.loadImage().catchError((e, s) {
-      debugPrint(e);
-      debugPrint(s);
+    await widget.imageLoader.loadImage().catchError(
+      (e, s) {
+        debugPrint(e);
+        debugPrint(s);
 
-      streamFrame.addError(e);
-    });
+        frame.addError(e);
+      },
+    );
 
     widget.controller?.play();
+
     forward();
   }
 
@@ -178,10 +181,10 @@ class _StoryImageState extends State<StoryImage> {
 
     final nextFrame = await widget.imageLoader.nextFrame;
 
-    this.streamFrame.add(nextFrame.image);
+    frame.add(nextFrame.image);
 
     if (nextFrame.duration > Duration(milliseconds: 0)) {
-      this.timer = Timer(nextFrame.duration, forward);
+      timer = Timer(nextFrame.duration, forward);
     }
   }
 }

@@ -1,16 +1,17 @@
-import 'dart:io';
 import 'dart:async';
-import 'package:rxdart/subjects.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:video_player/video_player.dart';
-import 'package:stories_lib/configs/settings.dart';
-import 'package:stories_lib/views/story_view.dart';
-import 'package:stories_lib/components/story_error.dart';
-import 'package:stories_lib/configs/story_controller.dart';
-import 'package:stories_lib/components/story_loading.dart';
-import 'package:stories_lib/components/fitted_container.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:provider/provider.dart';
+import 'package:rxdart/subjects.dart';
+import 'package:video_player/video_player.dart';
+
+import '../configs/story_controller.dart';
+import '../views/story_view.dart';
+import '../widgets/fitted_container.dart';
+import '../widgets/story_error.dart';
+import '../widgets/story_loading.dart';
 
 class VideoLoader {
   final String url;
@@ -19,23 +20,25 @@ class VideoLoader {
 
   final _state = BehaviorSubject<LoadState>()..add(LoadState.loading);
 
-  File _videoFile;
+  File _file;
 
   VideoLoader(this.url, {this.requestHeaders});
 
+  /// Load image from cache and/or download, depending on availability and age.
   Future<File> loadVideo() async {
     try {
-      if (this._videoFile == null) {
+      if (_file == null) {
         final file = await DefaultCacheManager().getSingleFile(
-          this.url,
-          headers: this.requestHeaders,
+          url,
+          headers: requestHeaders,
         );
-        this._videoFile = file;
+
+        _file = file;
       }
 
       _state.add(LoadState.success);
 
-      return _videoFile;
+      return _file;
     } catch (e, s) {
       debugPrint(e.toString());
       debugPrint(s.toString());
@@ -49,35 +52,35 @@ class VideoLoader {
 
 class StoryVideo extends StatefulWidget {
   final BoxFit fit;
-  final Widget mediaErrorWidget;
+  final Widget errorWidget;
+  final Widget loadingWidget;
   final VideoLoader videoLoader;
-  final Widget mediaLoadingWidget;
   final StoryController controller;
 
   StoryVideo({
     Key key,
     @required this.videoLoader,
     this.controller,
-    this.mediaErrorWidget,
-    this.mediaLoadingWidget,
+    this.errorWidget,
+    this.loadingWidget,
     this.fit = BoxFit.cover,
   }) : super(key: key ?? UniqueKey());
 
   static StoryVideo url({
     Key key,
     String url,
-    BoxFit videoFit,
-    Widget mediaErrorWidget,
-    Widget mediaLoadingWidget,
+    Widget errorWidget,
+    Widget loadingWidget,
     StoryController controller,
     Map<String, dynamic> requestHeaders,
+    BoxFit fit = BoxFit.cover,
   }) {
     return StoryVideo(
       key: key,
-      fit: videoFit,
+      fit: fit,
       controller: controller,
-      mediaErrorWidget: mediaErrorWidget,
-      mediaLoadingWidget: mediaLoadingWidget,
+      errorWidget: errorWidget,
+      loadingWidget: loadingWidget,
       videoLoader: VideoLoader(url, requestHeaders: requestHeaders),
     );
   }
@@ -89,47 +92,41 @@ class StoryVideo extends StatefulWidget {
 }
 
 class _StoryVideoState extends State<StoryVideo> {
-  StreamSubscription streamSubscription;
+  StreamSubscription subscription;
 
   VideoPlayerController playerController;
 
   @override
   void dispose() {
     playerController?.dispose();
-    streamSubscription?.cancel();
+    subscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: FutureBuilder<void>(
-        future: initializeController(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            widget.controller.play();
-            return widget.mediaErrorWidget ?? StoryError();
-          }
-
-          final state = snapshot.connectionState;
-
-          switch (state) {
+    return FutureBuilder<void>(
+      future: initializeController(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasError) {
+          switch (snapshot.connectionState) {
             case ConnectionState.done:
-              return SafeArea(
-                child: FittedContainer(
-                  fit: widget.fit,
-                  width: playerController.value.size?.width ?? 0,
-                  height: playerController.value.size?.height ?? 0,
-                  child: VideoPlayer(playerController),
-                ),
+              return FittedContainer(
+                fit: widget.fit,
+                width: playerController.value.size?.width ?? 0,
+                height: playerController.value.size?.height ?? 0,
+                child: VideoPlayer(playerController),
               );
               break;
             default:
-              return widget.mediaLoadingWidget ?? StoryLoading();
+              return widget.loadingWidget ?? StoryLoading();
               break;
           }
-        },
-      ),
+        } else {
+          widget.controller.play();
+          return widget.errorWidget ?? StoryError();
+        }
+      },
     );
   }
 
@@ -145,18 +142,22 @@ class _StoryVideoState extends State<StoryVideo> {
 
       await playerController.initialize();
 
-      Provider.of<StoryItem>(context, listen: false).duration = playerController.value.duration;
+      Provider.of<StoryWrap>(context, listen: false).duration = playerController.value.duration;
 
       widget.controller.play();
 
       if (widget.controller != null) {
         playerController.addListener(checkIfVideoFinished);
-        streamSubscription = widget.controller.playbackNotifier.listen((playbackState) {
+
+        subscription = widget.controller.playbackNotifier.listen((playbackState) {
           if (playbackState == PlaybackState.play) {
             playerController.play();
           } else {
             playerController.pause();
-            if (playbackState == PlaybackState.stop) streamSubscription.cancel();
+
+            if (playbackState == PlaybackState.stop) {
+              subscription.cancel();
+            }
           }
         });
       }
@@ -168,10 +169,11 @@ class _StoryVideoState extends State<StoryVideo> {
   }
 
   void checkIfVideoFinished() {
-    try {
-      if (playerController.value.position.inSeconds == playerController.value.duration.inSeconds) {
-        playerController.removeListener(checkIfVideoFinished);
-      }
-    } catch (e) {}
+    final position = playerController.value.position;
+    final total = playerController.value.duration;
+
+    if (position.compareTo(total) == 0) {
+      playerController.removeListener(checkIfVideoFinished);
+    }
   }
 }

@@ -219,6 +219,15 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.1.8"
+  multi_gesture_widget:
+    dependency: transitive
+    description:
+      path: "."
+      ref: master
+      resolved-ref: "0c7aeb8765e2ccfcdedab3d64740311edb1ae61d"
+      url: "https://github.com/magnocasmor/multi_gesture_widget.git"
+    source: git
+    version: "0.0.1"
   nested:
     dependency: transitive
     description:
@@ -303,13 +312,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.23.1"
-  skeleton_text:
-    dependency: transitive
-    description:
-      name: skeleton_text
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "1.0.0"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -435,5 +437,5 @@ packages:
     source: hosted
     version: "3.6.1"
 sdks:
-  dart: ">=2.7.0-dev <3.0.0"
+  dart: ">=2.7.0 <3.0.0"
   flutter: ">=1.12.13+hotfix.5 <2.0.0"

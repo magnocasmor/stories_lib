@@ -1,7 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
-import 'package:stories_lib/utils/color_parser.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../utils/color_parser.dart';
 
 class Story {
   final String id;

@@ -12,8 +12,8 @@ class FittedContainer extends StatelessWidget {
     @required this.child,
     this.width,
     this.height,
-  })  : assert(fit != null, "[fit] can't be null"),
-        assert(child != null, "[child] can't be null"),
+  })  : assert(fit != null),
+        assert(child != null),
         super(key: key);
 
   @override

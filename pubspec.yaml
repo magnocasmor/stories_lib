@@ -14,7 +14,6 @@ dependencies:
   camera: ^0.5.7+4
   provider: ^4.0.5
   path_provider: ^1.6.7
-  skeleton_text: ^1.0.0
   video_player: ^0.10.9+1
   firebase_core: ^0.4.3+2
   firebase_storage: ^3.1.5
@@ -25,6 +24,11 @@ dependencies:
   # video_compress: ^2.0.0
   exif: ^1.0.2
   image: ^2.1.4
+  multi_gesture_widget:
+    git:
+      url: https://github.com/magnocasmor/multi_gesture_widget.git
+      ref: master
+    version: ^0.0.1
 
 dev_dependencies:
   build_runner: ^1.7.3
