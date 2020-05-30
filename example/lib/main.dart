@@ -100,36 +100,39 @@ class _HomeState extends State<Home> {
     String title,
     bool hasPublish,
   ) {
-    return Column(
-      children: <Widget>[
-        SizedBox(
-          height: 65.0,
-          width: 65.0,
-          child: Stack(
-            children: <Widget>[
-              Positioned.fill(
-                child: CircularProgressIndicator(
-                  value: hasPublish ? 1.0 : 0.0,
-                  backgroundColor: Colors.white,
-                  strokeWidth: 3.0,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.purpleAccent),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Column(
+        children: <Widget>[
+          SizedBox(
+            height: 65.0,
+            width: 65.0,
+            child: Stack(
+              children: <Widget>[
+                Positioned.fill(
+                  child: CircularProgressIndicator(
+                    value: hasPublish ? 1.0 : 0.0,
+                    backgroundColor: Colors.white,
+                    strokeWidth: 3.0,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.purpleAccent),
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(3.0),
-                child: CircleAvatar(
-                  backgroundImage: image,
-                  radius: 30.0,
+                Padding(
+                  padding: const EdgeInsets.all(3.0),
+                  child: CircleAvatar(
+                    backgroundImage: image,
+                    radius: 30.0,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(title),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(title),
+          ),
+        ],
+      ),
     );
   }
 
@@ -142,18 +145,18 @@ class _HomeState extends State<Home> {
     Animation<double> anim,
     List _,
   ) {
-    return Positioned(
-      top: 16.0,
-      right: 16.0,
-      left: 16.0,
-      bottom: 16.0,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          progressBar(bars: bars, current: current, anim: anim),
-          storyHeader(image: image, title: title, date: date),
-        ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            progressBar(bars: bars, current: current, anim: anim),
+            storyHeader(image: image, title: title, date: date),
+          ],
+        ),
       ),
     );
   }
@@ -348,48 +351,51 @@ class _HomeState extends State<Home> {
   }
 
   Widget myPreview(context, image, hasPublish, hasNewPublish) {
-    return Column(
-      children: <Widget>[
-        SizedBox(
-          height: 65.0,
-          width: 65.0,
-          child: Stack(
-            children: <Widget>[
-              Positioned.fill(
-                child: StreamBuilder<PublisherStatus>(
-                  initialData: PublisherStatus.none,
-                  stream: publisherController.stream,
-                  builder: (context, snapshot) {
-                    final sending = snapshot.data == PublisherStatus.compressing ||
-                        snapshot.data == PublisherStatus.sending;
-                    return CircularProgressIndicator(
-                      value: sending ? null : 1.0,
-                      backgroundColor: Colors.white,
-                      strokeWidth: 3.0,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        hasNewPublish
-                            ? Colors.purpleAccent
-                            : (hasPublish ? Colors.grey : Colors.grey),
-                      ),
-                    );
-                  },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Column(
+        children: <Widget>[
+          SizedBox(
+            height: 65.0,
+            width: 65.0,
+            child: Stack(
+              children: <Widget>[
+                Positioned.fill(
+                  child: StreamBuilder<PublisherStatus>(
+                    initialData: PublisherStatus.none,
+                    stream: publisherController.stream,
+                    builder: (context, snapshot) {
+                      final sending = snapshot.data == PublisherStatus.compressing ||
+                          snapshot.data == PublisherStatus.sending;
+                      return CircularProgressIndicator(
+                        value: sending ? null : 1.0,
+                        backgroundColor: Colors.white,
+                        strokeWidth: 3.0,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          hasNewPublish
+                              ? Colors.purpleAccent
+                              : (hasPublish ? Colors.grey : Colors.grey),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(3.0),
-                child: CircleAvatar(
-                  backgroundImage: image,
-                  radius: 30.0,
+                Padding(
+                  padding: const EdgeInsets.all(3.0),
+                  child: CircleAvatar(
+                    backgroundImage: image,
+                    radius: 30.0,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text("Você"),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text("Você"),
+          ),
+        ],
+      ),
     );
   }
 
@@ -491,50 +497,53 @@ class _HomeState extends State<Home> {
     List viewers,
     VoidCallback goToPublisher,
   ) {
-    return Positioned.fill(
-      top: 16.0,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: progressBar(bars: bars, current: current, anim: anim),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: storyHeader(
-              image: image,
-              title: "Você",
-              date: date,
-              onImagePressed: goToPublisher,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: progressBar(bars: bars, current: current, anim: anim),
             ),
-          ),
-          Spacer(),
-          if (viewers != null && viewers.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.black45, Colors.transparent],
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: storyHeader(
+                image: image,
+                title: "Você",
+                date: date,
+                onImagePressed: goToPublisher,
+              ),
+            ),
+            Spacer(),
+            if (viewers != null && viewers.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.black45, Colors.transparent],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: viewers.map<Widget>((v) {
-                  return Padding(
-                    padding: const EdgeInsets.all(2.0),
-                    child:
-                        CircleAvatar(radius: 16.0, backgroundImage: NetworkImage(v["cover_img"])),
-                  );
-                }).toList(),
-              ),
-            )
-        ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: viewers.map<Widget>((v) {
+                    return Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child:
+                          CircleAvatar(radius: 16.0, backgroundImage: NetworkImage(v["cover_img"])),
+                    );
+                  }).toList(),
+                ),
+              )
+          ],
+        ),
       ),
     );
   }

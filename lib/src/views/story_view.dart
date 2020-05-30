@@ -156,11 +156,17 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       child: Stack(
         children: <Widget>[
           currentView,
-          widget.infoLayerBuilder(
-            widget.stories.map((it) => PageData(it.duration, it.shown)).toList(),
-            widget.stories.indexOf(currentStory),
-            animation,
-          ),
+          if (widget.infoLayerBuilder != null)
+            AnimatedOpacity(
+              curve: Curves.easeInOutCubic,
+              opacity: animationController.isAnimating ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 500),
+              child: widget.infoLayerBuilder(
+                widget.stories.map((it) => PageData(it.duration, it.shown)).toList(),
+                widget.stories.indexOf(currentStory),
+                animation,
+              ),
+            ),
           if (widget.closeButton != null)
             Align(
               alignment: widget.closeButtonPosition,
@@ -285,6 +291,8 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     } else {
       pause();
     }
+
+    setState(() {});
   }
 
   void controlUnpause() {
@@ -293,5 +301,6 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     } else {
       unpause();
     }
+    setState(() {});
   }
 }

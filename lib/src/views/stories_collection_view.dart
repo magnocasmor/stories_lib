@@ -114,6 +114,8 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                             closeButton: widget.closeButton,
                             onComplete: _nextGroupedStories,
                             infoLayerBuilder: (bars, currentIndex, animation) {
+                              if (currentIndex < 0) return Container();
+
                               final collection = storiesCollectionFromDocument(snapshot.data);
 
                               return widget.infoLayerBuilder(
@@ -123,7 +125,9 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
                                 bars,
                                 currentIndex,
                                 animation,
-                                collection.stories[currentIndex].views,
+                                collection.stories[currentIndex].views?.where((v) {
+                                  return v["user_id"] != widget.settings.userId;
+                                })?.toList(),
                               );
                             },
                             onPreviousFirstStory: _previousGroupedStories,
@@ -170,7 +174,9 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
 
     final ds = await data.reference.get();
 
-    if (ds.documentID == widget.settings.userId) return;
+    // Set the owner visualization determine if has or not a new story from owner that
+    // he/she doesn't see.
+    // if (ds.documentID == widget.settings.userId) return;
 
     final doc = ds.data;
     final story = doc["stories"][index];
