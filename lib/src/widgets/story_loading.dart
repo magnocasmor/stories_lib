@@ -5,12 +5,14 @@ class StoryLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 70,
-      height: 70,
-      child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        strokeWidth: 3,
+    return Center(
+      child: SizedBox(
+        width: 70,
+        height: 70,
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          strokeWidth: 3,
+        ),
       ),
     );
   }

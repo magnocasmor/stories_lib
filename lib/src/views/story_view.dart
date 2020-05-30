@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../configs/story_controller.dart';
 import '../utils/color_parser.dart';
@@ -171,7 +172,10 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   }
 
   Widget get currentView {
-    return currentStory?.view ?? widget.stories.first.view;
+    return ChangeNotifierProvider.value(
+      value: currentStory ?? widget.stories.last,
+      child: currentStory?.view ?? widget.stories.last.view,
+    );
   }
 
   StoryWrap get currentStory => widget.stories.firstWhere((s) => !s.shown, orElse: () => null);
