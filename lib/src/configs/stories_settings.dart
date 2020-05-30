@@ -53,6 +53,18 @@ class StoriesSettings {
   /// Default is 10 seconds.
   final Duration videoDuration;
 
+  /// Max file size (in MB) to publish story.
+  ///
+  /// When this limit is exceeded, will throw [ExceededSizeException].
+  ///
+  /// Default is 5 MB.
+  final int maxFileSize;
+
+  /// The image quality to compress in [FlutterImageCompress].
+  ///
+  /// Default is 80.
+  final int storyQuality;
+
   /// The stories database path.
   ///
   /// This can't be null or empty
@@ -71,6 +83,8 @@ class StoriesSettings {
     this.username,
     this.repeat = false,
     this.inline = false,
+    this.maxFileSize = 5,
+    this.storyQuality = 80,
     this.sortByDesc = true,
     this.languageCode = 'pt',
     this.releases = const [],

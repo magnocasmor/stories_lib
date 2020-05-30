@@ -54,16 +54,16 @@ class PublisherController {
         direction = CameraLensDirection.front;
         break;
     }
-    _publisherState._changeLens(direction);
+    _publisherState.changeLens(direction);
   }
 
   void changeType(StoryType type) {
     assert(_publisherState != null, "No [StoryPublisher] attached to controller");
-    _publisherState._changeType(type);
+    _publisherState.changeType(type);
   }
 
   Future<ExternalMediaStatus> sendExternal(File file, StoryType type) {
-    return _publisherState._sendExternalMedia(file, type);
+    return _publisherState.sendExternalMedia(file, type);
   }
 
   void addAttachment(AttachmentWidget attachment) {

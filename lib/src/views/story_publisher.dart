@@ -153,7 +153,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                               ),
                             ),
                           if (widget.takeStoryBuilder != null)
-                            widget.takeStoryBuilder(type, animation, _processStory),
+                            widget.takeStoryBuilder(type, animation, processStory),
                           if (widget.publisherLayerBuilder != null)
                             widget.publisherLayerBuilder(context, type),
                         ],
@@ -188,34 +188,34 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     await cameraController.initialize();
   }
 
-  void _changeLens(CameraLensDirection mode) {
+  void changeLens(CameraLensDirection mode) {
     setState(() {
       cameraInitialization = initializeController(direction: mode);
     });
   }
 
-  void _changeType(StoryType type) {
+  void changeType(StoryType type) {
     setState(() {
       this.type = type;
     });
   }
 
-  Future<String> _pathToNewFile(String format) async {
+  Future<String> pathToNewFile(String format) async {
     final tempDir = await getTemporaryDirectory();
 
-    return join(tempDir.path, "${DateTime.now().millisecondsSinceEpoch}.$format");
+    return join(tempDir.path, "story_${DateTime.now().millisecondsSinceEpoch}.$format");
   }
 
-  void _processStory(StoryType type) {
+  void processStory(StoryType type) {
     switch (type) {
       case StoryType.image:
-        _takePicture();
+        takePicture();
         break;
       case StoryType.video:
         if (cameraController.value.isRecordingVideo)
-          _stopVideoRecording();
+          stopVideoRecording();
         else
-          _startVideoRecording();
+          startVideoRecording();
         break;
       default:
     }
@@ -226,10 +226,10 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       !cameraController.value.isTakingPicture &&
       !cameraController.value.isRecordingVideo;
 
-  void _takePicture() async {
+  void takePicture() async {
     if (!isCameraReady) return;
 
-    storyPath = await _pathToNewFile('jpg');
+    storyPath = await pathToNewFile('jpg');
 
     await cameraController.takePicture(storyPath);
 
@@ -242,13 +242,13 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     setState(() => type = StoryType.image);
 
-    _goToStoryResult();
+    goToStoryResult();
   }
 
-  void _startVideoRecording() async {
+  void startVideoRecording() async {
     if (!isCameraReady) return;
 
-    storyPath = await _pathToNewFile('mp4');
+    storyPath = await pathToNewFile('mp4');
 
     await cameraController.prepareForVideoRecording();
 
@@ -258,14 +258,14 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     videoTimer?.cancel();
 
-    videoTimer = Timer(videoDuration, _stopVideoRecording);
+    videoTimer = Timer(videoDuration, stopVideoRecording);
 
     setState(() => type = StoryType.video);
 
     animationController.forward();
   }
 
-  void _stopVideoRecording() async {
+  void stopVideoRecording() async {
     if (cameraController.value.isTakingPicture) return;
 
     videoTimer?.cancel();
@@ -276,10 +276,22 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     animationController.reset();
 
-    _goToStoryResult();
+    final file = File(storyPath);
+
+    if (file == null || !file.existsSync()) {
+      throw FileSystemException("The [File] is null or doesn't exists", file.path);
+    }
+
+    final fileSize = await file.length();
+
+    if (isFileSizeExceeded(fileSize)) throw ExceededSizeException();
+
+    goToStoryResult();
   }
 
-  Future<void> _sendExternalMedia(File file, StoryType type) async {
+  bool isFileSizeExceeded(int size) => size / 1000000 > widget.settings.maxFileSize;
+
+  Future<void> sendExternalMedia(File file, StoryType type) async {
     if (file == null || !file.existsSync()) {
       throw FileSystemException("The [File] is null or doesn't exists", file.path);
     }
@@ -289,21 +301,25 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     this.type = type;
 
     if (type == StoryType.video) {
+      final fileSize = await file.length();
+
+      if (isFileSizeExceeded(fileSize)) throw ExceededSizeException();
+
       final videoCtrl = VideoPlayerController.file(file);
 
       await videoCtrl.initialize();
 
       if (videoCtrl.value.initialized) {
         if (videoCtrl.value.duration.inSeconds > videoDuration.inSeconds) {
-          ExceededDurationException();
+          throw ExceededDurationException();
         }
       }
     }
 
-    _goToStoryResult();
+    goToStoryResult();
   }
 
-  void _goToStoryResult() async {
+  void goToStoryResult() async {
     widget.publisherController?._detachPublisher();
     await Navigator.push(
       context,
@@ -437,19 +453,6 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     );
   }
 
-  Future<String> _capturePng() async {
-    RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
-    ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-    ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    var pngBytes = byteData.buffer.asUint8List();
-    final temp = await getTemporaryDirectory();
-    final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.png');
-
-    final file = await File(newPath).writeAsBytes(pngBytes);
-
-    return file.path;
-  }
-
   Widget _buildPreview() {
     switch (widget.type) {
       case StoryType.image:
@@ -498,13 +501,31 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     }
   }
 
+  Future<String> _capturePng() async {
+    RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
+
+    ui.Image image = await boundary.toImage(pixelRatio: 1.0);
+
+    ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+    final pngBytes = byteData.buffer.asUint8List();
+
+    final temp = await getTemporaryDirectory();
+
+    final newPath = join(temp.path, 'story_${DateTime.now().millisecondsSinceEpoch}.png');
+
+    final file = await File(newPath).writeAsBytes(pngBytes);
+
+    return await _compressImage(file.path);
+  }
+
   void _compress() {
     switch (widget.type) {
       case StoryType.video:
-        future = _compressVideo().then((path) => filePath = path);
+        future = _compressVideo(widget.filePath).then((path) => filePath = path);
         break;
       case StoryType.image:
-        future = _compressImage().then((path) => filePath = path);
+        future = _compressImage(widget.filePath).then((path) => filePath = path);
         break;
       default:
     }
@@ -523,13 +544,19 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         await future;
       }
 
-      if (filePath is! String) throw Exception("Fail to compress story");
+      if (filePath is! String) throw CompressFailException();
+
+      final file = File(filePath);
+
+      if ((await file.length()) > widget.settings.maxFileSize * 1000000) {
+        throw ExceededSizeException();
+      }
 
       widget.publisherController.addStatus(PublisherStatus.sending);
 
       final url = await _uploadFile(filePath);
 
-      if (url is! String) throw Exception("Fail to upload story");
+      if (url is! String) throw UploadFailException();
 
       await _dbInput(url, caption: caption, selectedReleases: selectedReleases);
 
@@ -541,18 +568,18 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     }
   }
 
-  Future<String> _compressImage() async {
-    debugPrint('image before = ${File(widget.filePath).lengthSync() / 1000} kB');
+  Future<String> _compressImage(String path) async {
+    debugPrint('image before = ${File(path).lengthSync() / 1000} kB');
 
     final temp = await getTemporaryDirectory();
 
-    final newPath = join(temp.path, '${DateTime.now().millisecondsSinceEpoch}.jpeg');
+    final newPath = join(temp.path, 'story_${DateTime.now().millisecondsSinceEpoch}.jpeg');
 
     final compressed = await FlutterImageCompress.compressAndGetFile(
-      widget.filePath,
+      path,
       newPath,
-      quality: 90,
       keepExif: true,
+      quality: widget.settings.storyQuality,
     );
 
     debugPrint('image after = ${compressed.lengthSync() / 1000} kB');
@@ -560,8 +587,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     return compressed.path;
   }
 
-  Future<String> _compressVideo() async {
-    debugPrint('video before = ${File(widget.filePath).lengthSync() / 1000} kB');
+  Future<String> _compressVideo(String path) async {
+    // debugPrint('video before = ${File(path).lengthSync() / 1000} kB');
 
     /// TODO: Search a way to compress video sucessfully
     // final mediaInfo = await VideoCompress.compressVideo(
