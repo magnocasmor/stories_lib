@@ -13,3 +13,5 @@ class UploadFailException implements Exception {
 
   UploadFailException([this.message]);
 }
+
+class ShortDurationException implements Exception {}

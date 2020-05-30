@@ -153,7 +153,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                               ),
                             ),
                           if (widget.takeStoryBuilder != null)
-                            widget.takeStoryBuilder(type, animation, processStory),
+                            widget.takeStoryBuilder(context, type, animation, processStory),
                           if (widget.publisherLayerBuilder != null)
                             widget.publisherLayerBuilder(context, type),
                         ],
@@ -206,16 +206,17 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     return join(tempDir.path, "story_${DateTime.now().millisecondsSinceEpoch}.$format");
   }
 
-  void processStory(StoryType type) {
+  Future<void> processStory(StoryType type) async {
     switch (type) {
       case StoryType.image:
-        takePicture();
+        await takePicture();
         break;
       case StoryType.video:
-        if (cameraController.value.isRecordingVideo)
-          stopVideoRecording();
-        else
-          startVideoRecording();
+        if (cameraController.value.isRecordingVideo) {
+          await stopVideoRecording();
+        } else {
+          await startVideoRecording();
+        }
         break;
       default:
     }
@@ -226,7 +227,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       !cameraController.value.isTakingPicture &&
       !cameraController.value.isRecordingVideo;
 
-  void takePicture() async {
+  Future<void> takePicture() async {
     if (!isCameraReady) return;
 
     storyPath = await pathToNewFile('jpg');
@@ -245,7 +246,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     goToStoryResult();
   }
 
-  void startVideoRecording() async {
+  Future<void> startVideoRecording() async {
     if (!isCameraReady) return;
 
     storyPath = await pathToNewFile('mp4');
@@ -258,23 +259,36 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     videoTimer?.cancel();
 
-    videoTimer = Timer(videoDuration, stopVideoRecording);
+    videoTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (t) {
+        if (t.tick == videoDuration.inSeconds) {
+          stopVideoRecording();
+          t.cancel();
+        }
+      },
+    );
 
     setState(() => type = StoryType.video);
 
     animationController.forward();
   }
 
-  void stopVideoRecording() async {
-    if (cameraController.value.isTakingPicture) return;
-
+  Future<void> stopVideoRecording() async {
     videoTimer?.cancel();
+
+    if (cameraController.value.isTakingPicture) return;
 
     animationController.stop();
 
     await cameraController.stopVideoRecording();
 
     animationController.reset();
+
+    if (videoTimer.tick < 3) {
+      storyPath = null;
+      throw ShortDurationException();
+    }
 
     final file = File(storyPath);
 

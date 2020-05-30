@@ -319,16 +319,27 @@ class _HomeState extends State<Home> {
   }
 
   Widget takeStoryButton(
+    BuildContext context,
     StoryType type,
     Animation<double> anim,
-    void Function(StoryType) takeStory,
+    Future<void> Function(StoryType) takeStory,
   ) {
     return Positioned(
       left: 0.0,
       right: 0.0,
       bottom: 72.0,
       child: GestureDetector(
-        onTap: () => takeStory(type),
+        onTap: () => takeStory(type).catchError(
+          (e, s) {
+            if (e is ShortDurationException) {
+              Scaffold.of(context).showSnackBar(SnackBar(
+                content: Text("The video recorded is short than 3 seconds."),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ));
+            }
+          },
+        ),
         child: Center(
           child: SizedBox(
             height: 72.0,

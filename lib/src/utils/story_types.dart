@@ -13,7 +13,8 @@ typedef StoriesPreviewBuilder = Widget Function(BuildContext, ImageProvider, Str
 
 typedef MyStoriesPreviewBuilder = Widget Function(BuildContext, ImageProvider, bool, bool);
 
-typedef TakeStoryBuilder = Widget Function(StoryType, Animation<double>, void Function(StoryType));
+typedef TakeStoryBuilder = Widget Function(
+    BuildContext, StoryType, Animation<double>, Future<void> Function(StoryType));
 
 typedef PublishLayerBuilder = Widget Function(BuildContext, StoryType);
 
