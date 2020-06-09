@@ -49,6 +49,7 @@ class StoryView extends StatefulWidget {
   final Alignment closeButtonPosition;
 
   StoryView({
+    Key key,
     @required this.stories,
     this.controller,
     this.onComplete,
@@ -61,7 +62,8 @@ class StoryView extends StatefulWidget {
     this.closeButtonPosition,
   })  : assert(stories != null && stories.length > 0, "[storyItems] should not be null or empty"),
         assert(repeat != null),
-        assert(inline != null);
+        assert(inline != null),
+        super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -97,15 +99,19 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     play();
 
     if (widget.controller != null) {
-      subscription = widget.controller.playbackNotifier.listen(
+      widget.controller.addListener(
         (playbackStatus) {
           if (playbackStatus == PlaybackState.play) {
             unpause();
           } else if (playbackStatus == PlaybackState.pause) {
             pause();
+          } else if (playbackStatus == PlaybackState.forward) {
+            goForward();
+          } else if (playbackStatus == PlaybackState.previous) {
+            goBack();
           }
         },
-      );
+      ).then((subs) => subscription = subs);
     }
 
     super.initState();
@@ -159,7 +165,7 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
           if (widget.infoLayerBuilder != null)
             AnimatedOpacity(
               curve: Curves.easeInOutCubic,
-              opacity: animationController.isAnimating ? 1.0 : 0.0,
+              opacity: (animationController?.isAnimating ?? true) ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 500),
               child: widget.infoLayerBuilder(
                 widget.stories.map((it) => PageData(it.duration, it.shown)).toList(),
@@ -178,9 +184,10 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   }
 
   Widget get currentView {
+    final last = widget.stories.last;
     return ChangeNotifierProvider.value(
-      value: currentStory ?? widget.stories.last,
-      child: currentStory?.view ?? widget.stories.last.view,
+      value: currentStory ?? last,
+      child: currentStory?.view ?? last.view,
     );
   }
 
@@ -279,10 +286,12 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   void pause() {
     animationController?.stop(canceled: false);
+    setState(() {});
   }
 
   void unpause() {
     animationController?.forward();
+    setState(() {});
   }
 
   void controlPause() {
@@ -291,8 +300,6 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     } else {
       pause();
     }
-
-    setState(() {});
   }
 
   void controlUnpause() {
@@ -301,6 +308,5 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     } else {
       unpause();
     }
-    setState(() {});
   }
 }

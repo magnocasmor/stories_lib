@@ -85,6 +85,7 @@ class Stories extends StatefulWidget {
     this.closeButtonPosition = Alignment.topRight,
   }) : myStoriesPreview = null;
 
+  /// Build a stories preview list with [MyStories] and same shared widgets.
   Stories.withMyStories({
     @required this.settings,
     this.errorWidget,
@@ -111,28 +112,32 @@ class Stories extends StatefulWidget {
     PublisherController publisherController,
     MyStoriesPreviewBuilder myPreviewBuilder,
     PublishLayerBuilder publisherLayerBuilder,
-  }) : myStoriesPreview = MyStories(
-          settings: settings,
-          errorWidget: errorWidget,
-          topSafeArea: topSafeArea,
-          closeButton: closeButton,
-          loadingWidget: loadingWidget,
-          onStoryPosted: onStoryPosted,
-          bottomSafeArea: bottomSafeArea,
-          storyController: storyController,
-          onStoriesClosed: onStoriesClosed,
-          myPreviewBuilder: myPreviewBuilder,
-          takeStoryBuilder: takeStoryBuilder,
-          infoLayerBuilder: myInfoLayerBuilder,
-          resultInfoBuilder: resultInfoBuilder,
-          publisherController: publisherController,
-          closeButtonPosition: closeButtonPosition,
-          previewPlaceholder: myPreviewPlaceholder,
-          navigationTransition: navigationTransition,
-          publisherLayerBuilder: publisherLayerBuilder,
-          backgroundBetweenStories: backgroundBetweenStories,
-          onStoriesOpenned: onStoriesOpenned,
-        );
+    Future<Color> Function(Color) changeBackgroundColor,
+  }) : myStoriesPreview = myPreviewBuilder != null
+            ? MyStories(
+                settings: settings,
+                errorWidget: errorWidget,
+                topSafeArea: topSafeArea,
+                closeButton: closeButton,
+                loadingWidget: loadingWidget,
+                onStoryPosted: onStoryPosted,
+                bottomSafeArea: bottomSafeArea,
+                storyController: storyController,
+                onStoriesClosed: onStoriesClosed,
+                myPreviewBuilder: myPreviewBuilder,
+                takeStoryBuilder: takeStoryBuilder,
+                onStoriesOpenned: onStoriesOpenned,
+                infoLayerBuilder: myInfoLayerBuilder,
+                resultInfoBuilder: resultInfoBuilder,
+                publisherController: publisherController,
+                closeButtonPosition: closeButtonPosition,
+                previewPlaceholder: myPreviewPlaceholder,
+                navigationTransition: navigationTransition,
+                publisherLayerBuilder: publisherLayerBuilder,
+                changeBackgroundColor: changeBackgroundColor,
+                backgroundBetweenStories: backgroundBetweenStories,
+              )
+            : null;
 
   @override
   _StoriesState createState() => _StoriesState();
@@ -347,6 +352,8 @@ class MyStories extends StatefulWidget {
 
   final PublisherController publisherController;
 
+  final Future<Color> Function(Color) changeBackgroundColor;
+
   MyStories({
     @required this.settings,
     this.errorWidget,
@@ -364,6 +371,7 @@ class MyStories extends StatefulWidget {
     this.publisherController,
     this.navigationTransition,
     this.publisherLayerBuilder,
+    this.changeBackgroundColor,
     this.topSafeArea = true,
     this.bottomSafeArea = false,
     this.backgroundBetweenStories = Colors.black,
@@ -376,6 +384,7 @@ class MyStories extends StatefulWidget {
 
 class _MyStoriesState extends State<MyStories> {
   final firestore = Firestore.instance;
+  bool isMyStoriesFinished = true;
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +400,9 @@ class _MyStoriesState extends State<MyStories> {
 
             final isInValidaty = interval.compareTo(widget.settings.storyTimeValidaty) <= 0;
 
-            if (stories.exists && isInValidaty) {
+            final noStory = stories.data["stories"].every((d) => d["deleted"] as bool ?? false);
+
+            if (!noStory && stories.exists && isInValidaty) {
               final storyPreviews = parseStoriesPreview(widget.settings.languageCode, [stories]);
 
               final myPreview = storyPreviews.firstWhere(
@@ -448,22 +459,28 @@ class _MyStoriesState extends State<MyStories> {
     );
   }
 
-  void goToPublisher() => Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 250),
-          transitionsBuilder: widget.navigationTransition,
-          pageBuilder: (context, anim, anim2) => publisher,
-        ),
-      );
+  void goToPublisher() async {
+    isMyStoriesFinished = false;
+    await Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 250),
+        transitionsBuilder: widget.navigationTransition,
+        pageBuilder: (context, anim, anim2) => publisher,
+      ),
+    );
+    isMyStoriesFinished = true;
+  }
 
   Widget get publisher {
     return StoryPublisher(
       settings: widget.settings,
       errorWidget: widget.errorWidget,
       closeButton: widget.closeButton,
+      topSafeArea: widget.topSafeArea,
       onStoryPosted: widget.onStoryPosted,
       loadingWidget: widget.loadingWidget,
+      bottomSafeArea: widget.bottomSafeArea,
       storyController: widget.storyController,
       takeStoryBuilder: widget.takeStoryBuilder,
       resultInfoBuilder: widget.resultInfoBuilder,
@@ -471,6 +488,7 @@ class _MyStoriesState extends State<MyStories> {
       closeButtonPosition: widget.closeButtonPosition,
       onStoryCollectionClosed: widget.onStoriesClosed,
       onStoryCollectionOpenned: widget.onStoriesOpenned,
+      changeBackgroundColor: widget.changeBackgroundColor,
       publisherLayerBuilder: widget.publisherLayerBuilder,
       backgroundBetweenStories: widget.backgroundBetweenStories,
     );
@@ -485,13 +503,16 @@ class _MyStoriesState extends State<MyStories> {
       storiesIds: [widget.settings.userId],
       storyController: widget.storyController,
       selectedStoryId: widget.settings.userId,
-      onStoriesClosed: widget.onStoriesClosed,
+      onStoriesClosed: () {
+        if (isMyStoriesFinished) widget.onStoriesClosed?.call();
+      },
       onStoriesOpenned: widget.onStoriesOpenned,
       closeButtonPosition: widget.closeButtonPosition,
       navigationTransition: widget.navigationTransition,
       backgroundBetweenStories: widget.backgroundBetweenStories,
-      infoLayerBuilder: (i, t, d, b, c, a, v) =>
-          widget.infoLayerBuilder(i, t, d, b, c, a, v, goToPublisher),
+      infoLayerBuilder: (ctx, i, t, d, b, c, a, v) {
+        return widget.infoLayerBuilder(ctx, i, t, d, b, c, a, v, goToPublisher);
+      },
     );
   }
 

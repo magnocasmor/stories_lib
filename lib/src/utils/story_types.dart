@@ -13,13 +13,15 @@ typedef StoriesPreviewBuilder = Widget Function(BuildContext, ImageProvider, Str
 
 typedef MyStoriesPreviewBuilder = Widget Function(BuildContext, ImageProvider, bool, bool);
 
-typedef TakeStoryBuilder = Widget Function(StoryType, Animation<double>, void Function(StoryType));
+typedef TakeStoryBuilder = Widget Function(
+    BuildContext, StoryType, Animation<double>, Future<void> Function(TakeStory));
 
 typedef PublishLayerBuilder = Widget Function(BuildContext, StoryType);
 
-typedef ResultLayerBuilder = Widget Function(BuildContext, PublishStory);
+typedef ResultLayerBuilder = Widget Function(BuildContext, StoryType, PublishStory);
 
 typedef InfoLayerBuilder = Widget Function(
+  BuildContext,
   ImageProvider,
   String,
   DateTime,
@@ -30,6 +32,7 @@ typedef InfoLayerBuilder = Widget Function(
 );
 
 typedef MyInfoLayerBuilder = Widget Function(
+  BuildContext,
   ImageProvider,
   String,
   DateTime,
