@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:multi_gesture_widget/multi_gesture_widget.dart';
 import 'package:path/path.dart' as path;
 import 'package:path/path.dart' show join, basename, extension;
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
@@ -33,12 +34,17 @@ enum StoryType { text, image, video, gif }
 
 enum ExternalMediaStatus { valid, does_not_exist, duration_exceeded }
 
+enum FileOrigin { camera, external }
+
+enum TakeStory { picture, start_record, stop_record }
+
 enum PublisherStatus { none, compressing, sending, failure }
 
 class StoryPublisher extends StatefulWidget {
+  final bool topSafeArea;
   final Widget errorWidget;
   final Widget closeButton;
-  final bool enableSafeArea;
+  final bool bottomSafeArea;
   final Widget loadingWidget;
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
@@ -51,6 +57,7 @@ class StoryPublisher extends StatefulWidget {
   final VoidCallback onStoryCollectionOpenned;
   final PublisherController publisherController;
   final PublishLayerBuilder publisherLayerBuilder;
+  final Future<Color> Function(Color) changeBackgroundColor;
 
   const StoryPublisher({
     Key key,
@@ -68,7 +75,9 @@ class StoryPublisher extends StatefulWidget {
     this.takeStoryBuilder,
     this.publisherLayerBuilder,
     this.resultInfoBuilder,
-    this.enableSafeArea = true,
+    this.changeBackgroundColor,
+    this.topSafeArea = true,
+    this.bottomSafeArea = false,
   }) : super(key: key);
 
   @override
@@ -121,8 +130,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     return Scaffold(
       backgroundColor: widget.backgroundBetweenStories,
       body: SafeArea(
-        top: widget.enableSafeArea,
-        bottom: widget.enableSafeArea,
+        top: widget.topSafeArea,
+        bottom: widget.bottomSafeArea,
         child: Stack(
           children: <Widget>[
             Center(
@@ -206,16 +215,19 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     return join(tempDir.path, "story_${DateTime.now().millisecondsSinceEpoch}.$format");
   }
 
-  Future<void> processStory(StoryType type) async {
+  Future<void> processStory(TakeStory type) async {
     switch (type) {
-      case StoryType.image:
+      case TakeStory.picture:
         await takePicture();
         break;
-      case StoryType.video:
+      case TakeStory.start_record:
+        if (!cameraController.value.isRecordingVideo) {
+          await startVideoRecording();
+        }
+        break;
+      case TakeStory.stop_record:
         if (cameraController.value.isRecordingVideo) {
           await stopVideoRecording();
-        } else {
-          await startVideoRecording();
         }
         break;
       default:
@@ -243,7 +255,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
     setState(() => type = StoryType.image);
 
-    goToStoryResult();
+    goToStoryResult(FileOrigin.camera);
   }
 
   Future<void> startVideoRecording() async {
@@ -252,8 +264,6 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     storyPath = await pathToNewFile('mp4');
 
     await cameraController.prepareForVideoRecording();
-
-    await HapticFeedback.vibrate();
 
     await cameraController.startVideoRecording(storyPath);
 
@@ -296,14 +306,18 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       throw FileSystemException("The [File] is null or doesn't exists", file.path);
     }
 
-    final fileSize = await file.length();
+    // final fileSize = await file.length();
 
-    if (isFileSizeExceeded(fileSize)) throw ExceededSizeException();
+    // if (isFileSizeExceeded(fileSize)) throw ExceededSizeException();
 
-    goToStoryResult();
+    goToStoryResult(FileOrigin.camera);
   }
 
-  bool isFileSizeExceeded(int size) => size / 1000000 > widget.settings.maxFileSize;
+  bool isFileSizeExceeded(int size) {
+    final fileSize = size / 1000000;
+    debugPrint("$fileSize MB");
+    return fileSize > widget.settings.maxFileSize;
+  }
 
   Future<void> sendExternalMedia(File file, StoryType type) async {
     if (file == null || !file.existsSync()) {
@@ -330,10 +344,10 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       }
     }
 
-    goToStoryResult();
+    goToStoryResult(FileOrigin.external);
   }
 
-  void goToStoryResult() async {
+  void goToStoryResult(FileOrigin origin) async {
     widget.publisherController?._detachPublisher();
     await Navigator.push(
       context,
@@ -341,15 +355,18 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         pageBuilder: (context, anim, anim2) {
           return _StoryPublisherResult(
             type: type,
+            origin: origin,
             filePath: storyPath,
             settings: widget.settings,
+            topSafeArea: widget.topSafeArea,
             closeButton: widget.closeButton,
             onStoryPosted: widget.onStoryPosted,
-            enableSafeArea: widget.enableSafeArea,
+            bottomSafeArea: widget.bottomSafeArea,
             storyController: widget.storyController,
             resultInfoBuilder: widget.resultInfoBuilder,
-            publisherController: widget.publisherController,
             closeButtonPosition: widget.closeButtonPosition,
+            publisherController: widget.publisherController,
+            changeBackgroundColor: widget.changeBackgroundColor,
             backgroundBetweenStories: widget.backgroundBetweenStories,
           );
         },
@@ -362,8 +379,10 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 class _StoryPublisherResult extends StatefulWidget {
   final StoryType type;
   final String filePath;
+  final bool topSafeArea;
+  final FileOrigin origin;
   final Widget closeButton;
-  final bool enableSafeArea;
+  final bool bottomSafeArea;
   final StoriesSettings settings;
   final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
@@ -371,6 +390,7 @@ class _StoryPublisherResult extends StatefulWidget {
   final StoryController storyController;
   final ResultLayerBuilder resultInfoBuilder;
   final PublisherController publisherController;
+  final Future<Color> Function(Color) changeBackgroundColor;
 
   _StoryPublisherResult({
     Key key,
@@ -378,13 +398,16 @@ class _StoryPublisherResult extends StatefulWidget {
     @required this.filePath,
     this.onStoryPosted,
     this.settings,
+    this.origin,
     this.storyController,
     this.publisherController,
     this.closeButton,
     this.closeButtonPosition,
     this.backgroundBetweenStories,
     this.resultInfoBuilder,
-    this.enableSafeArea = true,
+    this.changeBackgroundColor,
+    this.topSafeArea = true,
+    this.bottomSafeArea = false,
   })  : assert(filePath != null, "The [filePath] can't be null"),
         assert(type != null, "The [type] can't be null"),
         super(key: key);
@@ -405,6 +428,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   StreamSubscription playbackSubscription;
 
   List<Widget> mediaAttachments = <AttachmentWidget>[];
+
+  Color backgroundColor = Color(0xFF2e2046);
 
   final _globalKey = GlobalKey();
 
@@ -448,8 +473,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       backgroundColor: widget.backgroundBetweenStories,
       resizeToAvoidBottomPadding: false,
       body: SafeArea(
-        top: widget.enableSafeArea,
-        bottom: widget.enableSafeArea,
+        top: widget.topSafeArea,
+        bottom: widget.bottomSafeArea,
         child: Stack(
           children: <Widget>[
             StoryWidget(story: _buildPreview()),
@@ -476,10 +501,28 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
             fit: StackFit.loose,
             children: <Widget>[
               Positioned.fill(
-                child: Image.file(
-                  File(widget.filePath),
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.high,
+                child: StatefulBuilder(builder: (context, change) {
+                  return GestureDetector(
+                    onTap: () async {
+                      backgroundColor = await widget.changeBackgroundColor?.call(backgroundColor);
+                      change(() {});
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      color: backgroundColor,
+                    ),
+                  );
+                }),
+              ),
+              Positioned.fill(
+                child: MultiGestureWidget(
+                  minScale: .5,
+                  maxScale: 5.0,
+                  child: Image.file(
+                    File(widget.filePath),
+                    fit: widget.origin == FileOrigin.camera ? BoxFit.cover : null,
+                    filterQuality: FilterQuality.high,
+                  ),
                 ),
               ),
               for (var render in mediaAttachments) render,
@@ -500,7 +543,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
               return FittedContainer(
-                fit: BoxFit.cover,
+                fit: widget.origin == FileOrigin.camera ? BoxFit.cover : BoxFit.contain,
                 width: controller.value.size.width,
                 height: controller.value.size.height,
                 child: VideoPlayer(controller),

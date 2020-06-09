@@ -2,6 +2,8 @@ part of '../views/story_view.dart';
 
 /// This is a representation of a story item (or page).
 class StoryWrap extends ChangeNotifier {
+  final String storyId;
+
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
   Duration _duration;
@@ -20,6 +22,7 @@ class StoryWrap extends ChangeNotifier {
   final Widget view;
 
   StoryWrap({
+    @required this.storyId,
     @required this.view,
     Duration duration = const Duration(seconds: 5),
     this.shown = false,
@@ -35,6 +38,7 @@ class StoryWrap extends ChangeNotifier {
   /// Works for inline and full-page stories. See [StoryView.inline] for more on
   /// what inline/full-page means.
   factory StoryWrap.text({
+    @required String storyId,
     @required String text,
     @required Color backgroundColor,
     TextStyle style,
@@ -58,6 +62,7 @@ class StoryWrap extends ChangeNotifier {
     ] /** white text */);
 
     return StoryWrap(
+      storyId: storyId,
       view: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
@@ -89,6 +94,7 @@ class StoryWrap extends ChangeNotifier {
   ///
   /// You can provide any image provider for [image].
   factory StoryWrap.pageImage({
+    @required String storyId,
     @required ImageProvider image,
     String caption,
     Widget errorWidget,
@@ -100,6 +106,7 @@ class StoryWrap extends ChangeNotifier {
     assert(fit != null);
 
     return StoryWrap(
+      storyId: storyId,
       view: StoryWidget(
         story: Image(
           image: image,
@@ -114,6 +121,7 @@ class StoryWrap extends ChangeNotifier {
 
   /// Shorthand for creating inline image page.
   factory StoryWrap.inlineImage({
+    @required String storyId,
     @required ImageProvider image,
     bool shown,
     Text caption,
@@ -125,6 +133,7 @@ class StoryWrap extends ChangeNotifier {
     assert(fit != null);
 
     return StoryWrap(
+      storyId: storyId,
       view: Container(
         decoration: BoxDecoration(
           color: Colors.grey[100],
@@ -158,6 +167,7 @@ class StoryWrap extends ChangeNotifier {
   }
 
   factory StoryWrap.pageGif({
+    @required String storyId,
     @required String url,
     bool shown,
     String caption,
@@ -171,6 +181,7 @@ class StoryWrap extends ChangeNotifier {
     assert(fit != null);
 
     return StoryWrap(
+      storyId: storyId,
       view: StoryWidget(
         story: StoryImage.url(
           url: url,
@@ -189,6 +200,7 @@ class StoryWrap extends ChangeNotifier {
 
   /// Shorthand for creating inline gif page.
   factory StoryWrap.inlineGif({
+    @required String storyId,
     @required String url,
     bool shown,
     Text caption,
@@ -202,6 +214,7 @@ class StoryWrap extends ChangeNotifier {
     bool roundedBottom = false,
   }) {
     return StoryWrap(
+      storyId: storyId,
       view: Container(
         decoration: BoxDecoration(
           color: Colors.grey[100],
@@ -250,6 +263,7 @@ class StoryWrap extends ChangeNotifier {
   }
 
   factory StoryWrap.pageVideo({
+    @required String storyId,
     @required String url,
     bool shown,
     String caption,
@@ -262,6 +276,7 @@ class StoryWrap extends ChangeNotifier {
   }) {
     assert(fit != null);
     return StoryWrap(
+      storyId: storyId,
       view: StoryWidget(
         story: StoryVideo.url(
           url: url,

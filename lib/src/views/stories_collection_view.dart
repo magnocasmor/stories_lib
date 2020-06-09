@@ -49,29 +49,39 @@ class StoriesCollectionView extends StatefulWidget {
   });
 
   @override
-  _StoriesCollectionViewState createState() => _StoriesCollectionViewState();
+  StoriesCollectionViewState createState() => StoriesCollectionViewState();
 }
 
-class _StoriesCollectionViewState extends State<StoriesCollectionView> {
+class StoriesCollectionViewState extends State<StoriesCollectionView> {
   final firestore = Firestore.instance;
 
   PageController pageController;
 
   StoryController storyController;
 
+  Future<List<DocumentSnapshot>> storiesDoc;
+
+  String currentStoryId;
+
   @override
   void initState() {
+    storiesDoc = storiesFromIds();
+
     widget.onStoriesOpenned?.call();
 
     storyController = widget.storyController ?? StoryController();
 
     pageController = PageController(initialPage: indexOfStory(widget.selectedStoryId));
 
+    storyController.addCollectionState(this);
+
     super.initState();
   }
 
   @override
   void dispose() {
+    storyController?.removeCollectionState();
+
     storyController?.dispose();
 
     widget.onStoriesClosed?.call();
@@ -92,111 +102,177 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
         body: SafeArea(
           top: widget.topSafeArea,
           bottom: widget.bottomSafeArea,
-          child: PageView.builder(
-            controller: pageController,
-            itemCount: widget.storiesIds.length,
-            physics: NeverScrollableScrollPhysics(),
-            itemBuilder: (context, index) {
-              return Stack(
-                children: <Widget>[
-                  FutureBuilder<DocumentSnapshot>(
-                    future: getStories(widget.settings, widget.storiesIds[index]),
-                    builder: (context, snapshot) {
-                      final stories = parseItems(snapshot.data);
+          child: FutureBuilder<List<DocumentSnapshot>>(
+              future: storiesDoc,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return PageView.builder(
+                    controller: pageController,
+                    itemCount: widget.storiesIds.length,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      final data = snapshot.data[index];
 
-                      if (stories != null) {
-                        return GestureDetector(
-                          child: StoryView(
-                            stories: stories,
-                            controller: storyController,
-                            repeat: widget.settings.repeat,
-                            inline: widget.settings.inline,
-                            closeButton: widget.closeButton,
-                            onComplete: _nextGroupedStories,
-                            infoLayerBuilder: (bars, currentIndex, animation) {
-                              if (currentIndex < 0) return Container();
+                      final stories = parseItems(data);
 
-                              final collection = storiesCollectionFromDocument(snapshot.data);
+                      return Stack(
+                        children: <Widget>[
+                          if (stories != null)
+                            GestureDetector(
+                              child: StoryView(
+                                key: UniqueKey(),
+                                stories: stories,
+                                controller: storyController,
+                                repeat: widget.settings.repeat,
+                                inline: widget.settings.inline,
+                                closeButton: widget.closeButton,
+                                onComplete: _nextGroupedStories,
+                                infoLayerBuilder: (bars, currentIndex, animation) {
+                                  if (currentIndex < 0) return Container();
 
-                              return widget.infoLayerBuilder(
-                                CachedNetworkImageProvider(collection.coverImg ?? ""),
-                                collection.title[widget.settings.languageCode],
-                                collection.stories[currentIndex].date,
-                                bars,
-                                currentIndex,
-                                animation,
-                                collection.stories[currentIndex].views?.where((v) {
-                                  return v["user_id"] != widget.settings.userId;
-                                })?.toList(),
-                              );
-                            },
-                            onPreviousFirstStory: _previousGroupedStories,
-                            closeButtonPosition: widget.closeButtonPosition,
-                            onShowing: (item) => setViewed(snapshot.data, item),
-                          ),
-                          onVerticalDragUpdate: (details) {
-                            if (details.delta.dy > 0) {
-                              _finishStoriesView();
-                            }
-                          },
-                          onHorizontalDragUpdate: (details) {
-                            if (details.delta.dx > 0) {
-                              _previousGroupedStories();
-                            } else {
-                              _nextGroupedStories();
-                            }
-                          },
-                        );
-                      } else {
-                        return widget.loadingWidget ?? Center(child: StoryLoading());
-                      }
+                                  currentStoryId = stories[currentIndex].storyId;
+
+                                  final collection = storiesCollectionFromDocument(data);
+
+                                  final currentStory = collection.stories.singleWhere(
+                                      (s) => s.id == currentStoryId,
+                                      orElse: () => null);
+
+                                  return widget.infoLayerBuilder(
+                                    context,
+                                    CachedNetworkImageProvider(collection.coverImg ?? ""),
+                                    collection.title[widget.settings.languageCode],
+                                    currentStory.date,
+                                    bars,
+                                    currentIndex,
+                                    animation,
+                                    currentStory?.views?.where((v) {
+                                          return v["user_id"] != widget.settings.userId;
+                                        })?.toList() ??
+                                        [],
+                                  );
+                                },
+                                onPreviousFirstStory: _previousGroupedStories,
+                                closeButtonPosition: widget.closeButtonPosition,
+                                onShowing: (i) {
+                                  currentStoryId = stories[i].storyId;
+
+                                  setViewed();
+                                },
+                              ),
+                              onVerticalDragUpdate: (details) {
+                                if (details.delta.dy > 0) {
+                                  _finishStoriesView();
+                                }
+                              },
+                              onHorizontalDragUpdate: (details) {
+                                if (details.delta.dx > 0) {
+                                  _previousGroupedStories();
+                                } else {
+                                  _nextGroupedStories();
+                                }
+                              },
+                            )
+                          else
+                            widget.loadingWidget ?? Center(child: StoryLoading()),
+                          if (widget.closeButton != null)
+                            Align(
+                              alignment: widget.closeButtonPosition,
+                              child: GestureDetector(
+                                onTap: _finishStoriesView,
+                                child: widget.closeButton,
+                              ),
+                            ),
+                        ],
+                      );
                     },
-                  ),
-                  if (widget.closeButton != null)
-                    Align(
-                      alignment: widget.closeButtonPosition,
-                      child: GestureDetector(
-                        onTap: _finishStoriesView,
-                        child: widget.closeButton,
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
+                  );
+                } else {
+                  return widget.loadingWidget ?? StoryLoading();
+                }
+              }),
         ),
       ),
     );
   }
 
-  void setViewed(DocumentSnapshot data, int index) async {
-    if (index == null) throw NullThrownError();
+  Future<void> deleteCurrentStory() async {
+    if (storiesDoc != null && currentStoryId != null) {
+      int index;
 
-    final ds = await data.reference.get();
+      try {
+        index = pageController.page.toInt();
+      } catch (e) {
+        index = indexOfStory(widget.selectedStoryId);
+      }
 
-    // Set the owner visualization determine if has or not a new story from owner that
-    // he/she doesn't see.
-    // if (ds.documentID == widget.settings.userId) return;
+      final ds = (await storiesDoc)[index];
 
-    final doc = ds.data;
-    final story = doc["stories"][index];
-    final views = story["views"];
-    final currentView = {
-      "user_id": widget.settings.userId,
-      "user_name": widget.settings.username,
-      "cover_img": widget.settings.coverImg,
-      "date": DateTime.now(),
-    };
+      final doc = ds.data;
 
-    if (views is List) {
-      final hasView = views.any((v) => v["user_id"] == widget.settings.userId);
+      final story =
+          doc["stories"].singleWhere((s) => s["id"] == currentStoryId, orElse: () => null);
 
-      if (!hasView) views.add(currentView);
-    } else {
-      story["views"] = [currentView];
+      if (story == null) return;
+
+      story["deleted"] = true;
+      story["deleted_at"] = DateTime.now();
+
+      await ds.reference.updateData(doc);
+
+      storiesDoc = storiesFromIds();
+
+      final newDS = await storiesDoc;
+
+      final noStoryRemains =
+          newDS[index].data["stories"].every((d) => d["deleted"] as bool ?? false);
+
+      if (noStoryRemains) {
+        storyController?.stop();
+
+        Navigator.pop(context);
+      } else {
+        setState(() {});
+      }
     }
+  }
 
-    ds.reference.updateData(doc);
+  void setViewed() async {
+    if (storiesDoc != null && currentStoryId != null) {
+      int index;
+
+      try {
+        index = pageController.page.toInt();
+      } catch (e) {
+        index = indexOfStory(widget.selectedStoryId);
+      }
+
+      storiesDoc = storiesFromIds();
+
+      final ds = (await storiesDoc)[index];
+
+      final doc = ds.data;
+      final story =
+          doc["stories"].singleWhere((s) => s["id"] == currentStoryId, orElse: () => null);
+
+      final views = story["views"];
+      final currentView = {
+        "user_id": widget.settings.userId,
+        "user_name": widget.settings.username,
+        "cover_img": widget.settings.coverImg,
+        "date": DateTime.now(),
+      };
+
+      if (views is List) {
+        final hasView = views.any((v) => v["user_id"] == widget.settings.userId);
+
+        if (!hasView) views.add(currentView);
+      } else {
+        story["views"] = [currentView];
+      }
+
+      ds.reference.updateData(doc);
+    }
   }
 
   List<StoryWrap> parseItems(DocumentSnapshot data) {
@@ -211,14 +287,16 @@ class _StoriesCollectionViewState extends State<StoriesCollectionView> {
     );
   }
 
-  Future<DocumentSnapshot> getStories(StoriesSettings settings, String storyId) {
-    final validaty = DateTime.now().subtract(settings.storyTimeValidaty);
+  Future<List<DocumentSnapshot>> storiesFromIds() {
+    final validaty = DateTime.now().subtract(widget.settings.storyTimeValidaty);
+
     return firestore
-        .collection(settings.collectionDbPath)
+        .collection(widget.settings.collectionDbPath)
         .where('last_update', isGreaterThanOrEqualTo: validaty)
+        .orderBy('last_update', descending: widget.settings.sortByDesc)
         .getDocuments()
         .then(
-          (doc) => doc.documents.singleWhere((d) => d.documentID == storyId, orElse: () => null),
+          (doc) => doc.documents.where((d) => widget.storiesIds.contains(d.documentID)).toList(),
         );
   }
 

@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
+import 'package:stories_lib/src/views/stories_collection_view.dart';
 
-enum PlaybackState { pause, play, stop }
+enum PlaybackState { pause, play, previous, forward, stop }
 
 /// Controller to sync playback between animated child (story) views. This
 /// helps make sure when stories are paused, the animation (gifs/slides) are
@@ -16,9 +17,11 @@ class StoryController {
 
   StreamSubscription<PlaybackState> _subs;
 
+  StoriesCollectionViewState _collectionState;
+
   Future<StreamSubscription<PlaybackState>> addListener(
       void Function(PlaybackState) listener) async {
-    await _subs?.cancel();
+    // await _subs?.cancel();
     return _subs = _playbackNotifier.listen(listener);
   }
 
@@ -34,6 +37,27 @@ class StoryController {
 
   void stop() {
     _playbackNotifier.add(PlaybackState.stop);
+  }
+
+  void goForward() {
+    _playbackNotifier.add(PlaybackState.forward);
+  }
+
+  void goBack() {
+    _playbackNotifier.add(PlaybackState.previous);
+  }
+
+  void addCollectionState(StoriesCollectionViewState collectionState) {
+    _collectionState = collectionState;
+  }
+
+  void removeCollectionState() {
+    _collectionState = null;
+  }
+
+  Future<void> deleteCurrentStory() async {
+    assert(_collectionState != null);
+    return await _collectionState.deleteCurrentStory();
   }
 
   /// Remember to call dispose when the story screen is disposed to close

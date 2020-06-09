@@ -109,8 +109,8 @@ class _StoryImageState extends State<StoryImage> {
           }
 
           if (playbackState == PlaybackState.pause) {
-            this.timer?.cancel();
-          } else {
+            timer?.cancel();
+          } else if (playbackState == PlaybackState.play) {
             forward();
           }
         },

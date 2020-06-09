@@ -137,6 +137,7 @@ class _HomeState extends State<Home> {
   }
 
   Widget storyInfoLayer(
+    BuildContext context,
     ImageProvider image,
     String title,
     DateTime date,
@@ -322,24 +323,38 @@ class _HomeState extends State<Home> {
     BuildContext context,
     StoryType type,
     Animation<double> anim,
-    Future<void> Function(StoryType) takeStory,
+    Future<void> Function(TakeStory) takeStory,
   ) {
+    bool isRecord = false;
     return Positioned(
       left: 0.0,
       right: 0.0,
       bottom: 72.0,
       child: GestureDetector(
-        onTap: () => takeStory(type).catchError(
-          (e, s) {
-            if (e is ShortDurationException) {
-              Scaffold.of(context).showSnackBar(SnackBar(
-                content: Text("The video recorded is short than 3 seconds."),
-                duration: const Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ));
-            }
-          },
-        ),
+        onTap: () {
+          var take;
+          switch (type) {
+            case StoryType.video:
+              if (isRecord)
+                take = TakeStory.stop_record;
+              else
+                take = TakeStory.start_record;
+              break;
+            default:
+              take = TakeStory.picture;
+          }
+          return takeStory(take).catchError(
+            (e, s) {
+              if (e is ShortDurationException) {
+                Scaffold.of(context).showSnackBar(SnackBar(
+                  content: Text("The video recorded is short than 3 seconds."),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
+            },
+          );
+        },
         child: Center(
           child: SizedBox(
             height: 72.0,
@@ -499,6 +514,7 @@ class _HomeState extends State<Home> {
   }
 
   Widget myStoryInfoLayer(
+    BuildContext context,
     ImageProvider image,
     String title,
     DateTime date,

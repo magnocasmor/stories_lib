@@ -47,6 +47,8 @@ List<StoryWrap> parseStories(
   final wraps = <StoryWrap>[];
 
   for (Story story in storiesCollection.stories) {
+    if (story.deletedAt != null) continue;
+
     final index = storiesCollection.stories.indexOf(story);
 
     if (!isInIntervalToShow(story, settings.storyTimeValidaty)) {
@@ -66,8 +68,9 @@ List<StoryWrap> parseStories(
       case 'text':
         wraps.add(
           StoryWrap.text(
-            text: caption,
             shown: shown,
+            text: caption,
+            storyId: story.id,
             duration: duration,
             backgroundColor: story.backgroundColor,
           ),
@@ -77,9 +80,10 @@ List<StoryWrap> parseStories(
         // final storyImage = CachedNetworkImageProvider(media);
         wraps.add(
           StoryWrap.pageGif(
+            url: media,
             shown: shown,
             caption: caption,
-            url: media,
+            storyId: story.id,
             duration: duration,
             // image: storyImage,
             controller: controller,
@@ -94,6 +98,7 @@ List<StoryWrap> parseStories(
             url: media,
             shown: shown,
             caption: caption,
+            storyId: story.id,
             duration: duration,
             controller: controller,
             errorWidget: errorWidget,
@@ -107,6 +112,7 @@ List<StoryWrap> parseStories(
             url: media,
             shown: shown,
             caption: caption,
+            storyId: story.id,
             controller: controller,
             errorWidget: errorWidget,
             loadingWidget: loadingWidget,
@@ -146,6 +152,7 @@ bool hasNewStories(String userId, StoriesCollection collection, Duration storyVa
   return collection.stories.any(
     (s) =>
         isInIntervalToShow(s, storyValidaty) &&
+        s.deletedAt == null &&
         (s.views?.every((v) => v["user_id"] != userId) ?? true),
   );
 }
