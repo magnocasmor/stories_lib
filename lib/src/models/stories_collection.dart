@@ -1,3 +1,5 @@
+import 'package:equatable/equatable.dart';
+
 import 'story.dart';
 
 class StoriesCollectionV2 {
@@ -12,7 +14,7 @@ class StoriesCollectionV2 {
   });
 }
 
-class StoryOwner {
+class StoryOwner extends Equatable {
   final String id;
   final String coverImg;
   final Map<String, dynamic> title;
@@ -31,4 +33,11 @@ class StoryOwner {
       title: json['title'] as Map<String, dynamic>,
     );
   }
+
+  @override
+  List<Object> get props => [
+        this.id,
+        this.title,
+        this.coverImg,
+      ];
 }

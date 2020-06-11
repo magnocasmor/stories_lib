@@ -29,6 +29,7 @@ dependencies:
       url: https://github.com/magnocasmor/multi_gesture_widget.git
       ref: master
     version: ^0.0.1
+  equatable: ^1.2.0
 
 dev_dependencies:
   build_runner: ^1.7.3

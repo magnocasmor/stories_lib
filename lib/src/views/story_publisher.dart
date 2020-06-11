@@ -561,6 +561,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Future<String> _capturePng() async {
     RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
 
+    print(boundary.debugNeedsPaint);
+
     ui.Image image = await boundary.toImage(pixelRatio: 1.0);
 
     ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -620,7 +622,9 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       widget.publisherController.addStatus(PublisherStatus.none);
 
       widget.onStoryPosted?.call();
-    } catch (e) {
+    } catch (e, s) {
+      debugPrint(e.toString());
+      debugPrint(s.toString());
       widget.publisherController.addStatus(PublisherStatus.failure);
     }
   }
@@ -705,45 +709,31 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
     final publishDate = DateTime.now();
 
-    final collectionInfo = {
-      "cover_img": widget.settings.coverImg,
-      "last_update": publishDate,
-      "title": {widget.settings.languageCode: widget.settings.username},
-      "releases": widget.settings.releases,
-    };
+    final storyId = Uuid().v4();
 
-    final storyInfo = {
-      "id": Uuid().v4(),
+    final collectionInfo = {
+      "owner": {
+        "id": widget.settings.userId,
+        "cover_img": widget.settings.coverImg,
+        "title": {widget.settings.languageCode: widget.settings.username},
+      },
+      "id": storyId,
+      // The query doesn't return results when "deleted_at" doesn't exists (not exists != null)
+      "deleted_at": null,
       "date": publishDate,
+      "type": _extractType,
+      "releases": selectedReleases,
       "media": {widget.settings.languageCode: url},
       "caption": {widget.settings.languageCode: caption},
-      "releases": selectedReleases,
-      "type": _extractType,
     };
 
-    final doc = await firestore
-        .collection(widget.settings.collectionDbPath)
-        .document(widget.settings.userId)
-        .get();
+    final doc =
+        await firestore.collection(widget.settings.collectionDbPath).document(storyId).get();
 
-    if (doc.exists) {
-      final stories = doc.data["stories"] ?? List();
-
-      assert(
-          stories is List,
-          "The field [stories] in ${widget.settings.collectionDbPath}/"
-          "${widget.settings.userId} need be a List");
-
-      stories.add(storyInfo);
-
-      collectionInfo.addAll({"stories": stories});
-
-      await doc.reference.updateData(collectionInfo);
-    } else {
-      collectionInfo.addAll({
-        "stories": [storyInfo]
-      });
+    if (!doc.exists) {
       await doc.reference.setData(collectionInfo);
+    } else {
+      await _dbInput(url, caption: caption, selectedReleases: selectedReleases);
     }
   }
 

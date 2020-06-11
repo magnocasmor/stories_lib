@@ -14,9 +14,16 @@ List<StoriesCollectionV2> parseStoriesPreview(
   final _cacheDepth = 10;
   var i = 0;
 
-  final owners = documents.fold<Set>(
-    Set(),
-    (list, document) => list..add(document.data["owner"]),
+  final owners = documents.map<StoryOwner>(
+    (document) {
+      return StoryOwner.fromJson(document.data["owner"]);
+    },
+  ).fold<List<StoryOwner>>(
+    <StoryOwner>[],
+    (list, owner) {
+      if (!list.contains(owner)) list.add(owner);
+      return list;
+    },
   );
 
   return owners.map<StoriesCollectionV2>((owner) {
@@ -159,10 +166,7 @@ bool isInIntervalToShow(StoryV2 story, Duration storyValidaty) {
   return story.date.isAfter(DateTime.now().subtract(storyValidaty));
 }
 
-StoriesCollectionV2 ownerCollection(
-    List<Map<String, dynamic>> datas, Map<String, dynamic> ownerJson) {
-  final owner = StoryOwner.fromJson(ownerJson);
-
+StoriesCollectionV2 ownerCollection(List<Map<String, dynamic>> datas, StoryOwner owner) {
   final stories = datas
       .where((data) => data["owner"]["id"] == owner.id)
       .map<StoryV2>((story) => StoryV2.fromJson(story))
