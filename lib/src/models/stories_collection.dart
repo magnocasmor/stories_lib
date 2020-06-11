@@ -1,42 +1,34 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
-
 import 'story.dart';
 
-class StoriesCollection {
-  final String storyId;
-  final String coverImg;
-  final List<Story> stories;
+class StoriesCollectionV2 {
+  final StoryOwner owner;
   final DateTime lastUpdate;
-  final Map<String, String> title;
+  final List<StoryV2> stories;
 
-  StoriesCollection({
-    @required this.storyId,
-    this.title,
-    this.stories,
-    this.coverImg,
+  StoriesCollectionV2({
+    this.owner,
     this.lastUpdate,
+    this.stories,
+  });
+}
+
+class StoryOwner {
+  final String id;
+  final String coverImg;
+  final Map<String, dynamic> title;
+
+  StoryOwner({
+    this.id,
+    this.title,
+    this.coverImg,
   });
 
-  factory StoriesCollection.fromJson(dynamic json) {
+  factory StoryOwner.fromJson(dynamic json) {
     if (json == null || json.isEmpty) return null;
-
-    return StoriesCollection(
-      storyId: json['story_id'],
+    return StoryOwner(
+      id: json['id'],
       coverImg: json['cover_img'],
-      title: Map<String, String>.from(json['title']),
-      lastUpdate: (json['last_update'] as Timestamp).toDate(),
-      stories: (json['stories'] as List)?.map((story) => Story.fromJson(story))?.toList(),
+      title: json['title'] as Map<String, dynamic>,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'title': this.title,
-      'story_id': this.storyId,
-      'cover_img': this.coverImg,
-      'last_update': this.lastUpdate.toIso8601String(),
-      'stories': this.stories.map((story) => story.toJson()),
-    };
   }
 }

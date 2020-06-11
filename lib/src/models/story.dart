@@ -1,10 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
-import '../utils/color_parser.dart';
-
-class Story {
+class StoryV2 {
   final String id;
   final String type;
   final DateTime date;
@@ -12,41 +9,35 @@ class Story {
   final Color backgroundColor;
   final List<dynamic> releases;
   final Map<String, String> media;
+  final Map<String, dynamic> owner;
   final Map<String, String> caption;
   final List<Map<String, dynamic>> views;
 
-  Story({
-    @required this.id,
+  StoryV2({
+    this.id,
     this.type,
     this.date,
-    this.media,
-    this.views,
-    this.caption,
-    this.releases,
     this.deletedAt,
     this.backgroundColor,
+    this.releases,
+    this.media,
+    this.owner,
+    this.caption,
+    this.views,
   });
 
-  factory Story.fromJson(dynamic json) {
+  factory StoryV2.fromJson(dynamic json) {
     if (json == null || json.isEmpty) return null;
-
-    List<Map<String, dynamic>> views;
-
-    if (json['views'] is List) views = List<Map<String, dynamic>>.from(json['views']);
-
-    List<dynamic> releases;
-    if (json['releases'] is List) releases = List.from(json['releases']);
-
-    return Story(
-      views: views,
+    return StoryV2(
       id: json['id'],
       type: json['type'],
-      releases: releases,
+      releases: json['releases'] as List,
+      backgroundColor: json['background_color'],
       date: (json['date'] as Timestamp).toDate(),
+      media: Map<String, String>.from(json['media']),
       deletedAt: (json['deleted_at'] as Timestamp)?.toDate(),
-      backgroundColor: stringToColor(json['background_color']),
-      media: json['media'] != null ? Map<String, String>.from(json['media']) : null,
       caption: json['caption'] != null ? Map<String, String>.from(json['caption']) : null,
+      views: json['views'] != null ? List<Map<String, dynamic>>.from(json['views']) : null,
     );
   }
 
@@ -56,6 +47,7 @@ class Story {
       'type': this.type,
       'views': this.views,
       'media': this.media,
+      'owner': this.owner,
       'caption': this.caption,
       'releases': this.releases,
       'date': this.date.toIso8601String(),

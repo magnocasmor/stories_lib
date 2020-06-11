@@ -55,9 +55,9 @@ class StoryController {
     _collectionState = null;
   }
 
-  Future<void> deleteCurrentStory() async {
+  Future<void> deleteCurrentStory(int index) async {
     assert(_collectionState != null);
-    return await _collectionState.deleteCurrentStory();
+    // return await _collectionState.deleteCurrentStory(index);
   }
 
   /// Remember to call dispose when the story screen is disposed to close

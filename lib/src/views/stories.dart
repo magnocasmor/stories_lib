@@ -145,28 +145,35 @@ class Stories extends StatefulWidget {
 
 class _StoriesState extends State<Stories> {
   final firestore = Firestore.instance;
+  Stream<QuerySnapshot> stream;
+
+  @override
+  void initState() {
+    super.initState();
+
+    stream = _storiesStream;
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _storiesStream,
+      stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final stories = snapshot.data.documents;
 
-          stories.removeWhere((s) => s.documentID == widget.settings.userId);
+          stories.removeWhere((s) => s["owner"]["id"] == widget.settings.userId);
 
           stories.removeWhere(
-              (prev) => !prev.data["stories"].every((story) => allowToSee(story, widget.settings)));
-
-          final storyPreviews = parseStoriesPreview(widget.settings.languageCode, stories);
+            (prev) {
+              return !allowToSee(prev.data, widget.settings);
+            },
+          );
 
           return _storiesList(
-            itemCount: storyPreviews.length,
+            itemCount: stories.length,
             builder: (context, index) {
-              final preview = storyPreviews[index];
-
-              return _storyItem(preview, storyIds(stories));
+              return _storyItem(index, stories);
             },
           );
         } else if (snapshot.hasError) {
@@ -191,19 +198,23 @@ class _StoriesState extends State<Stories> {
     );
   }
 
-  Widget _storyItem(StoriesCollection story, List<String> storyIds) {
+  Widget _storyItem(int index, List<DocumentSnapshot> stories) {
+    final collections = parseStoriesPreview(widget.settings.languageCode, stories);
+
+    final collection = collections[index];
+
     return GestureDetector(
       child: CachedNetworkImage(
-        imageUrl: story.coverImg ?? "",
+        imageUrl: collection.owner.coverImg ?? "",
         placeholder: (context, url) => widget.previewPlaceholder,
         imageBuilder: (context, image) {
           return widget.previewBuilder(
             context,
             image,
-            story.title[widget.settings.languageCode],
+            collection.owner.title[widget.settings.languageCode],
             hasNewStories(
               widget.settings.userId,
-              story,
+              collection,
               widget.settings.storyTimeValidaty,
             ),
           );
@@ -213,10 +224,10 @@ class _StoriesState extends State<Stories> {
           return widget.previewBuilder(
             context,
             null,
-            story.title[widget.settings.languageCode],
+            collection.owner.title[widget.settings.languageCode],
             hasNewStories(
               widget.settings.userId,
-              story,
+              collection,
               widget.settings.storyTimeValidaty,
             ),
           );
@@ -231,12 +242,17 @@ class _StoriesState extends State<Stories> {
             transitionsBuilder: widget.navigationTransition,
             pageBuilder: (context, anim, anim2) {
               return StoriesCollectionView(
-                storiesIds: storyIds,
+                initialIndex: index,
+                collections: collections,
                 settings: widget.settings,
-                errorWidget: widget.errorWidget,
-                selectedStoryId: story.storyId,
-                topSafeArea: widget.topSafeArea,
+                onStoryViewed: (_) {
+                  final document = stories[index];
+
+                  _setViewed(document);
+                },
                 closeButton: widget.closeButton,
+                errorWidget: widget.errorWidget,
+                topSafeArea: widget.topSafeArea,
                 loadingWidget: widget.loadingWidget,
                 bottomSafeArea: widget.bottomSafeArea,
                 storyController: widget.storyController,
@@ -272,16 +288,46 @@ class _StoriesState extends State<Stories> {
   }
 
   Stream<QuerySnapshot> get _storiesStream {
-    var query = firestore.collection(widget.settings.collectionDbPath).where(
-          'last_update',
+    var query = firestore
+        .collection(widget.settings.collectionDbPath)
+        .where('deleted_at', isNull: true)
+        .where(
+          'date',
           isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
         );
 
-    // if (widget.settings.releases is List && widget.settings.releases.isNotEmpty) {
-    //   query = query.where('releases', arrayContainsAny: widget.settings.releases);
-    // }
+    if (widget.settings.releases is List && widget.settings.releases.isNotEmpty) {
+      query = query.where('releases', arrayContainsAny: widget.settings.releases);
+    }
 
-    return query.orderBy('last_update', descending: widget.settings.sortByDesc).snapshots();
+    return query.orderBy('date', descending: widget.settings.sortByDesc).snapshots();
+  }
+
+  void _setViewed(DocumentSnapshot document) async {
+    if (document != null) {
+      final data = document.data;
+
+      final views = data["views"];
+
+      final currentView = {
+        "user_id": widget.settings.userId,
+        "user_name": widget.settings.username,
+        "cover_img": widget.settings.coverImg,
+        "date": DateTime.now(),
+      };
+
+      if (views is List) {
+        final hasView = views.any((v) => v["user_id"] == widget.settings.userId);
+
+        if (!hasView) {
+          views.add(currentView);
+        }
+      } else {
+        data["views"] = [currentView];
+      }
+
+      document.reference.updateData(data);
+    }
   }
 }
 
@@ -385,53 +431,53 @@ class MyStories extends StatefulWidget {
 class _MyStoriesState extends State<MyStories> {
   final firestore = Firestore.instance;
   bool isMyStoriesFinished = true;
+  Stream<QuerySnapshot> stream;
+  List<DocumentSnapshot> documents;
+
+  @override
+  void initState() {
+    super.initState();
+    stream = _storiesStream;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: _storiesStream,
+    return StreamBuilder<QuerySnapshot>(
+      stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          final stories = snapshot.data;
+          documents = snapshot.data.documents;
 
-          if (stories.data?.isNotEmpty ?? false) {
-            final interval =
-                DateTime.now().difference((stories.data["last_update"] as Timestamp).toDate());
+          if (documents.isNotEmpty) {
+            final myCollection = parseStoriesPreview(widget.settings.languageCode, documents).first;
+
+            final interval = DateTime.now().difference(myCollection.lastUpdate);
 
             final isInValidaty = interval.compareTo(widget.settings.storyTimeValidaty) <= 0;
 
-            final noStory = stories.data["stories"].every((d) => d["deleted"] as bool ?? false);
+            final noStory = myCollection.stories.every((story) => story.deletedAt != null);
 
-            if (!noStory && stories.exists && isInValidaty) {
-              final storyPreviews = parseStoriesPreview(widget.settings.languageCode, [stories]);
-
-              final myPreview = storyPreviews.firstWhere(
-                (preview) => preview.storyId == widget.settings.userId,
-                orElse: () => null,
-              );
-
-              final hasPublish = myPreview != null && (myPreview.stories?.isNotEmpty ?? false);
-
-              storyPreviews.remove(myPreview);
+            if (!noStory && isInValidaty) {
+              final hasPublish = myCollection.stories?.isNotEmpty ?? false;
 
               final hasNewPublish = hasPublish
                   ? hasNewStories(
-                      widget.settings.userId, myPreview, widget.settings.storyTimeValidaty)
+                      widget.settings.userId, myCollection, widget.settings.storyTimeValidaty)
                   : false;
 
-              return _storyItem(myPreview.coverImg, hasPublish, hasNewPublish);
+              return _storyItem(myCollection, hasPublish, hasNewPublish);
             }
           }
         }
-        return _storyItem(widget.settings.coverImg, false, false);
+        return _storyItem(null, false, false);
       },
     );
   }
 
-  Widget _storyItem(String coverImg, bool hasPublish, bool hasNewPublish) {
+  Widget _storyItem(StoriesCollectionV2 collection, bool hasPublish, bool hasNewPublish) {
     return GestureDetector(
       child: CachedNetworkImage(
-        imageUrl: coverImg ?? "",
+        imageUrl: collection?.owner?.coverImg ?? widget.settings.coverImg ?? "",
         // placeholder: (context, url) => widget.previewPlaceholder,
         imageBuilder: (context, image) {
           return widget.myPreviewBuilder?.call(context, image, hasPublish, hasNewPublish);
@@ -449,7 +495,7 @@ class _MyStoriesState extends State<MyStories> {
             transitionsBuilder: widget.navigationTransition,
             pageBuilder: (context, anim, anim2) {
               if (hasPublish)
-                return myStories;
+                return myStories(collection);
               else
                 return publisher;
             },
@@ -494,15 +540,18 @@ class _MyStoriesState extends State<MyStories> {
     );
   }
 
-  Widget get myStories {
+  Widget myStories(StoriesCollectionV2 collection) {
     return StoriesCollectionView(
+      initialIndex: 0,
+      collections: [collection],
       settings: widget.settings,
       errorWidget: widget.errorWidget,
       closeButton: widget.closeButton,
       loadingWidget: widget.loadingWidget,
-      storiesIds: [widget.settings.userId],
       storyController: widget.storyController,
-      selectedStoryId: widget.settings.userId,
+      onStoryViewed: (index) {
+        _setViewed(documents[index]);
+      },
       onStoriesClosed: () {
         if (isMyStoriesFinished) widget.onStoriesClosed?.call();
       },
@@ -516,10 +565,71 @@ class _MyStoriesState extends State<MyStories> {
     );
   }
 
-  Stream<DocumentSnapshot> get _storiesStream {
+  Stream<QuerySnapshot> get _storiesStream {
     return firestore
         .collection(widget.settings.collectionDbPath)
-        .document(widget.settings.userId)
+        .where(
+          'date',
+          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
+        )
+        .where('owner.id', isEqualTo: widget.settings.userId)
+        .where('deleted_at', isNull: true)
+        .orderBy('date', descending: widget.settings.sortByDesc)
         .snapshots();
+  }
+
+  void _setViewed(DocumentSnapshot document) async {
+    if (document != null) {
+      final data = document.data;
+
+      final views = data["views"];
+
+      final currentView = {
+        "user_id": widget.settings.userId,
+        "user_name": widget.settings.username,
+        "cover_img": widget.settings.coverImg,
+        "date": DateTime.now(),
+      };
+
+      if (views is List) {
+        final hasView = views.any((v) => v["user_id"] == widget.settings.userId);
+
+        if (!hasView) {
+          views.add(currentView);
+        }
+      } else {
+        data["views"] = [currentView];
+      }
+
+      document.reference.updateData(data);
+    }
+  }
+
+  Future<void> deleteCurrentStory(int index) async {
+    // final ds = documents[index];
+
+    // final doc = ds.data;
+
+    // final story = doc["stories"].singleWhere((s) => s["id"] == currentStoryId, orElse: () => null);
+
+    // if (story == null) return;
+
+    // story["deleted_at"] = DateTime.now();
+
+    // await ds.reference.updateData(doc);
+
+    // // storiesDoc = storiesFromIds();
+
+    // final newDS = await storiesDoc;
+
+    // final noStoryRemains = newDS[index].data["stories"].every((d) => d["deleted"] as bool ?? false);
+
+    // if (noStoryRemains) {
+    //   storyController?.stop();
+
+    //   Navigator.pop(context);
+    // } else {
+    //   setState(() {});
+    // }
   }
 }
