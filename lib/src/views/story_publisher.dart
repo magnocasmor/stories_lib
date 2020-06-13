@@ -14,6 +14,7 @@ import 'package:multi_gesture_widget/multi_gesture_widget.dart';
 import 'package:path/path.dart' as path;
 import 'package:path/path.dart' show join, basename, extension;
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+import 'package:stories_lib/src/utils/color_parser.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 
@@ -477,7 +478,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         bottom: widget.bottomSafeArea,
         child: Stack(
           children: <Widget>[
-            StoryWidget(story: _buildPreview()),
+            StoryWidget(child: _buildPreview()),
             widget.resultInfoBuilder(context, widget.type, _sendStory),
             Align(
               alignment: widget.closeButtonPosition,
@@ -499,30 +500,31 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
           key: _globalKey,
           child: Stack(
             fit: StackFit.loose,
+            alignment: Alignment.center,
             children: <Widget>[
               Positioned.fill(
-                child: StatefulBuilder(builder: (context, change) {
-                  return GestureDetector(
-                    onTap: () async {
-                      backgroundColor = await widget.changeBackgroundColor?.call(backgroundColor);
-                      change(() {});
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      color: backgroundColor,
-                    ),
-                  );
-                }),
+                child: StatefulBuilder(
+                  builder: (context, change) {
+                    return GestureDetector(
+                      onTap: () async {
+                        backgroundColor = await widget.changeBackgroundColor?.call(backgroundColor);
+                        change(() {});
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        color: backgroundColor,
+                      ),
+                    );
+                  },
+                ),
               ),
-              Positioned.fill(
-                child: MultiGestureWidget(
-                  minScale: .5,
-                  maxScale: 5.0,
-                  child: Image.file(
-                    File(widget.filePath),
-                    fit: widget.origin == FileOrigin.camera ? BoxFit.cover : null,
-                    filterQuality: FilterQuality.high,
-                  ),
+              MultiGestureWidget(
+                minScale: .5,
+                maxScale: 5.0,
+                child: Image.file(
+                  File(widget.filePath),
+                  fit: widget.origin == FileOrigin.camera ? BoxFit.cover : null,
+                  filterQuality: FilterQuality.high,
                 ),
               ),
               for (var render in mediaAttachments) render,
@@ -538,20 +540,42 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         } else {
           controller.pause();
         }
-        return FutureBuilder<void>(
-          future: controllerFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              return FittedContainer(
-                fit: widget.origin == FileOrigin.camera ? BoxFit.cover : BoxFit.contain,
-                width: controller.value.size.width,
-                height: controller.value.size.height,
-                child: VideoPlayer(controller),
-              );
-            } else {
-              return Center(child: StoryLoading());
-            }
-          },
+        return Stack(
+          fit: StackFit.loose,
+          alignment: Alignment.center,
+          children: <Widget>[
+            Positioned.fill(
+              child: StatefulBuilder(
+                builder: (context, change) {
+                  return GestureDetector(
+                    onTap: () async {
+                      backgroundColor = await widget.changeBackgroundColor?.call(backgroundColor);
+                      change(() {});
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      color: backgroundColor,
+                    ),
+                  );
+                },
+              ),
+            ),
+            FutureBuilder<void>(
+              future: controllerFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return FittedContainer(
+                    fit: BoxFit.contain,
+                    width: controller.value.size.width,
+                    height: controller.value.size.height,
+                    child: VideoPlayer(controller),
+                  );
+                } else {
+                  return Center(child: StoryLoading());
+                }
+              },
+            )
+          ],
         );
       default:
         return Container();
@@ -724,6 +748,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       "type": _extractType,
       "releases": selectedReleases,
       "media": {widget.settings.languageCode: url},
+      "background_color": colorToString(backgroundColor),
       "caption": {widget.settings.languageCode: caption},
     };
 

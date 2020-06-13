@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/painting.dart';
 import 'package:stories_lib/src/models/stories_collection.dart';
+import 'package:stories_lib/src/utils/color_parser.dart';
 
 class Story {
   final String id;
@@ -34,10 +35,10 @@ class Story {
       type: json['type'],
       releases: json['releases'] as List,
       owner: StoryOwner.fromJson(json["owner"]),
-      backgroundColor: json['background_color'],
       date: (json['date'] as Timestamp).toDate(),
       media: Map<String, String>.from(json['media']),
       deletedAt: (json['deleted_at'] as Timestamp)?.toDate(),
+      backgroundColor: stringToColor(json['background_color']),
       caption: json['caption'] != null ? Map<String, String>.from(json['caption']) : null,
       views: json['views'] != null ? List<Map<String, dynamic>>.from(json['views']) : null,
     );
@@ -53,8 +54,8 @@ class Story {
       'releases': this.releases,
       'owner': this.owner.toJson(),
       'date': this.date.toIso8601String(),
-      'background_color': this.backgroundColor,
       'deleted_at': this.deletedAt?.toIso8601String(),
+      'background_color': colorToString(this.backgroundColor),
     };
   }
 }

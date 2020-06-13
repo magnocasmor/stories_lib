@@ -9,8 +9,7 @@ import '../models/stories_collection.dart';
 import '../models/story.dart';
 import '../views/story_view.dart';
 
-List<StoriesCollection> parseStoriesPreview(
-    String languageCode, List<DocumentSnapshot> documents) {
+List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSnapshot> documents) {
   final _cacheDepth = 10;
   var i = 0;
 
@@ -118,6 +117,7 @@ List<StoryWrap> parseStories(
             controller: controller,
             errorWidget: errorWidget,
             loadingWidget: loadingWidget,
+            backgroundColor: story.backgroundColor,
           ),
         );
         break;

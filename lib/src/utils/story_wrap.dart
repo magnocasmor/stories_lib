@@ -108,7 +108,7 @@ class StoryWrap extends ChangeNotifier {
     return StoryWrap(
       storyId: storyId,
       view: StoryWidget(
-        story: Image(
+        child: Image(
           image: image,
           fit: fit,
         ),
@@ -183,7 +183,7 @@ class StoryWrap extends ChangeNotifier {
     return StoryWrap(
       storyId: storyId,
       view: StoryWidget(
-        story: StoryImage.url(
+        child: StoryImage.url(
           url: url,
           fit: fit,
           controller: controller,
@@ -270,21 +270,23 @@ class StoryWrap extends ChangeNotifier {
     Widget errorWidget,
     Widget loadingWidget,
     StoryController controller,
+    BoxFit fit = BoxFit.contain,
     Map<String, dynamic> requestHeaders,
-    BoxFit fit = BoxFit.cover,
+    Color backgroundColor = Colors.black,
     Duration duration = const Duration(seconds: 10),
   }) {
     assert(fit != null);
     return StoryWrap(
       storyId: storyId,
       view: StoryWidget(
-        story: StoryVideo.url(
+        child: StoryVideo.url(
           url: url,
           fit: fit,
           controller: controller,
           requestHeaders: requestHeaders,
           errorWidget: errorWidget,
           loadingWidget: loadingWidget,
+          backgroundColor: backgroundColor,
         ),
         caption: caption,
       ),
