@@ -14,6 +14,7 @@ import 'package:multi_gesture_widget/multi_gesture_widget.dart';
 import 'package:path/path.dart' as path;
 import 'package:path/path.dart' show join, basename, extension;
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+import 'package:stories_lib/src/utils/color_parser.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 
@@ -477,7 +478,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         bottom: widget.bottomSafeArea,
         child: Stack(
           children: <Widget>[
-            StoryWidget(story: _buildPreview()),
+            StoryWidget(child: _buildPreview()),
             widget.resultInfoBuilder(context, widget.type, _sendStory),
             Align(
               alignment: widget.closeButtonPosition,
@@ -499,30 +500,31 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
           key: _globalKey,
           child: Stack(
             fit: StackFit.loose,
+            alignment: Alignment.center,
             children: <Widget>[
               Positioned.fill(
-                child: StatefulBuilder(builder: (context, change) {
-                  return GestureDetector(
-                    onTap: () async {
-                      backgroundColor = await widget.changeBackgroundColor?.call(backgroundColor);
-                      change(() {});
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      color: backgroundColor,
-                    ),
-                  );
-                }),
+                child: StatefulBuilder(
+                  builder: (context, change) {
+                    return GestureDetector(
+                      onTap: () async {
+                        backgroundColor = await widget.changeBackgroundColor?.call(backgroundColor);
+                        change(() {});
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        color: backgroundColor,
+                      ),
+                    );
+                  },
+                ),
               ),
-              Positioned.fill(
-                child: MultiGestureWidget(
-                  minScale: .5,
-                  maxScale: 5.0,
-                  child: Image.file(
-                    File(widget.filePath),
-                    fit: widget.origin == FileOrigin.camera ? BoxFit.cover : null,
-                    filterQuality: FilterQuality.high,
-                  ),
+              MultiGestureWidget(
+                minScale: .5,
+                maxScale: 5.0,
+                child: Image.file(
+                  File(widget.filePath),
+                  fit: widget.origin == FileOrigin.camera ? BoxFit.cover : null,
+                  filterQuality: FilterQuality.high,
                 ),
               ),
               for (var render in mediaAttachments) render,
@@ -538,20 +540,42 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         } else {
           controller.pause();
         }
-        return FutureBuilder<void>(
-          future: controllerFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              return FittedContainer(
-                fit: widget.origin == FileOrigin.camera ? BoxFit.cover : BoxFit.contain,
-                width: controller.value.size.width,
-                height: controller.value.size.height,
-                child: VideoPlayer(controller),
-              );
-            } else {
-              return Center(child: StoryLoading());
-            }
-          },
+        return Stack(
+          fit: StackFit.loose,
+          alignment: Alignment.center,
+          children: <Widget>[
+            Positioned.fill(
+              child: StatefulBuilder(
+                builder: (context, change) {
+                  return GestureDetector(
+                    onTap: () async {
+                      backgroundColor = await widget.changeBackgroundColor?.call(backgroundColor);
+                      change(() {});
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      color: backgroundColor,
+                    ),
+                  );
+                },
+              ),
+            ),
+            FutureBuilder<void>(
+              future: controllerFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  return FittedContainer(
+                    fit: BoxFit.contain,
+                    width: controller.value.size.width,
+                    height: controller.value.size.height,
+                    child: VideoPlayer(controller),
+                  );
+                } else {
+                  return Center(child: StoryLoading());
+                }
+              },
+            )
+          ],
         );
       default:
         return Container();
@@ -560,6 +584,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
   Future<String> _capturePng() async {
     RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
+
+    print(boundary.debugNeedsPaint);
 
     ui.Image image = await boundary.toImage(pixelRatio: 1.0);
 
@@ -620,7 +646,9 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       widget.publisherController.addStatus(PublisherStatus.none);
 
       widget.onStoryPosted?.call();
-    } catch (e) {
+    } catch (e, s) {
+      debugPrint(e.toString());
+      debugPrint(s.toString());
       widget.publisherController.addStatus(PublisherStatus.failure);
     }
   }
@@ -705,45 +733,32 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
     final publishDate = DateTime.now();
 
+    final storyId = Uuid().v4();
+
     final collectionInfo = {
-      "cover_img": widget.settings.coverImg,
-      "last_update": publishDate,
-      "title": {widget.settings.languageCode: widget.settings.username},
-      "releases": widget.settings.releases,
-    };
-
-    final storyInfo = {
-      "id": Uuid().v4(),
+      "owner": {
+        "id": widget.settings.userId,
+        "cover_img": widget.settings.coverImg,
+        "title": {widget.settings.languageCode: widget.settings.username},
+      },
+      "id": storyId,
+      // The query doesn't return results when "deleted_at" doesn't exists (not exists != null)
+      "deleted_at": null,
       "date": publishDate,
-      "media": {widget.settings.languageCode: url},
-      "caption": {widget.settings.languageCode: caption},
-      "releases": selectedReleases,
       "type": _extractType,
+      "releases": selectedReleases,
+      "media": {widget.settings.languageCode: url},
+      "background_color": colorToString(backgroundColor),
+      "caption": {widget.settings.languageCode: caption},
     };
 
-    final doc = await firestore
-        .collection(widget.settings.collectionDbPath)
-        .document(widget.settings.userId)
-        .get();
+    final doc =
+        await firestore.collection(widget.settings.collectionDbPath).document(storyId).get();
 
-    if (doc.exists) {
-      final stories = doc.data["stories"] ?? List();
-
-      assert(
-          stories is List,
-          "The field [stories] in ${widget.settings.collectionDbPath}/"
-          "${widget.settings.userId} need be a List");
-
-      stories.add(storyInfo);
-
-      collectionInfo.addAll({"stories": stories});
-
-      await doc.reference.updateData(collectionInfo);
-    } else {
-      collectionInfo.addAll({
-        "stories": [storyInfo]
-      });
+    if (!doc.exists) {
       await doc.reference.setData(collectionInfo);
+    } else {
+      await _dbInput(url, caption: caption, selectedReleases: selectedReleases);
     }
   }
 
