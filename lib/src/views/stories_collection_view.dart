@@ -22,14 +22,14 @@ class StoriesCollectionView extends StatefulWidget {
   final bool bottomSafeArea;
   final Widget loadingWidget;
   final StoriesSettings settings;
-  final void Function(int) onStoryViewed;
   final VoidCallback onStoriesClosed;
   final VoidCallback onStoriesOpenned;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
+  final void Function(int) onStoryViewed;
   final InfoLayerBuilder infoLayerBuilder;
-  final List<StoriesCollectionV2> collections;
+  final List<StoriesCollection> collections;
   final RouteTransitionsBuilder navigationTransition;
 
   StoriesCollectionView({
@@ -37,7 +37,6 @@ class StoriesCollectionView extends StatefulWidget {
     this.errorWidget,
     this.closeButton,
     this.collections,
-    this.onStoryViewed,
     this.loadingWidget,
     this.storyController,
     this.onStoriesClosed,
@@ -49,6 +48,7 @@ class StoriesCollectionView extends StatefulWidget {
     this.topSafeArea = true,
     this.bottomSafeArea = false,
     this.initialIndex = 0,
+    this.onStoryViewed,
   });
 
   @override
@@ -62,8 +62,6 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
 
   StoryController storyController;
 
-  String currentStoryId;
-
   @override
   void initState() {
     widget.onStoriesOpenned?.call();
@@ -72,15 +70,11 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
 
     pageController = PageController(initialPage: widget.initialIndex);
 
-    storyController.addCollectionState(this);
-
     super.initState();
   }
 
   @override
   void dispose() {
-    storyController?.removeCollectionState();
-
     storyController?.dispose();
 
     widget.onStoriesClosed?.call();
@@ -131,7 +125,7 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
                         infoLayerBuilder: (bars, currentIndex, animation) {
                           if (currentIndex < 0) return Container();
 
-                          currentStoryId = stories[currentIndex].storyId;
+                          final currentStoryId = stories[currentIndex].storyId;
 
                           final currentStory = collection.stories
                               .singleWhere((s) => s.id == currentStoryId, orElse: () => null);

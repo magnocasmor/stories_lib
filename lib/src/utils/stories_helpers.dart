@@ -9,7 +9,7 @@ import '../models/stories_collection.dart';
 import '../models/story.dart';
 import '../views/story_view.dart';
 
-List<StoriesCollectionV2> parseStoriesPreview(
+List<StoriesCollection> parseStoriesPreview(
     String languageCode, List<DocumentSnapshot> documents) {
   final _cacheDepth = 10;
   var i = 0;
@@ -26,7 +26,7 @@ List<StoriesCollectionV2> parseStoriesPreview(
     },
   );
 
-  return owners.map<StoriesCollectionV2>((owner) {
+  return owners.map<StoriesCollection>((owner) {
     return ownerCollection(documents.map((document) => document.data).toList(), owner)
       ..stories.forEach(
         (story) {
@@ -40,7 +40,7 @@ List<StoriesCollectionV2> parseStoriesPreview(
 }
 
 List<StoryWrap> parseStories(
-  StoriesCollectionV2 collection,
+  StoriesCollection collection,
   StoryController controller,
   StoriesSettings settings,
   Widget errorWidget,
@@ -48,7 +48,7 @@ List<StoryWrap> parseStories(
 ) {
   final wraps = <StoryWrap>[];
 
-  for (StoryV2 story in collection.stories) {
+  for (Story story in collection.stories) {
     if (story.deletedAt != null) continue;
 
     final index = collection.stories.indexOf(story);
@@ -149,7 +149,7 @@ bool allowToSee(Map storyData, StoriesSettings settings) {
       );
 }
 
-bool hasNewStories(String userId, StoriesCollectionV2 collection, Duration storyValidaty) {
+bool hasNewStories(String userId, StoriesCollection collection, Duration storyValidaty) {
   return collection.stories.any(
     (s) =>
         isInIntervalToShow(s, storyValidaty) &&
@@ -158,21 +158,21 @@ bool hasNewStories(String userId, StoriesCollectionV2 collection, Duration story
   );
 }
 
-bool isViewed(StoryV2 story, String userId) {
+bool isViewed(Story story, String userId) {
   return story.views?.any((v) => v["user_id"] == userId) ?? false;
 }
 
-bool isInIntervalToShow(StoryV2 story, Duration storyValidaty) {
+bool isInIntervalToShow(Story story, Duration storyValidaty) {
   return story.date.isAfter(DateTime.now().subtract(storyValidaty));
 }
 
-StoriesCollectionV2 ownerCollection(List<Map<String, dynamic>> datas, StoryOwner owner) {
+StoriesCollection ownerCollection(List<Map<String, dynamic>> datas, StoryOwner owner) {
   final stories = datas
       .where((data) => data["owner"]["id"] == owner.id)
-      .map<StoryV2>((story) => StoryV2.fromJson(story))
+      .map<Story>((story) => Story.fromJson(story))
       .toList();
 
-  return StoriesCollectionV2(
+  return StoriesCollection(
     owner: owner,
     stories: stories,
     lastUpdate: stories.first.date,

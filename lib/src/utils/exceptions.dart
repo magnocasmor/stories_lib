@@ -15,3 +15,5 @@ class UploadFailException implements Exception {
 }
 
 class ShortDurationException implements Exception {}
+
+class NotAllowedException implements Exception {}

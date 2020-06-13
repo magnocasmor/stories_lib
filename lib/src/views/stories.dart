@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../stories.dart';
 import '../configs/stories_settings.dart';
 import '../configs/story_controller.dart';
 import '../models/stories_collection.dart';
@@ -145,6 +148,7 @@ class Stories extends StatefulWidget {
 
 class _StoriesState extends State<Stories> {
   Stream<QuerySnapshot> stream;
+  List<DocumentSnapshot> documents;
 
   @override
   void initState() {
@@ -158,7 +162,7 @@ class _StoriesState extends State<Stories> {
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          final documents = snapshot.data.documents;
+          documents = snapshot.data.documents;
 
           documents.removeWhere((s) => s["owner"]["id"] == widget.settings.userId);
 
@@ -203,18 +207,10 @@ class _StoriesState extends State<Stories> {
                       transitionsBuilder: widget.navigationTransition,
                       pageBuilder: (context, anim, anim2) {
                         return StoriesCollectionView(
-                          initialIndex: collectionIndex,
                           collections: collections,
                           settings: widget.settings,
-                          onStoryViewed: (storyIndex) {
-                            final story = collections[collectionIndex].stories[storyIndex];
-
-                            final document = documents.singleWhere((document) {
-                              return document.documentID == story.id;
-                            });
-
-                            _setViewed(document);
-                          },
+                          onStoryViewed: _setViewed,
+                          initialIndex: collectionIndex,
                           closeButton: widget.closeButton,
                           errorWidget: widget.errorWidget,
                           topSafeArea: widget.topSafeArea,
@@ -292,7 +288,11 @@ class _StoriesState extends State<Stories> {
     return query.orderBy('date', descending: widget.settings.sortByDesc).snapshots();
   }
 
-  void _setViewed(DocumentSnapshot document) async {
+  Future<void> _setViewed(int index) async {
+    if (documents == null || documents.isEmpty) return;
+
+    final document = documents[index];
+
     final data = document.data;
 
     final views = data["views"];
@@ -305,7 +305,7 @@ class _StoriesState extends State<Stories> {
     };
 
     if (views is List) {
-      final hasView = views.any((v) => v["user_id"] == widget.settings.userId);
+      final hasView = views.any((view) => view["user_id"] == widget.settings.userId);
 
       if (!hasView) {
         views.add(currentView);
@@ -416,7 +416,7 @@ class MyStories extends StatefulWidget {
 }
 
 class _MyStoriesState extends State<MyStories> {
-  final firestore = Firestore.instance;
+  final collectionStream = StreamController<StoriesCollection>.broadcast();
   bool isMyStoriesFinished = true;
   Stream<QuerySnapshot> stream;
   List<DocumentSnapshot> documents;
@@ -425,6 +425,15 @@ class _MyStoriesState extends State<MyStories> {
   void initState() {
     super.initState();
     stream = _storiesStream;
+
+    widget.storyController.attachMyStories(this);
+  }
+
+  @override
+  void dispose() {
+    collectionStream?.close();
+    widget.storyController?.dettachMyStories();
+    super.dispose();
   }
 
   @override
@@ -442,9 +451,9 @@ class _MyStoriesState extends State<MyStories> {
 
             final isInValidaty = interval.compareTo(widget.settings.storyTimeValidaty) <= 0;
 
-            final noStory = myCollection.stories.every((story) => story.deletedAt != null);
+            final noStories = myCollection.stories.every((story) => story.deletedAt != null);
 
-            if (!noStory && isInValidaty) {
+            if (!noStories && isInValidaty) {
               final hasPublish = myCollection.stories?.isNotEmpty ?? false;
 
               final hasNewPublish = hasPublish
@@ -452,16 +461,24 @@ class _MyStoriesState extends State<MyStories> {
                       widget.settings.userId, myCollection, widget.settings.storyTimeValidaty)
                   : false;
 
-              return _storyItem(myCollection, hasPublish, hasNewPublish);
+              return _storyItem(
+                collection: myCollection,
+                hasPublish: hasPublish,
+                hasNewPublish: hasNewPublish,
+              );
             }
           }
         }
-        return _storyItem(null, false, false);
+        return _storyItem();
       },
     );
   }
 
-  Widget _storyItem(StoriesCollectionV2 collection, bool hasPublish, bool hasNewPublish) {
+  Widget _storyItem({
+    StoriesCollection collection,
+    bool hasPublish = false,
+    bool hasNewPublish = false,
+  }) {
     return GestureDetector(
       child: CachedNetworkImage(
         imageUrl: collection?.owner?.coverImg ?? widget.settings.coverImg ?? "",
@@ -504,55 +521,56 @@ class _MyStoriesState extends State<MyStories> {
     isMyStoriesFinished = true;
   }
 
-  Widget get publisher {
-    return StoryPublisher(
-      settings: widget.settings,
-      errorWidget: widget.errorWidget,
-      closeButton: widget.closeButton,
-      topSafeArea: widget.topSafeArea,
-      onStoryPosted: widget.onStoryPosted,
-      loadingWidget: widget.loadingWidget,
-      bottomSafeArea: widget.bottomSafeArea,
-      storyController: widget.storyController,
-      takeStoryBuilder: widget.takeStoryBuilder,
-      resultInfoBuilder: widget.resultInfoBuilder,
-      publisherController: widget.publisherController,
-      closeButtonPosition: widget.closeButtonPosition,
-      onStoryCollectionClosed: widget.onStoriesClosed,
-      onStoryCollectionOpenned: widget.onStoriesOpenned,
-      changeBackgroundColor: widget.changeBackgroundColor,
-      publisherLayerBuilder: widget.publisherLayerBuilder,
-      backgroundBetweenStories: widget.backgroundBetweenStories,
-    );
-  }
+  Widget get publisher => StoryPublisher(
+        settings: widget.settings,
+        errorWidget: widget.errorWidget,
+        closeButton: widget.closeButton,
+        topSafeArea: widget.topSafeArea,
+        onStoryPosted: widget.onStoryPosted,
+        loadingWidget: widget.loadingWidget,
+        bottomSafeArea: widget.bottomSafeArea,
+        storyController: widget.storyController,
+        takeStoryBuilder: widget.takeStoryBuilder,
+        resultInfoBuilder: widget.resultInfoBuilder,
+        publisherController: widget.publisherController,
+        closeButtonPosition: widget.closeButtonPosition,
+        onStoryCollectionClosed: widget.onStoriesClosed,
+        onStoryCollectionOpenned: widget.onStoriesOpenned,
+        changeBackgroundColor: widget.changeBackgroundColor,
+        publisherLayerBuilder: widget.publisherLayerBuilder,
+        backgroundBetweenStories: widget.backgroundBetweenStories,
+      );
 
-  Widget myStories(StoriesCollectionV2 collection) {
-    return StoriesCollectionView(
-      initialIndex: 0,
-      collections: [collection],
-      settings: widget.settings,
-      errorWidget: widget.errorWidget,
-      closeButton: widget.closeButton,
-      loadingWidget: widget.loadingWidget,
-      storyController: widget.storyController,
-      onStoryViewed: (index) {
-        _setViewed(documents[index]);
-      },
-      onStoriesClosed: () {
-        if (isMyStoriesFinished) widget.onStoriesClosed?.call();
-      },
-      onStoriesOpenned: widget.onStoriesOpenned,
-      closeButtonPosition: widget.closeButtonPosition,
-      navigationTransition: widget.navigationTransition,
-      backgroundBetweenStories: widget.backgroundBetweenStories,
-      infoLayerBuilder: (ctx, i, t, d, b, c, a, v) {
-        return widget.infoLayerBuilder(ctx, i, t, d, b, c, a, v, goToPublisher);
-      },
-    );
+  Widget myStories(StoriesCollection collection) {
+    return StreamBuilder<StoriesCollection>(
+        initialData: collection,
+        stream: collectionStream.stream,
+        builder: (context, snapshot) {
+          return StoriesCollectionView(
+            initialIndex: 0,
+            collections: [snapshot.data],
+            onStoryViewed: _setViewed,
+            settings: widget.settings,
+            errorWidget: widget.errorWidget,
+            closeButton: widget.closeButton,
+            loadingWidget: widget.loadingWidget,
+            storyController: widget.storyController,
+            onStoriesClosed: () {
+              if (isMyStoriesFinished) widget.onStoriesClosed?.call();
+            },
+            onStoriesOpenned: widget.onStoriesOpenned,
+            closeButtonPosition: widget.closeButtonPosition,
+            navigationTransition: widget.navigationTransition,
+            backgroundBetweenStories: widget.backgroundBetweenStories,
+            infoLayerBuilder: (ctx, i, t, d, b, c, a, v) {
+              return widget.infoLayerBuilder(ctx, i, t, d, b, c, a, v, goToPublisher);
+            },
+          );
+        });
   }
 
   Stream<QuerySnapshot> get _storiesStream {
-    return firestore
+    return Firestore.instance
         .collection(widget.settings.collectionDbPath)
         .where(
           'date',
@@ -564,7 +582,42 @@ class _MyStoriesState extends State<MyStories> {
         .snapshots();
   }
 
-  void _setViewed(DocumentSnapshot document) async {
+  Future<void> deleteStory(int index) async {
+    final collection = parseStoriesPreview(widget.settings.languageCode, documents).first;
+
+    if (collection.owner.id != widget.settings.userId) {
+      throw NotAllowedException();
+    }
+    final story = collection.stories[index];
+
+    final document = documents.singleWhere((doc) => doc.documentID == story.id);
+
+    widget.storyController.pause();
+
+    final newData = document.data;
+
+    newData["deleted_at"] = DateTime.now();
+
+    await document.reference.updateData(newData);
+
+    collection.stories.removeWhere((s) => s.id == newData["id"]);
+
+    final noStories = collection.stories.every((s) => s.deletedAt != null);
+
+    if (noStories) {
+      widget.storyController?.stop();
+
+      Navigator.pop(context);
+    } else {
+      collectionStream.sink.add(collection);
+    }
+  }
+
+  Future<void> _setViewed(int index) async {
+    if (documents == null || documents.isEmpty) return;
+
+    final document = documents[index];
+
     final data = document.data;
 
     final views = data["views"];
@@ -577,7 +630,7 @@ class _MyStoriesState extends State<MyStories> {
     };
 
     if (views is List) {
-      final hasView = views.any((v) => v["user_id"] == widget.settings.userId);
+      final hasView = views.any((view) => view["user_id"] == widget.settings.userId);
 
       if (!hasView) {
         views.add(currentView);
@@ -587,33 +640,5 @@ class _MyStoriesState extends State<MyStories> {
     }
 
     document.reference.updateData(data);
-  }
-
-  Future<void> deleteCurrentStory(int index) async {
-    // final ds = documents[index];
-
-    // final doc = ds.data;
-
-    // final story = doc["stories"].singleWhere((s) => s["id"] == currentStoryId, orElse: () => null);
-
-    // if (story == null) return;
-
-    // story["deleted_at"] = DateTime.now();
-
-    // await ds.reference.updateData(doc);
-
-    // // storiesDoc = storiesFromIds();
-
-    // final newDS = await storiesDoc;
-
-    // final noStoryRemains = newDS[index].data["stories"].every((d) => d["deleted"] as bool ?? false);
-
-    // if (noStoryRemains) {
-    //   storyController?.stop();
-
-    //   Navigator.pop(context);
-    // } else {
-    //   setState(() {});
-    // }
   }
 }
