@@ -430,7 +430,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
   List<Widget> mediaAttachments = <AttachmentWidget>[];
 
-  Color backgroundColor = Color(0xFF2e2046);
+  Color backgroundColor = Color(0xFF000000);
 
   final _globalKey = GlobalKey();
 

@@ -20,7 +20,7 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
   ).fold<List<StoryOwner>>(
     <StoryOwner>[],
     (list, owner) {
-      if (!list.contains(owner)) list.add(owner);
+      if (!list.any((item) => owner.id == item.id)) list.add(owner);
       return list;
     },
   );
