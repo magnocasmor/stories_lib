@@ -115,12 +115,15 @@ class _StoryVideoState extends State<StoryVideo> {
         if (!snapshot.hasError) {
           switch (snapshot.connectionState) {
             case ConnectionState.done:
+              final ratio = playerController.value.aspectRatio;
               return DecoratedBox(
                 decoration: BoxDecoration(color: widget.backgroundColor),
                 child: FittedContainer(
-                  fit: widget.fit,
-                  width: playerController.value.size?.width ?? 0,
-                  height: playerController.value.size?.height ?? 0,
+                  fit: ratio <= 0.7
+                      ? BoxFit.fitHeight
+                      : (ratio >= 1.4 ? BoxFit.fitWidth : BoxFit.contain),
+                  width: playerController.value.size.width,
+                  height: playerController.value.size.height,
                   child: VideoPlayer(playerController),
                 ),
               );

@@ -154,6 +154,10 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                               child: CameraPreview(cameraController),
                             ),
                           ),
+                          if (widget.publisherLayerBuilder != null)
+                            widget.publisherLayerBuilder(context, type),
+                          if (widget.takeStoryBuilder != null)
+                            widget.takeStoryBuilder(context, type, animation, processStory),
                           if (widget.closeButton != null)
                             Align(
                               alignment: widget.closeButtonPosition,
@@ -162,10 +166,6 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                                 child: widget.closeButton,
                               ),
                             ),
-                          if (widget.takeStoryBuilder != null)
-                            widget.takeStoryBuilder(context, type, animation, processStory),
-                          if (widget.publisherLayerBuilder != null)
-                            widget.publisherLayerBuilder(context, type),
                         ],
                       );
                       break;
@@ -479,7 +479,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         child: Stack(
           children: <Widget>[
             StoryWidget(child: _buildPreview()),
-            widget.resultInfoBuilder(context, widget.type, _sendStory),
+            if (widget.resultInfoBuilder != null)
+              widget.resultInfoBuilder(context, widget.type, _sendStory),
             Align(
               alignment: widget.closeButtonPosition,
               child: GestureDetector(
@@ -518,13 +519,15 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
                   },
                 ),
               ),
-              MultiGestureWidget(
-                minScale: .5,
-                maxScale: 5.0,
-                child: Image.file(
-                  File(widget.filePath),
-                  fit: widget.origin == FileOrigin.camera ? BoxFit.cover : null,
-                  filterQuality: FilterQuality.high,
+              Positioned.fill(
+                child: MultiGestureWidget(
+                  minScale: .5,
+                  maxScale: 5.0,
+                  child: Image.file(
+                    File(widget.filePath),
+                    fit: widget.origin == FileOrigin.camera ? BoxFit.cover : null,
+                    filterQuality: FilterQuality.high,
+                  ),
                 ),
               ),
               for (var render in mediaAttachments) render,
@@ -564,8 +567,11 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
               future: controllerFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
+                  final ratio = controller.value.aspectRatio;
                   return FittedContainer(
-                    fit: BoxFit.contain,
+                    fit: ratio <= 0.7
+                        ? BoxFit.fitHeight
+                        : (ratio >= 1.4 ? BoxFit.fitWidth : BoxFit.contain),
                     width: controller.value.size.width,
                     height: controller.value.size.height,
                     child: VideoPlayer(controller),
