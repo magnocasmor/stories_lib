@@ -302,7 +302,7 @@ class _HomeState extends State<Home> {
                   final directory = await provider.getApplicationDocumentsDirectory();
                   final file = await publisherController.saveStory(directory.path);
 
-                  print("Saved in ${file.path}");
+                  debugPrint("Saved in ${file.path}");
                 },
               ),
               FloatingActionButton(

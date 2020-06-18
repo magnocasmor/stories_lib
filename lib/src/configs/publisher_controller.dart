@@ -62,7 +62,7 @@ class PublisherController {
     _publisherState.changeType(type);
   }
 
-  Future<ExternalMediaStatus> sendExternal(File file, StoryType type) {
+  Future<void> sendExternal(File file, StoryType type) {
     return _publisherState.sendExternalMedia(file, type);
   }
 

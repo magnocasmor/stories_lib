@@ -27,9 +27,9 @@ class StoriesCollectionView extends StatefulWidget {
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
-  final void Function(int) onStoryViewed;
   final InfoLayerBuilder infoLayerBuilder;
   final List<StoriesCollection> collections;
+  final void Function(String) onStoryViewed;
   final RouteTransitionsBuilder navigationTransition;
 
   StoriesCollectionView({
@@ -99,8 +99,8 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
             controller: pageController,
             itemCount: widget.collections.length,
             physics: NeverScrollableScrollPhysics(),
-            itemBuilder: (context, index) {
-              final collection = widget.collections[index];
+            itemBuilder: (context, collectionIndex) {
+              final collection = widget.collections[collectionIndex];
 
               final stories = parseStories(
                 collection,
@@ -146,7 +146,8 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
                         },
                         onPreviousFirstStory: _previousGroupedStories,
                         closeButtonPosition: widget.closeButtonPosition,
-                        onShowing: widget.onStoryViewed,
+                        onShowing: (int storyIndex) =>
+                            widget.onStoryViewed(collection.stories[storyIndex].id),
                       ),
                       onVerticalDragUpdate: (details) {
                         if (details.delta.dy > 0) {

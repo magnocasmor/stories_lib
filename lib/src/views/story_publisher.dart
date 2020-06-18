@@ -591,8 +591,6 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Future<String> _capturePng() async {
     RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
 
-    print(boundary.debugNeedsPaint);
-
     ui.Image image = await boundary.toImage(pixelRatio: 1.0);
 
     ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);

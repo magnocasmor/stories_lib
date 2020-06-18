@@ -288,10 +288,10 @@ class _StoriesState extends State<Stories> {
     return query.orderBy('date', descending: widget.settings.sortByDesc).snapshots();
   }
 
-  Future<void> _setViewed(int index) async {
+  Future<void> _setViewed(String storyId) async {
     if (documents == null || documents.isEmpty) return;
 
-    final document = documents[index];
+    final document = documents.singleWhere((document) => document.documentID == storyId);
 
     final data = document.data;
 
@@ -613,10 +613,10 @@ class _MyStoriesState extends State<MyStories> {
     }
   }
 
-  Future<void> _setViewed(int index) async {
+  Future<void> _setViewed(String storyId) async {
     if (documents == null || documents.isEmpty) return;
 
-    final document = documents[index];
+    final document = documents.singleWhere((document) => document.documentID == storyId);
 
     final data = document.data;
 

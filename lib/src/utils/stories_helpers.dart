@@ -13,7 +13,15 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
   final _cacheDepth = 10;
   var i = 0;
 
-  final owners = documents.map<StoryOwner>(
+  final docs = List.from(documents);
+
+  /// if [StoriesSettings.sortByDesc] is false then order by last date to get updated owner infos
+  if (docs.isNotEmpty)
+    docs.sort((a, b) {
+      return (b.data["date"] as Timestamp).compareTo((a.data["date"] as Timestamp));
+    });
+
+  final owners = docs.map<StoryOwner>(
     (document) {
       return StoryOwner.fromJson(document.data["owner"]);
     },
