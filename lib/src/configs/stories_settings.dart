@@ -74,6 +74,8 @@ class StoriesSettings {
   ///
   /// If the difference between the [DateTime.now()] and [StoriesCollection.lastUpdate]
   /// is less than [storyTimeValidaty], then user can see the stories.
+  /// 
+  /// Default is 24 hours.
   final Duration storyTimeValidaty;
 
   /// Minimun duration in seconds of video record.
@@ -96,7 +98,7 @@ class StoriesSettings {
     this.releases = const [],
     this.storyDuration = const Duration(seconds: 5),
     this.videoDuration = const Duration(seconds: 10),
-    this.storyTimeValidaty = const Duration(hours: 12),
+    this.storyTimeValidaty = const Duration(hours: 24),
   })  : assert(userId != null),
         assert(releases != null),
         assert(languageCode != null),
