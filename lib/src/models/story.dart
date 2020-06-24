@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
-
-import '../utils/color_parser.dart';
+import 'package:stories_lib/src/models/stories_collection.dart';
+import 'package:stories_lib/src/utils/color_parser.dart';
 
 class Story {
   final String id;
   final String type;
   final DateTime date;
+  final StoryOwner owner;
   final DateTime deletedAt;
   final Color backgroundColor;
   final List<dynamic> releases;
@@ -16,37 +16,31 @@ class Story {
   final List<Map<String, dynamic>> views;
 
   Story({
-    @required this.id,
+    this.id,
     this.type,
     this.date,
-    this.media,
-    this.views,
-    this.caption,
-    this.releases,
     this.deletedAt,
     this.backgroundColor,
+    this.releases,
+    this.media,
+    this.owner,
+    this.caption,
+    this.views,
   });
 
   factory Story.fromJson(dynamic json) {
     if (json == null || json.isEmpty) return null;
-
-    List<Map<String, dynamic>> views;
-
-    if (json['views'] is List) views = List<Map<String, dynamic>>.from(json['views']);
-
-    List<dynamic> releases;
-    if (json['releases'] is List) releases = List.from(json['releases']);
-
     return Story(
-      views: views,
       id: json['id'],
       type: json['type'],
-      releases: releases,
+      releases: json['releases'] as List,
+      owner: StoryOwner.fromJson(json["owner"]),
       date: (json['date'] as Timestamp).toDate(),
+      media: Map<String, String>.from(json['media']),
       deletedAt: (json['deleted_at'] as Timestamp)?.toDate(),
       backgroundColor: stringToColor(json['background_color']),
-      media: json['media'] != null ? Map<String, String>.from(json['media']) : null,
       caption: json['caption'] != null ? Map<String, String>.from(json['caption']) : null,
+      views: json['views'] != null ? List<Map<String, dynamic>>.from(json['views']) : null,
     );
   }
 
@@ -58,9 +52,10 @@ class Story {
       'media': this.media,
       'caption': this.caption,
       'releases': this.releases,
+      'owner': this.owner.toJson(),
       'date': this.date.toIso8601String(),
-      'background_color': this.backgroundColor,
       'deleted_at': this.deletedAt?.toIso8601String(),
+      'background_color': colorToString(this.backgroundColor),
     };
   }
 }

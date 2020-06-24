@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class StoryWidget extends StatelessWidget {
-  final Widget story;
+  final Widget child;
   final String caption;
   final TextStyle captionStyle;
 
   const StoryWidget({
     Key key,
-    @required this.story,
+    @required this.child,
     this.caption,
     this.captionStyle = const TextStyle(fontSize: 15, color: Colors.white),
   }) : super(key: key);
@@ -16,7 +16,7 @@ class StoryWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: <Widget>[
-        Positioned.fill(child: story),
+        Positioned.fill(child: child),
         if (caption is String && caption.isNotEmpty)
           Align(
             alignment: Alignment.bottomCenter,

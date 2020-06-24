@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
-import 'package:stories_lib/src/views/stories_collection_view.dart';
 
 enum PlaybackState { pause, play, previous, forward, stop }
 
@@ -17,7 +16,7 @@ class StoryController {
 
   StreamSubscription<PlaybackState> _subs;
 
-  StoriesCollectionViewState _collectionState;
+  var _myStoriesState;
 
   Future<StreamSubscription<PlaybackState>> addListener(
       void Function(PlaybackState) listener) async {
@@ -47,17 +46,18 @@ class StoryController {
     _playbackNotifier.add(PlaybackState.previous);
   }
 
-  void addCollectionState(StoriesCollectionViewState collectionState) {
-    _collectionState = collectionState;
+  void attachMyStories(dynamic myStoriesState) {
+    assert(myStoriesState != null);
+    _myStoriesState = myStoriesState;
   }
 
-  void removeCollectionState() {
-    _collectionState = null;
+  void dettachMyStories() {
+    _myStoriesState = null;
   }
 
-  Future<void> deleteCurrentStory() async {
-    assert(_collectionState != null);
-    return await _collectionState.deleteCurrentStory();
+  Future<void> deleteCurrentStory(int index) async {
+    assert(_myStoriesState != null);
+    return await _myStoriesState.deleteStory(index);
   }
 
   /// Remember to call dispose when the story screen is disposed to close

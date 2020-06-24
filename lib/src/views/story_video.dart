@@ -54,6 +54,7 @@ class StoryVideo extends StatefulWidget {
   final BoxFit fit;
   final Widget errorWidget;
   final Widget loadingWidget;
+  final Color backgroundColor;
   final VideoLoader videoLoader;
   final StoryController controller;
 
@@ -64,6 +65,7 @@ class StoryVideo extends StatefulWidget {
     this.errorWidget,
     this.loadingWidget,
     this.fit = BoxFit.cover,
+    this.backgroundColor = Colors.black,
   }) : super(key: key ?? UniqueKey());
 
   static StoryVideo url({
@@ -71,6 +73,7 @@ class StoryVideo extends StatefulWidget {
     String url,
     Widget errorWidget,
     Widget loadingWidget,
+    Color backgroundColor,
     StoryController controller,
     Map<String, dynamic> requestHeaders,
     BoxFit fit = BoxFit.cover,
@@ -81,6 +84,7 @@ class StoryVideo extends StatefulWidget {
       controller: controller,
       errorWidget: errorWidget,
       loadingWidget: loadingWidget,
+      backgroundColor: backgroundColor,
       videoLoader: VideoLoader(url, requestHeaders: requestHeaders),
     );
   }
@@ -111,11 +115,17 @@ class _StoryVideoState extends State<StoryVideo> {
         if (!snapshot.hasError) {
           switch (snapshot.connectionState) {
             case ConnectionState.done:
-              return FittedContainer(
-                fit: widget.fit,
-                width: playerController.value.size?.width ?? 0,
-                height: playerController.value.size?.height ?? 0,
-                child: VideoPlayer(playerController),
+              final ratio = playerController.value.aspectRatio;
+              return DecoratedBox(
+                decoration: BoxDecoration(color: widget.backgroundColor),
+                child: FittedContainer(
+                  fit: ratio <= 0.7
+                      ? BoxFit.fitHeight
+                      : (ratio >= 1.4 ? BoxFit.fitWidth : BoxFit.contain),
+                  width: playerController.value.size.width,
+                  height: playerController.value.size.height,
+                  child: VideoPlayer(playerController),
+                ),
               );
               break;
             default:

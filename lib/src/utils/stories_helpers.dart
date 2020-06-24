@@ -9,53 +9,62 @@ import '../models/stories_collection.dart';
 import '../models/story.dart';
 import '../views/story_view.dart';
 
-List<String> storyIds(List<DocumentSnapshot> stories) {
-  return stories
-      .where((story) => storiesCollectionFromDocument(story).stories != null)
-      .map((story) => story.documentID)
-      .toList();
-}
+List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSnapshot> documents) {
+  final _cacheDepth = 10;
+  var i = 0;
 
-List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSnapshot> stories) {
-  final _cacheDepth = 4;
+  final docs = List.from(documents);
 
-  return stories.map((story) {
-    final StoriesCollection storyData = storiesCollectionFromDocument(story);
+  /// if [StoriesSettings.sortByDesc] is false then order by last date to get updated owner infos
+  if (docs.isNotEmpty)
+    docs.sort((a, b) {
+      return (b.data["date"] as Timestamp).compareTo((a.data["date"] as Timestamp));
+    });
 
-    if (storyData.stories != null) {
-      var i = 0;
-      for (var file in storyData.stories) {
-        if (file.type == 'image' && i < _cacheDepth) {
-          DefaultCacheManager().getSingleFile(file.media[languageCode]);
-          i += 1;
-        }
-      }
-    }
-    return storyData;
+  final owners = docs.map<StoryOwner>(
+    (document) {
+      return StoryOwner.fromJson(document.data["owner"]);
+    },
+  ).fold<List<StoryOwner>>(
+    <StoryOwner>[],
+    (list, owner) {
+      if (!list.any((item) => owner.id == item.id)) list.add(owner);
+      return list;
+    },
+  );
+
+  return owners.map<StoriesCollection>((owner) {
+    return ownerCollection(documents.map((document) => document.data).toList(), owner)
+      ..stories.forEach(
+        (story) {
+          if (story.type == 'image' && i < _cacheDepth) {
+            DefaultCacheManager().getSingleFile(story.media[languageCode]);
+            i += 1;
+          }
+        },
+      );
   }).toList();
 }
 
 List<StoryWrap> parseStories(
-  DocumentSnapshot document,
+  StoriesCollection collection,
   StoryController controller,
   StoriesSettings settings,
   Widget errorWidget,
   Widget loadingWidget,
 ) {
-  final storiesCollection = storiesCollectionFromDocument(document);
-
   final wraps = <StoryWrap>[];
 
-  for (Story story in storiesCollection.stories) {
+  for (Story story in collection.stories) {
     if (story.deletedAt != null) continue;
 
-    final index = storiesCollection.stories.indexOf(story);
+    final index = collection.stories.indexOf(story);
 
     if (!isInIntervalToShow(story, settings.storyTimeValidaty)) {
       continue;
     }
 
-    if (settings.userId != storiesCollection.storyId && !allowToSee(story.toJson(), settings)) {
+    if (settings.userId != collection.owner.id && !allowToSee(story.toJson(), settings)) {
       continue;
     }
 
@@ -116,15 +125,15 @@ List<StoryWrap> parseStories(
             controller: controller,
             errorWidget: errorWidget,
             loadingWidget: loadingWidget,
+            backgroundColor: story.backgroundColor,
           ),
         );
         break;
       default:
     }
 
-    if (index < storiesCollection.stories.length - 1 &&
-        storiesCollection.stories[index + 1].media != null) {
-      final next = storiesCollection.stories[index + 1];
+    if (index < collection.stories.length - 1 && collection.stories[index + 1].media != null) {
+      final next = collection.stories[index + 1];
 
       DefaultCacheManager().getSingleFile(next.media[settings.languageCode]);
     }
@@ -165,6 +174,15 @@ bool isInIntervalToShow(Story story, Duration storyValidaty) {
   return story.date.isAfter(DateTime.now().subtract(storyValidaty));
 }
 
-StoriesCollection storiesCollectionFromDocument(DocumentSnapshot document) {
-  return StoriesCollection.fromJson(document.data..addAll({"story_id": document.documentID}));
+StoriesCollection ownerCollection(List<Map<String, dynamic>> datas, StoryOwner owner) {
+  final stories = datas
+      .where((data) => data["owner"]["id"] == owner.id)
+      .map<Story>((story) => Story.fromJson(story))
+      .toList();
+
+  return StoriesCollection(
+    owner: owner,
+    stories: stories,
+    lastUpdate: stories.first.date,
+  );
 }
