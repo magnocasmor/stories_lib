@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../../stories.dart';
 import '../configs/stories_settings.dart';
@@ -147,7 +149,7 @@ class Stories extends StatefulWidget {
 }
 
 class _StoriesState extends State<Stories> {
-  Stream<QuerySnapshot> stream;
+  Stream<List<DocumentSnapshot>> stream;
   List<DocumentSnapshot> documents;
 
   @override
@@ -158,11 +160,11 @@ class _StoriesState extends State<Stories> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<List<DocumentSnapshot>>(
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          documents = snapshot.data.documents;
+          documents = snapshot.data;
 
           documents.removeWhere((s) => s["owner"]["id"] == widget.settings.userId);
 
@@ -272,7 +274,7 @@ class _StoriesState extends State<Stories> {
     );
   }
 
-  Stream<QuerySnapshot> get _storiesStream {
+  Stream<List<DocumentSnapshot>> get _storiesStream {
     var query = Firestore.instance
         .collection(widget.settings.collectionDbPath)
         .where('deleted_at', isNull: true)
@@ -281,11 +283,58 @@ class _StoriesState extends State<Stories> {
           isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
         );
 
+    // Cause Firestore arrayContainsAny limitation of 10 elements, the query with releases checks
+    // are splitted in chunks of 10. 
     if (widget.settings.releases is List && widget.settings.releases.isNotEmpty) {
-      query = query.where('releases', arrayContainsAny: widget.settings.releases);
-    }
+      final querysByRelease = <Stream<QuerySnapshot>>[];
 
-    return query.orderBy('date', descending: widget.settings.sortByDesc).snapshots();
+      var i = 0;
+      var steps = 10;
+
+      do {
+        final sublist =
+            widget.settings.releases.sublist(i, min(i + steps, widget.settings.releases.length));
+
+        querysByRelease.add(query
+            .where('releases', arrayContainsAny: sublist)
+            .orderBy('date', descending: widget.settings.sortByDesc)
+            .snapshots());
+
+        i = i + steps;
+      } while (i < widget.settings.releases.length);
+
+      return Rx.combineLatest<QuerySnapshot, List<DocumentSnapshot>>(
+        querysByRelease,
+        (results) {
+          final newResults = <DocumentSnapshot>[];
+
+          for (var result in results) {
+            for (var document in result.documents) {
+              final hasDocument = newResults.firstWhere(
+                      (doc) => doc.documentID == document.documentID,
+                      orElse: () => null) !=
+                  null;
+
+              if (!hasDocument) {
+                newResults.add(document);
+              }
+            }
+          }
+
+          return newResults;
+          // ..sort(
+          //   (a, b) => (a.data["date"] as Timestamp).compareTo(
+          //     (b.data["date"] as Timestamp),
+          //   ),
+          // );
+        },
+      );
+    } else {
+      return query
+          .orderBy('date', descending: widget.settings.sortByDesc)
+          .snapshots()
+          .map((snapshot) => snapshot.documents);
+    }
   }
 
   Future<void> _setViewed(String storyId) async {
