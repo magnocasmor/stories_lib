@@ -58,6 +58,8 @@ class StoriesSettings {
   /// When this limit is exceeded, will throw [ExceededSizeException].
   ///
   /// Default is 5 MB.
+  /// 
+  /// If this value is null then file size checker will be ignored.
   final int maxFileSize;
 
   /// The image quality to compress in [FlutterImageCompress].

@@ -316,8 +316,14 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   bool isFileSizeExceeded(int size) {
     final fileSize = size / 1000000;
+
     debugPrint("$fileSize MB");
-    return fileSize > widget.settings.maxFileSize;
+
+    if (widget.settings.maxFileSize == null) {
+      return false;
+    } else {
+      return fileSize > widget.settings.maxFileSize;
+    }
   }
 
   Future<void> sendExternalMedia(File file, StoryType type) async {
@@ -618,6 +624,18 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     }
   }
 
+  bool isFileSizeExceeded(int size) {
+    final fileSize = size / 1000000;
+
+    debugPrint("$fileSize MB");
+
+    if (widget.settings.maxFileSize == null) {
+      return false;
+    } else {
+      return fileSize > widget.settings.maxFileSize;
+    }
+  }
+
   Future<void> _sendStory({
     String caption,
     List<dynamic> selectedReleases = const [],
@@ -635,7 +653,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
       final file = File(filePath);
 
-      if ((await file.length()) > widget.settings.maxFileSize * 1000000) {
+      if (isFileSizeExceeded(file.lengthSync())) {
         throw ExceededSizeException();
       }
 
