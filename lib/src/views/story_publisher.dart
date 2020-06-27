@@ -600,7 +600,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Future<String> _capturePng() async {
     RenderRepaintBoundary boundary = _globalKey.currentContext.findRenderObject();
 
-    ui.Image image = await boundary.toImage(pixelRatio: 1.0);
+    ui.Image image = await boundary.toImage(pixelRatio: 2.0);
 
     ByteData byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
@@ -620,9 +620,9 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       case StoryType.video:
         future = _compressVideo(widget.filePath).then((path) => filePath = path);
         break;
-      case StoryType.image:
-        future = _compressImage(widget.filePath).then((path) => filePath = path);
-        break;
+      // case StoryType.image:
+      //   future = _compressImage(widget.filePath).then((path) => filePath = path);
+      //   break;
       default:
     }
   }
