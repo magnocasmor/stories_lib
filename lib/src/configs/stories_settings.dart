@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../views/story_publisher.dart';
 
+/// A enum to map the camera plugin [ResolutionPreset] enum for camera resolution.
+enum CameraResolution { low, medium, high, veryHigh, ultraHigh, max }
+
 /// A set of configurations that will configure the library operation.
 class StoriesSettings {
   /// Indicates if repeat all stories collection.
@@ -58,7 +61,7 @@ class StoriesSettings {
   /// When this limit is exceeded, will throw [ExceededSizeException].
   ///
   /// Default is 5 MB.
-  /// 
+  ///
   /// If this value is null then file size checker will be ignored.
   final int maxFileSize;
 
@@ -76,7 +79,7 @@ class StoriesSettings {
   ///
   /// If the difference between the [DateTime.now()] and [StoriesCollection.lastUpdate]
   /// is less than [storyTimeValidaty], then user can see the stories.
-  /// 
+  ///
   /// Default is 24 hours.
   final Duration storyTimeValidaty;
 
@@ -84,6 +87,11 @@ class StoriesSettings {
   ///
   /// Default is 2 seconds.
   final int minVideoRecord;
+
+  /// Define the camera resolution.
+  ///
+  /// Default is [CameraResolution.high].
+  final CameraResolution cameraResolution;
 
   StoriesSettings({
     @required this.userId,
@@ -98,6 +106,7 @@ class StoriesSettings {
     this.minVideoRecord = 2,
     this.languageCode = 'pt',
     this.releases = const [],
+    this.cameraResolution = CameraResolution.high,
     this.storyDuration = const Duration(seconds: 5),
     this.videoDuration = const Duration(seconds: 10),
     this.storyTimeValidaty = const Duration(hours: 24),

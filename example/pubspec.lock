@@ -39,10 +39,12 @@ packages:
   camera:
     dependency: transitive
     description:
-      name: camera
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.5.8+2"
+      path: "packages/camera"
+      ref: HEAD
+      resolved-ref: "26d484992b839f139b41ab6a5a69c545112d8ce9"
+      url: "https://github.com/magnocasmor/plugins.git"
+    source: git
+    version: "0.5.8+3"
   charcode:
     dependency: transitive
     description:
@@ -415,6 +417,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.0.8"
+  video_compress:
+    dependency: transitive
+    description:
+      name: video_compress
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.0.0"
   video_player:
     dependency: transitive
     description:

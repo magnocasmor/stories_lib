@@ -16,6 +16,7 @@ import 'package:path/path.dart' show join, basename, extension;
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:stories_lib/src/utils/color_parser.dart';
 import 'package:uuid/uuid.dart';
+import 'package:video_compress/video_compress.dart';
 import 'package:video_player/video_player.dart';
 
 import '../configs/stories_settings.dart';
@@ -189,7 +190,9 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
       orElse: () => cameras.first,
     );
 
-    cameraController = CameraController(selectedCamera, ResolutionPreset.high);
+    final resolutionIndex = widget.settings.cameraResolution.index;
+
+    cameraController = CameraController(selectedCamera, ResolutionPreset.values[resolutionIndex]);
 
     storyPath = null;
 
@@ -695,22 +698,18 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   }
 
   Future<String> _compressVideo(String path) async {
-    // debugPrint('video before = ${File(path).lengthSync() / 1000} kB');
+    debugPrint('video before = ${File(path).lengthSync() / 1000} kB');
 
-    /// TODO: Search a way to compress video sucessfully
-    // final mediaInfo = await VideoCompress.compressVideo(
-    //   widget.filePath,
-    //   deleteOrigin: true,
-    //   quality: VideoQuality.MediumQuality,
-    // );
+    final mediaInfo = await VideoCompress.compressVideo(
+      widget.filePath,
+      includeAudio: true,
+      deleteOrigin: false,
+      quality: VideoQuality.MediumQuality,
+    );
 
-    // compressedPath = mediaInfo.path;
+    debugPrint('video after = ${mediaInfo.file.lengthSync() / 1000} kB');
 
-    // debugPrint('video after = ${mediaInfo.file.lengthSync() / 1000} kB');
-
-    filePath = widget.filePath;
-
-    return filePath;
+    return mediaInfo.path;
   }
 
   void addAttachment(AttachmentWidget attachment) {
@@ -742,6 +741,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     final StorageTaskSnapshot downloadUrl = await uploadTask.onComplete;
 
     final String url = await downloadUrl.ref.getDownloadURL();
+
+    VideoCompress.deleteAllCache();
 
     return url;
   }
