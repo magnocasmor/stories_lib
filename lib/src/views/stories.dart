@@ -27,6 +27,8 @@ class Stories extends StatefulWidget {
 
   final Alignment closeButtonPosition;
 
+  final ScrollPhysics storiesListPhysics;
+
   /// Widget displayed when media fails to load.
   final Widget errorWidget;
 
@@ -82,6 +84,7 @@ class Stories extends StatefulWidget {
     this.previewListPadding,
     this.onAllStoriesComplete,
     this.navigationTransition,
+    this.storiesListPhysics,
     this.onStoriesClosed,
     this.onStoriesOpenned,
     this.topSafeArea = true,
@@ -105,6 +108,7 @@ class Stories extends StatefulWidget {
     this.navigationTransition,
     this.onStoriesClosed,
     this.onStoriesOpenned,
+    this.storiesListPhysics,
     this.topSafeArea = true,
     this.bottomSafeArea = false,
     this.backgroundBetweenStories = Colors.black,
@@ -262,6 +266,7 @@ class _StoriesState extends State<Stories> {
     return SingleChildScrollView(
       primary: false,
       scrollDirection: Axis.horizontal,
+      physics: widget.storiesListPhysics,
       padding: widget.previewListPadding,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -284,7 +289,7 @@ class _StoriesState extends State<Stories> {
         );
 
     // Cause Firestore arrayContainsAny limitation of 10 elements, the query with releases checks
-    // are splitted in chunks of 10. 
+    // are splitted in chunks of 10.
     if (widget.settings.releases is List && widget.settings.releases.isNotEmpty) {
       final querysByRelease = <Stream<QuerySnapshot>>[];
 
