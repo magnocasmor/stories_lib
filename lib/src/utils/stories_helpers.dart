@@ -60,7 +60,7 @@ List<StoryWrap> parseStories(
 
     final index = collection.stories.indexOf(story);
 
-    if (!isInIntervalToShow(story, settings.storyTimeValidaty)) {
+    if (!isInIntervalToShow(story, settings.storyValidity)) {
       continue;
     }
 
@@ -157,10 +157,10 @@ bool allowToSee(Map storyData, StoriesSettings settings) {
       );
 }
 
-bool hasNewStories(String userId, StoriesCollection collection, Duration storyValidaty) {
+bool hasNewStories(String userId, StoriesCollection collection, Duration storyValidity) {
   return collection.stories.any(
     (s) =>
-        isInIntervalToShow(s, storyValidaty) &&
+        isInIntervalToShow(s, storyValidity) &&
         s.deletedAt == null &&
         (s.views?.every((v) => v["user_id"] != userId) ?? true),
   );
@@ -170,8 +170,8 @@ bool isViewed(Story story, String userId) {
   return story.views?.any((v) => v["user_id"] == userId) ?? false;
 }
 
-bool isInIntervalToShow(Story story, Duration storyValidaty) {
-  return story.date.isAfter(DateTime.now().subtract(storyValidaty));
+bool isInIntervalToShow(Story story, Duration storyValidity) {
+  return story.date.isAfter(DateTime.now().subtract(storyValidity));
 }
 
 StoriesCollection ownerCollection(List<Map<String, dynamic>> datas, StoryOwner owner) {
