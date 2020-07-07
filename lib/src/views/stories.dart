@@ -185,7 +185,7 @@ class _StoriesState extends State<Stories> {
               final hasNsewStories = hasNewStories(
                 widget.settings.userId,
                 collection,
-                widget.settings.storyTimeValidaty,
+                widget.settings.storyValidity,
               );
 
               return GestureDetector(
@@ -285,7 +285,7 @@ class _StoriesState extends State<Stories> {
         .where('deleted_at', isNull: true)
         .where(
           'date',
-          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
+          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyValidity),
         );
 
     // Cause Firestore arrayContainsAny limitation of 10 elements, the query with releases checks
@@ -503,16 +503,16 @@ class _MyStoriesState extends State<MyStories> {
 
             final interval = DateTime.now().difference(myCollection.lastUpdate);
 
-            final isInValidaty = interval.compareTo(widget.settings.storyTimeValidaty) <= 0;
+            final isInValidity = interval.compareTo(widget.settings.storyValidity) <= 0;
 
             final noStories = myCollection.stories.every((story) => story.deletedAt != null);
 
-            if (!noStories && isInValidaty) {
+            if (!noStories && isInValidity) {
               final hasPublish = myCollection.stories?.isNotEmpty ?? false;
 
               final hasNewPublish = hasPublish
                   ? hasNewStories(
-                      widget.settings.userId, myCollection, widget.settings.storyTimeValidaty)
+                      widget.settings.userId, myCollection, widget.settings.storyValidity)
                   : false;
 
               return _storyItem(
@@ -628,7 +628,7 @@ class _MyStoriesState extends State<MyStories> {
         .collection(widget.settings.collectionDbPath)
         .where(
           'date',
-          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyTimeValidaty),
+          isGreaterThanOrEqualTo: DateTime.now().subtract(widget.settings.storyValidity),
         )
         .where('owner.id', isEqualTo: widget.settings.userId)
         .where('deleted_at', isNull: true)

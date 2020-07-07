@@ -46,7 +46,7 @@ class _HomeState extends State<Home> {
       userId: "HSAanDNIAhndiuhANSIDhasid",
       languageCode: 'pt',
       username: "Jubscleiton",
-      storyTimeValidaty: const Duration(hours: 12),
+      storyValidity: const Duration(hours: 12),
       coverImg:
           "https://images.unsplash.com/photo-1468218457742-ee484fe2fe4c?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1053&q=80",
       sortByDesc: true,
