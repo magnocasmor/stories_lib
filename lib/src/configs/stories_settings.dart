@@ -75,13 +75,13 @@ class StoriesSettings {
   /// This can't be null or empty
   final String collectionDbPath;
 
-  /// The validaty to see the stories.
+  /// The validity to see the stories.
   ///
   /// If the difference between the [DateTime.now()] and [StoriesCollection.lastUpdate]
-  /// is less than [storyTimeValidaty], then user can see the stories.
+  /// is less than [storyValidity], then user can see the stories.
   ///
   /// Default is 24 hours.
-  final Duration storyTimeValidaty;
+  final Duration storyValidity;
 
   /// Minimun duration in seconds of video record.
   ///
@@ -109,12 +109,12 @@ class StoriesSettings {
     this.cameraResolution = CameraResolution.high,
     this.storyDuration = const Duration(seconds: 5),
     this.videoDuration = const Duration(seconds: 10),
-    this.storyTimeValidaty = const Duration(hours: 24),
+    this.storyValidity = const Duration(hours: 24),
   })  : assert(userId != null),
         assert(releases != null),
         assert(languageCode != null),
         assert(storyDuration != null),
         assert(videoDuration != null),
         assert(collectionDbPath != null),
-        assert(storyTimeValidaty != null);
+        assert(storyValidity != null);
 }
