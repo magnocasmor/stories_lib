@@ -73,6 +73,7 @@ class Stories extends StatefulWidget {
   final bool bottomSafeArea;
 
   Stories({
+    Key key,
     @required this.settings,
     this.errorWidget,
     this.closeButton,
@@ -91,10 +92,12 @@ class Stories extends StatefulWidget {
     this.bottomSafeArea = false,
     this.backgroundBetweenStories = Colors.black,
     this.closeButtonPosition = Alignment.topRight,
-  }) : myStoriesPreview = null;
+  })  : myStoriesPreview = null,
+        super(key: key);
 
   /// Build a stories preview list with [MyStories] and same shared widgets.
   Stories.withMyStories({
+    Key key,
     @required this.settings,
     this.errorWidget,
     this.closeButton,
@@ -122,7 +125,7 @@ class Stories extends StatefulWidget {
     MyStoriesPreviewBuilder myPreviewBuilder,
     PublishLayerBuilder publisherLayerBuilder,
     Future<Color> Function(Color) changeBackgroundColor,
-  }) : myStoriesPreview = myPreviewBuilder != null
+  })  : myStoriesPreview = myPreviewBuilder != null
             ? MyStories(
                 settings: settings,
                 errorWidget: errorWidget,
@@ -146,7 +149,8 @@ class Stories extends StatefulWidget {
                 changeBackgroundColor: changeBackgroundColor,
                 backgroundBetweenStories: backgroundBetweenStories,
               )
-            : null;
+            : null,
+        super(key: key);
 
   @override
   _StoriesState createState() => _StoriesState();
