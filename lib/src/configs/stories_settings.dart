@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -7,7 +8,7 @@ import '../views/story_publisher.dart';
 enum CameraResolution { low, medium, high, veryHigh, ultraHigh, max }
 
 /// A set of configurations that will configure the library operation.
-class StoriesSettings {
+class StoriesSettings extends Equatable {
   /// Indicates if repeat all stories collection.
   ///
   /// Default is false.
@@ -117,4 +118,24 @@ class StoriesSettings {
         assert(videoDuration != null),
         assert(collectionDbPath != null),
         assert(storyValidity != null);
+
+  @override
+  List<Object> get props => [
+        this.userId,
+        this.collectionDbPath,
+        this.coverImg,
+        this.username,
+        this.repeat,
+        this.inline,
+        this.maxFileSize,
+        this.storyQuality,
+        this.sortByDesc,
+        this.minVideoRecord,
+        this.languageCode,
+        this.releases,
+        this.cameraResolution,
+        this.storyDuration,
+        this.videoDuration,
+        this.storyValidity,
+      ];
 }
