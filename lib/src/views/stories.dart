@@ -167,6 +167,14 @@ class _StoriesState extends State<Stories> {
   }
 
   @override
+  void didUpdateWidget(Stories oldWidget) {
+    if (oldWidget.settings != widget.settings) {
+      stream = _storiesStream;
+    }
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<DocumentSnapshot>>(
       stream: stream,
