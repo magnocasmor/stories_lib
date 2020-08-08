@@ -49,7 +49,7 @@ class StoryPublisher extends StatefulWidget {
   final bool bottomSafeArea;
   final Widget loadingWidget;
   final StoriesSettings settings;
-  final VoidCallback onStoryPosted;
+  final void Function(String) onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
@@ -394,10 +394,10 @@ class _StoryPublisherResult extends StatefulWidget {
   final Widget closeButton;
   final bool bottomSafeArea;
   final StoriesSettings settings;
-  final VoidCallback onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
+  final void Function(String) onStoryPosted;
   final ResultLayerBuilder resultInfoBuilder;
   final PublisherController publisherController;
   final Future<Color> Function(Color) changeBackgroundColor;
@@ -666,11 +666,11 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
 
       if (url is! String) throw UploadFailException();
 
-      await _dbInput(url, caption: caption, selectedReleases: selectedReleases);
+      final storyId = await _dbInput(url, caption: caption, selectedReleases: selectedReleases);
 
       widget.publisherController.addStatus(PublisherStatus.none);
 
-      widget.onStoryPosted?.call();
+      widget.onStoryPosted?.call(storyId);
     } catch (e, s) {
       debugPrint(e.toString());
       debugPrint(s.toString());
@@ -747,7 +747,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     return url;
   }
 
-  Future<void> _dbInput(
+  Future<String> _dbInput(
     String url, {
     String caption,
     List<dynamic> selectedReleases,
@@ -783,6 +783,8 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     } else {
       await _dbInput(url, caption: caption, selectedReleases: selectedReleases);
     }
+
+    return storyId;
   }
 
   String get _extractType => widget.type.toString().split('.')[1];
