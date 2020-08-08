@@ -16,7 +16,6 @@ import '../views/stories_collection_view.dart';
 import '../views/story_publisher.dart';
 
 typedef _ItemBuilder = Widget Function(BuildContext, int);
-typedef _EventCallback = void Function(String);
 
 class Stories extends StatefulWidget {
   Stories({
@@ -164,15 +163,15 @@ class Stories extends StatefulWidget {
   /// Default is false.
   final bool bottomSafeArea;
 
-  final _EventCallback onStoryOpenned;
+  final StoryEventCallback onStoryOpenned;
 
-  final _EventCallback onStoryClosed;
+  final StoryEventCallback onStoryClosed;
 
-  final _EventCallback onStoryPaused;
+  final StoryEventCallback onStoryPaused;
 
-  final _EventCallback onStoryResumed;
+  final StoryEventCallback onStoryResumed;
 
-  final _EventCallback onStoryPosted;
+  final StoryEventCallback onStoryPosted;
 
   final void Function(bool) onStoriesCollectionClosed;
 
@@ -436,7 +435,7 @@ class MyStories extends StatefulWidget {
   final StoriesSettings settings;
 
   /// Calling when a publishment is completed with success.
-  final _EventCallback onStoryPosted;
+  final StoryEventCallback onStoryPosted;
 
   /// If should set [SafeArea] with top padding on [StoriesCollection] and [StoryPublisher].
   ///

@@ -49,10 +49,10 @@ class StoryPublisher extends StatefulWidget {
   final bool bottomSafeArea;
   final Widget loadingWidget;
   final StoriesSettings settings;
-  final void Function(String) onStoryPosted;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
+  final StoryEventCallback onStoryPosted;
   final TakeStoryBuilder takeStoryBuilder;
   final ResultLayerBuilder resultInfoBuilder;
   final VoidCallback onStoryCollectionClosed;
