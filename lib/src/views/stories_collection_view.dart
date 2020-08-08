@@ -22,15 +22,18 @@ class StoriesCollectionView extends StatefulWidget {
   final bool bottomSafeArea;
   final Widget loadingWidget;
   final StoriesSettings settings;
-  final VoidCallback onStoriesClosed;
-  final VoidCallback onStoriesOpenned;
   final Alignment closeButtonPosition;
   final Color backgroundBetweenStories;
   final StoryController storyController;
+  final StoryEventCallback onStoryViewed;
+  final StoryEventCallback onStoryClosed;
+  final StoryEventCallback onStoryPaused;
   final InfoLayerBuilder infoLayerBuilder;
+  final StoryEventCallback onStoryResumed;
   final List<StoriesCollection> collections;
-  final void Function(String) onStoryViewed;
+  final void Function(String) onCollectionOpenned;
   final RouteTransitionsBuilder navigationTransition;
+  final void Function(String, bool) onCollectionClosed;
 
   StoriesCollectionView({
     this.settings,
@@ -38,17 +41,20 @@ class StoriesCollectionView extends StatefulWidget {
     this.closeButton,
     this.collections,
     this.loadingWidget,
+    this.onStoryClosed,
+    this.onStoryViewed,
+    this.onStoryPaused,
+    this.onStoryResumed,
     this.storyController,
-    this.onStoriesClosed,
     this.infoLayerBuilder,
-    this.onStoriesOpenned,
+    this.onCollectionClosed,
+    this.onCollectionOpenned,
     this.closeButtonPosition,
     this.navigationTransition,
     this.backgroundBetweenStories,
+    this.initialIndex = 0,
     this.topSafeArea = true,
     this.bottomSafeArea = false,
-    this.initialIndex = 0,
-    this.onStoryViewed,
   });
 
   @override
@@ -64,8 +70,6 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
 
   @override
   void initState() {
-    widget.onStoriesOpenned?.call();
-
     storyController = widget.storyController ?? StoryController();
 
     pageController = PageController(initialPage: widget.initialIndex);
@@ -76,8 +80,6 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
   @override
   void dispose() {
     storyController?.dispose();
-
-    widget.onStoriesClosed?.call();
 
     super.dispose();
   }
@@ -120,8 +122,17 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
                         controller: storyController,
                         repeat: widget.settings.repeat,
                         inline: widget.settings.inline,
+                        onPaused: widget.onStoryPaused,
+                        onResumed: widget.onStoryResumed,
                         closeButton: widget.closeButton,
-                        onComplete: _nextGroupedStories,
+                        onInit: () {
+                          widget.onCollectionOpenned?.call(collection.owner.id);
+                        },
+                        onComplete: () {
+                          widget.onCollectionClosed
+                              ?.call(collection.owner.id, stories.every((s) => s.shown));
+                          _nextGroupedStories();
+                        },
                         infoLayerBuilder: (bars, currentIndex, animation) {
                           if (currentIndex < 0) return Container();
 
@@ -146,11 +157,15 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
                         },
                         onPreviousFirstStory: _previousGroupedStories,
                         closeButtonPosition: widget.closeButtonPosition,
-                        onShowing: (int storyIndex) =>
-                            widget.onStoryViewed(collection.stories[storyIndex].id),
+                        onStoryViewing: (int storyIndex) {
+                          widget.onStoryViewed(collection.stories[storyIndex].id);
+                        },
+                        onStoryClosed: widget.onStoryClosed,
                       ),
                       onVerticalDragUpdate: (details) {
                         if (details.delta.dy > 0) {
+                          widget.onCollectionClosed
+                              ?.call(collection.owner.id, stories.every((s) => s.shown));
                           _finishStoriesView();
                         }
                       },
@@ -159,6 +174,9 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
                           _previousGroupedStories();
                         } else {
                           _nextGroupedStories();
+                          if (pageController.page.toInt() == widget.collections.length - 1)
+                            widget.onCollectionClosed
+                                ?.call(collection.owner.id, stories.every((s) => s.shown));
                         }
                       },
                     )
@@ -168,7 +186,11 @@ class StoriesCollectionViewState extends State<StoriesCollectionView> {
                     Align(
                       alignment: widget.closeButtonPosition,
                       child: GestureDetector(
-                        onTap: _finishStoriesView,
+                        onTap: () {
+                          _finishStoriesView();
+                          widget.onCollectionClosed
+                              ?.call(collection.owner.id, stories.every((s) => s.shown));
+                        },
                         child: widget.closeButton,
                       ),
                     ),
