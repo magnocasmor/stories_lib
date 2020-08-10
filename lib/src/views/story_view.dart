@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:stories_lib/stories.dart';
 
 import '../configs/story_controller.dart';
 import '../utils/color_parser.dart';
@@ -19,10 +20,31 @@ enum LoadState { loading, success, failure }
 /// inline/inside [ListView] or [Column] just like Google News app. Comes with
 /// gestures to pause, forward and go to previous page.
 class StoryView extends StatefulWidget {
+  StoryView({
+    Key key,
+    @required this.stories,
+    this.onInit,
+    this.onPaused,
+    this.onResumed,
+    this.controller,
+    this.onComplete,
+    this.closeButton,
+    this.onStoryClosed,
+    this.onStoryViewing,
+    this.infoLayerBuilder,
+    this.closeButtonPosition,
+    this.onPreviousFirstStory,
+    this.repeat = false,
+    this.inline = false,
+  })  : assert(stories != null && stories.length > 0, "[storyItems] should not be null or empty"),
+        assert(repeat != null),
+        assert(inline != null),
+        super(key: key);
+
   /// The pages to displayed.
   final List<StoryWrap> stories;
 
-  /// Callback for when a full cycle of story is shown. This will be called
+  /// Callback when a full cycle of story is shown. This will be called
   /// each time the full story completes when [repeat] is set to `true`.
   final VoidCallback onComplete;
 
@@ -30,7 +52,9 @@ class StoryView extends StatefulWidget {
   final VoidCallback onPreviousFirstStory;
 
   /// Callback for when a story is currently being shown.
-  final ValueChanged<int> onShowing;
+  final ValueChanged<int> onStoryViewing;
+
+  final StoryEventCallback onStoryClosed;
 
   /// Should the story be repeated forever?
   final bool repeat;
@@ -48,22 +72,11 @@ class StoryView extends StatefulWidget {
 
   final Alignment closeButtonPosition;
 
-  StoryView({
-    Key key,
-    @required this.stories,
-    this.controller,
-    this.onComplete,
-    this.onShowing,
-    this.onPreviousFirstStory,
-    this.repeat = false,
-    this.inline = false,
-    this.infoLayerBuilder,
-    this.closeButton,
-    this.closeButtonPosition,
-  })  : assert(stories != null && stories.length > 0, "[storyItems] should not be null or empty"),
-        assert(repeat != null),
-        assert(inline != null),
-        super(key: key);
+  final VoidCallback onInit;
+
+  final StoryEventCallback onResumed;
+
+  final StoryEventCallback onPaused;
 
   @override
   State<StatefulWidget> createState() {
@@ -82,6 +95,8 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   @override
   void initState() {
+    widget.onInit?.call();
+
     widget.stories.forEach((story) {
       story.addListener(() => beginPlay());
     });
@@ -152,12 +167,14 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
         controlPause();
         debouncer?.cancel();
         debouncer = Timer(Duration(milliseconds: 500), () {});
+        widget.onPaused?.call(currentStory.storyId);
       },
       onLongPressEnd: (details) {
         debouncer?.cancel();
         debouncer = null;
 
         controlUnpause();
+        widget.onResumed?.call(currentStory.storyId);
       },
       child: Stack(
         children: <Widget>[
@@ -198,8 +215,8 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
     final storyWrap = currentStory;
 
-    if (widget.onShowing != null) {
-      widget.onShowing(widget.stories.indexOf(storyWrap));
+    if (widget.onStoryViewing != null) {
+      widget.onStoryViewing(widget.stories.indexOf(storyWrap));
     }
 
     animationController = AnimationController(duration: storyWrap.duration, vsync: this);
@@ -208,6 +225,7 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
       (status) {
         if (status == AnimationStatus.completed) {
           storyWrap.shown = true;
+          widget.onStoryClosed?.call(storyWrap.storyId);
           if (widget.stories.last != storyWrap) {
             beginPlay();
           } else {
@@ -268,6 +286,8 @@ class _StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   void goForward() {
     final _current = this.currentStory;
+
+    widget.onStoryClosed?.call(_current.storyId);
 
     widget.controller?.stop();
 
