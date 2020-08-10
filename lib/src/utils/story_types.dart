@@ -42,3 +42,5 @@ typedef MyInfoLayerBuilder = Widget Function(
   List<Map<String, dynamic>>,
   VoidCallback,
 );
+
+typedef StoryEventCallback = void Function(String);

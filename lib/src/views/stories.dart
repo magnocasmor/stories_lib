@@ -18,6 +18,99 @@ import '../views/story_publisher.dart';
 typedef _ItemBuilder = Widget Function(BuildContext, int);
 
 class Stories extends StatefulWidget {
+  Stories({
+    Key key,
+    @required this.settings,
+    this.errorWidget,
+    this.closeButton,
+    this.previewBuilder,
+    this.storyController,
+    this.loadingWidget,
+    this.infoLayerBuilder,
+    this.previewPlaceholder,
+    this.previewListPadding,
+    this.navigationTransition,
+    this.storiesListPhysics,
+    this.onStoryOpenned,
+    this.onStoryClosed,
+    this.onStoryPaused,
+    this.onStoryResumed,
+    this.onCollectionClosed,
+    this.onCollectionOpenned,
+    this.onStoriesOpenned,
+    this.onStoriesClosed,
+    this.topSafeArea = true,
+    this.bottomSafeArea = false,
+    this.backgroundBetweenStories = Colors.black,
+    this.closeButtonPosition = Alignment.topRight,
+  })  : myStoriesPreview = null,
+        onStoryPosted = null,
+        super(key: key);
+
+  /// Build a stories preview list with [MyStories] and same shared widgets.
+  Stories.withMyStories({
+    Key key,
+    @required this.settings,
+    this.errorWidget,
+    this.closeButton,
+    this.previewBuilder,
+    this.storyController,
+    this.loadingWidget,
+    this.infoLayerBuilder,
+    this.previewPlaceholder,
+    this.previewListPadding,
+    this.navigationTransition,
+    this.storiesListPhysics,
+    this.onStoryOpenned,
+    this.onStoryClosed,
+    this.onStoryPaused,
+    this.onStoryResumed,
+    this.onStoryPosted,
+    this.onCollectionClosed,
+    this.onCollectionOpenned,
+    this.onStoriesOpenned,
+    this.onStoriesClosed,
+    this.topSafeArea = true,
+    this.bottomSafeArea = false,
+    this.backgroundBetweenStories = Colors.black,
+    this.closeButtonPosition = Alignment.topRight,
+    Widget myPreviewPlaceholder,
+    VoidCallback onPublisherClosed,
+    TakeStoryBuilder takeStoryBuilder,
+    ResultLayerBuilder resultInfoBuilder,
+    MyInfoLayerBuilder myInfoLayerBuilder,
+    void Function(bool) onPublisherOpenned,
+    PublisherController publisherController,
+    MyStoriesPreviewBuilder myPreviewBuilder,
+    PublishLayerBuilder publisherLayerBuilder,
+    Future<Color> Function(Color) changeBackgroundColor,
+  })  : myStoriesPreview = myPreviewBuilder != null
+            ? MyStories(
+                settings: settings,
+                errorWidget: errorWidget,
+                topSafeArea: topSafeArea,
+                closeButton: closeButton,
+                loadingWidget: loadingWidget,
+                onStoryPosted: onStoryPosted,
+                bottomSafeArea: bottomSafeArea,
+                storyController: storyController,
+                myPreviewBuilder: myPreviewBuilder,
+                takeStoryBuilder: takeStoryBuilder,
+                onPubliserClosed: onPublisherClosed,
+                infoLayerBuilder: myInfoLayerBuilder,
+                resultInfoBuilder: resultInfoBuilder,
+                onPublisherOpenned: onPublisherOpenned,
+                publisherController: publisherController,
+                closeButtonPosition: closeButtonPosition,
+                previewPlaceholder: myPreviewPlaceholder,
+                navigationTransition: navigationTransition,
+                publisherLayerBuilder: publisherLayerBuilder,
+                changeBackgroundColor: changeBackgroundColor,
+                backgroundBetweenStories: backgroundBetweenStories,
+              )
+            : null,
+        super(key: key);
+
   final StoriesSettings settings;
 
   final MyStories myStoriesPreview;
@@ -53,14 +146,11 @@ class Stories extends StatefulWidget {
 
   final StoryController storyController;
 
-  /// Calling when the view of all stories of the all [StoriesCollection]s is completed.
-  final VoidCallback onAllStoriesComplete;
-
   /// Calling when the stories collection is popped.
-  final VoidCallback onStoriesClosed;
+  final StoryEventCallback onStoryClosed;
 
   /// Calling when the stories collection is openned.
-  final VoidCallback onStoriesOpenned;
+  final StoryEventCallback onStoryOpenned;
 
   /// If should set [SafeArea] with top padding on [StoriesCollection].
   ///
@@ -72,85 +162,20 @@ class Stories extends StatefulWidget {
   /// Default is false.
   final bool bottomSafeArea;
 
-  Stories({
-    Key key,
-    @required this.settings,
-    this.errorWidget,
-    this.closeButton,
-    this.previewBuilder,
-    this.storyController,
-    this.loadingWidget,
-    this.infoLayerBuilder,
-    this.previewPlaceholder,
-    this.previewListPadding,
-    this.onAllStoriesComplete,
-    this.navigationTransition,
-    this.storiesListPhysics,
-    this.onStoriesClosed,
-    this.onStoriesOpenned,
-    this.topSafeArea = true,
-    this.bottomSafeArea = false,
-    this.backgroundBetweenStories = Colors.black,
-    this.closeButtonPosition = Alignment.topRight,
-  })  : myStoriesPreview = null,
-        super(key: key);
+  final VoidCallback onStoriesOpenned;
 
-  /// Build a stories preview list with [MyStories] and same shared widgets.
-  Stories.withMyStories({
-    Key key,
-    @required this.settings,
-    this.errorWidget,
-    this.closeButton,
-    this.previewBuilder,
-    this.storyController,
-    this.loadingWidget,
-    this.infoLayerBuilder,
-    this.previewPlaceholder,
-    this.previewListPadding,
-    this.onAllStoriesComplete,
-    this.navigationTransition,
-    this.onStoriesClosed,
-    this.onStoriesOpenned,
-    this.storiesListPhysics,
-    this.topSafeArea = true,
-    this.bottomSafeArea = false,
-    this.backgroundBetweenStories = Colors.black,
-    this.closeButtonPosition = Alignment.topRight,
-    VoidCallback onStoryPosted,
-    Widget myPreviewPlaceholder,
-    TakeStoryBuilder takeStoryBuilder,
-    ResultLayerBuilder resultInfoBuilder,
-    MyInfoLayerBuilder myInfoLayerBuilder,
-    PublisherController publisherController,
-    MyStoriesPreviewBuilder myPreviewBuilder,
-    PublishLayerBuilder publisherLayerBuilder,
-    Future<Color> Function(Color) changeBackgroundColor,
-  })  : myStoriesPreview = myPreviewBuilder != null
-            ? MyStories(
-                settings: settings,
-                errorWidget: errorWidget,
-                topSafeArea: topSafeArea,
-                closeButton: closeButton,
-                loadingWidget: loadingWidget,
-                onStoryPosted: onStoryPosted,
-                bottomSafeArea: bottomSafeArea,
-                storyController: storyController,
-                onStoriesClosed: onStoriesClosed,
-                myPreviewBuilder: myPreviewBuilder,
-                takeStoryBuilder: takeStoryBuilder,
-                onStoriesOpenned: onStoriesOpenned,
-                infoLayerBuilder: myInfoLayerBuilder,
-                resultInfoBuilder: resultInfoBuilder,
-                publisherController: publisherController,
-                closeButtonPosition: closeButtonPosition,
-                previewPlaceholder: myPreviewPlaceholder,
-                navigationTransition: navigationTransition,
-                publisherLayerBuilder: publisherLayerBuilder,
-                changeBackgroundColor: changeBackgroundColor,
-                backgroundBetweenStories: backgroundBetweenStories,
-              )
-            : null,
-        super(key: key);
+  /// Calling when the view of all stories of the all [StoriesCollection]s is completed.
+  final VoidCallback onStoriesClosed;
+
+  final void Function(String) onCollectionOpenned;
+
+  final void Function(String, bool) onCollectionClosed;
+
+  final StoryEventCallback onStoryPaused;
+
+  final StoryEventCallback onStoryResumed;
+
+  final StoryEventCallback onStoryPosted;
 
   @override
   _StoriesState createState() => _StoriesState();
@@ -217,7 +242,6 @@ class _StoriesState extends State<Stories> {
                 ),
                 onTap: () async {
                   widget.onStoriesOpenned?.call();
-
                   await Navigator.push(
                     context,
                     PageRouteBuilder(
@@ -233,11 +257,14 @@ class _StoriesState extends State<Stories> {
                           errorWidget: widget.errorWidget,
                           topSafeArea: widget.topSafeArea,
                           loadingWidget: widget.loadingWidget,
+                          onStoryClosed: widget.onStoryClosed,
+                          onStoryPaused: widget.onStoryPaused,
+                          onStoryResumed: widget.onStoryResumed,
                           bottomSafeArea: widget.bottomSafeArea,
                           storyController: widget.storyController,
-                          onStoriesClosed: widget.onStoriesClosed,
-                          onStoriesOpenned: widget.onStoriesOpenned,
                           infoLayerBuilder: widget.infoLayerBuilder,
+                          onCollectionClosed: widget.onCollectionClosed,
+                          onCollectionOpenned: widget.onCollectionOpenned,
                           closeButtonPosition: widget.closeButtonPosition,
                           navigationTransition: widget.navigationTransition,
                           backgroundBetweenStories: widget.backgroundBetweenStories,
@@ -355,6 +382,8 @@ class _StoriesState extends State<Stories> {
   }
 
   Future<void> _setViewed(String storyId) async {
+    widget.onStoryOpenned?.call(storyId);
+
     if (documents == null || documents.isEmpty) return;
 
     final document = documents.singleWhere((document) => document.documentID == storyId);
@@ -385,10 +414,34 @@ class _StoriesState extends State<Stories> {
 }
 
 class MyStories extends StatefulWidget {
+  MyStories({
+    @required this.settings,
+    this.errorWidget,
+    this.closeButton,
+    this.loadingWidget,
+    this.onStoryPosted,
+    this.storyController,
+    this.onPubliserClosed,
+    this.onPublisherOpenned,
+    this.infoLayerBuilder,
+    this.myPreviewBuilder,
+    this.takeStoryBuilder,
+    this.resultInfoBuilder,
+    this.previewPlaceholder,
+    this.publisherController,
+    this.navigationTransition,
+    this.publisherLayerBuilder,
+    this.changeBackgroundColor,
+    this.topSafeArea = true,
+    this.bottomSafeArea = false,
+    this.backgroundBetweenStories = Colors.black,
+    this.closeButtonPosition = Alignment.topRight,
+  });
+
   final StoriesSettings settings;
 
   /// Calling when a publishment is completed with success.
-  final VoidCallback onStoryPosted;
+  final StoryEventCallback onStoryPosted;
 
   /// If should set [SafeArea] with top padding on [StoriesCollection] and [StoryPublisher].
   ///
@@ -444,38 +497,14 @@ class MyStories extends StatefulWidget {
   final StoryController storyController;
 
   /// Calling when the stories collection is popped.
-  final VoidCallback onStoriesClosed;
+  final VoidCallback onPubliserClosed;
 
   /// Calling when the stories collection is openned.
-  final VoidCallback onStoriesOpenned;
+  final void Function(bool) onPublisherOpenned;
 
   final PublisherController publisherController;
 
   final Future<Color> Function(Color) changeBackgroundColor;
-
-  MyStories({
-    @required this.settings,
-    this.errorWidget,
-    this.closeButton,
-    this.loadingWidget,
-    this.onStoryPosted,
-    this.storyController,
-    this.onStoriesClosed,
-    this.onStoriesOpenned,
-    this.infoLayerBuilder,
-    this.myPreviewBuilder,
-    this.takeStoryBuilder,
-    this.resultInfoBuilder,
-    this.previewPlaceholder,
-    this.publisherController,
-    this.navigationTransition,
-    this.publisherLayerBuilder,
-    this.changeBackgroundColor,
-    this.topSafeArea = true,
-    this.bottomSafeArea = false,
-    this.backgroundBetweenStories = Colors.black,
-    this.closeButtonPosition = Alignment.topRight,
-  });
 
   @override
   _MyStoriesState createState() => _MyStoriesState();
@@ -557,6 +586,7 @@ class _MyStoriesState extends State<MyStories> {
         },
       ),
       onTap: () async {
+        widget.onPublisherOpenned?.call(hasPublish);
         await Navigator.push(
           context,
           PageRouteBuilder(
@@ -570,6 +600,7 @@ class _MyStoriesState extends State<MyStories> {
             },
           ),
         );
+        widget.onPubliserClosed?.call();
       },
     );
   }
@@ -600,8 +631,8 @@ class _MyStoriesState extends State<MyStories> {
         resultInfoBuilder: widget.resultInfoBuilder,
         publisherController: widget.publisherController,
         closeButtonPosition: widget.closeButtonPosition,
-        onStoryCollectionClosed: widget.onStoriesClosed,
-        onStoryCollectionOpenned: widget.onStoriesOpenned,
+        // onStoryCollectionClosed: widget.onStoriesClosed,
+        // onStoryCollectionOpenned: widget.onStoriesOpenned,
         changeBackgroundColor: widget.changeBackgroundColor,
         publisherLayerBuilder: widget.publisherLayerBuilder,
         backgroundBetweenStories: widget.backgroundBetweenStories,
@@ -621,10 +652,11 @@ class _MyStoriesState extends State<MyStories> {
             closeButton: widget.closeButton,
             loadingWidget: widget.loadingWidget,
             storyController: widget.storyController,
-            onStoriesClosed: () {
-              if (isMyStoriesFinished) widget.onStoriesClosed?.call();
-            },
-            onStoriesOpenned: widget.onStoriesOpenned,
+            // onStoryClosed: (storyId) {
+            //   if (isMyStoriesFinished) widget.onPubliserClosed?.call(storyId);
+            // },
+
+            // onCollectionOpenned: widget.onStoriesOpenned,
             closeButtonPosition: widget.closeButtonPosition,
             navigationTransition: widget.navigationTransition,
             backgroundBetweenStories: widget.backgroundBetweenStories,
