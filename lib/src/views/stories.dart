@@ -403,13 +403,16 @@ class _StoriesState extends State<Stories> {
       final hasView = views.any((view) => view["user_id"] == widget.settings.userId);
 
       if (!hasView) {
-        views.add(currentView);
+        await document.reference.setData({
+          "views": FieldValue.arrayUnion([currentView]),
+        }, merge: true);
       }
     } else {
-      data["views"] = [currentView];
+      await document.reference.setData({
+        "views": FieldValue.arrayUnion([currentView]),
+      }, merge: true);
     }
 
-    document.reference.updateData(data);
   }
 }
 
