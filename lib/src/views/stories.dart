@@ -279,7 +279,7 @@ class _StoriesState extends State<Stories> {
             },
           );
         } else if (snapshot.hasError) {
-          debugPrint(snapshot.error);
+          debugPrint(snapshot.error.toString());
 
           return Center(
             child: Column(
