@@ -207,9 +207,9 @@ class _StoriesState extends State<Stories> {
         if (snapshot.hasData) {
           documents = snapshot.data;
 
-          documents.removeWhere((s) => s["owner"]["id"] == widget.settings.userId);
+          documents.removeWhere((s) => s.data()["owner"]["id"] == widget.settings.userId);
 
-          documents.removeWhere((prev) => !allowToSee(prev.data, widget.settings));
+          documents.removeWhere((prev) => !allowToSee(prev.data(), widget.settings));
 
           final collections = parseStoriesPreview(widget.settings.languageCode, documents);
 
@@ -279,7 +279,7 @@ class _StoriesState extends State<Stories> {
             },
           );
         } else if (snapshot.hasError) {
-          debugPrint(snapshot.error);
+          debugPrint(snapshot.error.toString());
 
           return Center(
             child: Column(
@@ -388,7 +388,7 @@ class _StoriesState extends State<Stories> {
 
     final document = documents.singleWhere((document) => document.documentID == storyId);
 
-    final data = document.data;
+    final data = document.data();
 
     final views = data["views"];
 
@@ -403,16 +403,15 @@ class _StoriesState extends State<Stories> {
       final hasView = views.any((view) => view["user_id"] == widget.settings.userId);
 
       if (!hasView) {
-        await document.reference.setData({
+        await document.reference.set({
           "views": FieldValue.arrayUnion([currentView]),
-        }, merge: true);
+        }, SetOptions(merge: true));
       }
     } else {
-      await document.reference.setData({
+      await document.reference.set({
         "views": FieldValue.arrayUnion([currentView]),
-      }, merge: true);
+      }, SetOptions(merge: true));
     }
-
   }
 }
 
@@ -695,11 +694,11 @@ class _MyStoriesState extends State<MyStories> {
 
     widget.storyController.pause();
 
-    final newData = document.data;
+    final newData = document.data();
 
     newData["deleted_at"] = DateTime.now();
 
-    await document.reference.updateData(newData);
+    await document.reference.update(newData);
 
     collection.stories.removeWhere((s) => s.id == newData["id"]);
 
@@ -719,7 +718,7 @@ class _MyStoriesState extends State<MyStories> {
 
     final document = documents.singleWhere((document) => document.documentID == storyId);
 
-    final data = document.data;
+    final data = document.data();
 
     final views = data["views"];
 
@@ -740,6 +739,6 @@ class _MyStoriesState extends State<MyStories> {
       data["views"] = [currentView];
     }
 
-    document.reference.updateData(data);
+    document.reference.update(data);
   }
 }
