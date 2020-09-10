@@ -13,17 +13,17 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
   final _cacheDepth = 10;
   var i = 0;
 
-  final docs = List.from(documents);
+  final docs = List<DocumentSnapshot>.from(documents);
 
   /// if [StoriesSettings.sortByDesc] is false then order by last date to get updated owner infos
   if (docs.isNotEmpty)
     docs.sort((a, b) {
-      return (b.data["date"] as Timestamp).compareTo((a.data["date"] as Timestamp));
+      return (b.data()["date"] as Timestamp).compareTo((a.data()["date"] as Timestamp));
     });
 
   final owners = docs.map<StoryOwner>(
     (document) {
-      return StoryOwner.fromJson(document.data["owner"]);
+      return StoryOwner.fromJson(document.data()["owner"]);
     },
   ).fold<List<StoryOwner>>(
     <StoryOwner>[],
@@ -34,7 +34,7 @@ List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSn
   );
 
   return owners.map<StoriesCollection>((owner) {
-    return ownerCollection(documents.map((document) => document.data).toList(), owner)
+    return ownerCollection(documents.map((document) => document.data()).toList(), owner)
       ..stories.forEach(
         (story) {
           if (story.type == 'image' && i < _cacheDepth) {
