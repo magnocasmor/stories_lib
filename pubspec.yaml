@@ -2,7 +2,7 @@ name: stories_lib
 homepage: https://github.com/magnocasmor/stories_lib
 description: Display and post stories like Instagram with Cloud Firestore and
   Firebase Storage.
-version: 0.5.1+12
+version: 0.6.0+13
 
 environment:
   sdk: ">=2.2.2 <3.0.0"
