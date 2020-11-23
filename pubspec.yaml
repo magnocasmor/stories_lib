@@ -2,7 +2,7 @@ name: stories_lib
 homepage: https://github.com/magnocasmor/stories_lib
 description: Display and post stories like Instagram with Cloud Firestore and
   Firebase Storage.
-version: 0.6.0+13
+version: 0.7.0+14
 
 environment:
   sdk: ">=2.2.2 <3.0.0"
@@ -16,10 +16,10 @@ dependencies:
   rxdart: ^0.24.1
   provider: ^4.0.5
   equatable: ^1.2.0
+  video_player: ^1.0.1
   path_provider: ^1.6.7
-  video_compress: ^2.0.0
-  video_player: ^0.10.9+1
   firebase_core: ^0.5.0
+  video_compress: ^2.0.0
   firebase_storage: ^4.0.0
   cloud_firestore: ^0.14.0+2
   cached_network_image: ^2.3.2
