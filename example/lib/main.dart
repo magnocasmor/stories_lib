@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -446,32 +448,34 @@ class _HomeState extends State<Home> {
               await showDialog(
                 context: context,
                 barrierDismissible: true,
-                child: AlertDialog(
-                  title: Text("Escolha o tipo da mídia"),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      ListTile(
-                        leading: Icon(Icons.image),
-                        title: Text("Foto"),
-                        onTap: () async {
-                          final file = await ImagePicker.pickImage(source: ImageSource.gallery);
-                          Navigator.pop(context);
-                          publisherController.sendExternal(file, StoryType.image);
-                        },
-                      ),
-                      ListTile(
-                        leading: Icon(Icons.play_circle_outline),
-                        title: Text("Vídeo"),
-                        onTap: () async {
-                          final file = await ImagePicker.pickVideo(source: ImageSource.gallery);
-                          Navigator.pop(context);
-                          publisherController.sendExternal(file, StoryType.video);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text("Escolha o tipo da mídia"),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ListTile(
+                          leading: Icon(Icons.image),
+                          title: Text("Foto"),
+                          onTap: () async {
+                            final file = await ImagePicker().getImage(source: ImageSource.gallery).then((value) => File(value.path));
+                            Navigator.pop(context);
+                            publisherController.sendExternal(file, StoryType.image);
+                          },
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.play_circle_outline),
+                          title: Text("Vídeo"),
+                          onTap: () async {
+                            final file = await ImagePicker().getVideo(source: ImageSource.gallery).then((value) => File(value.path));
+                            Navigator.pop(context);
+                            publisherController.sendExternal(file, StoryType.video);
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
               );
             },
           ),

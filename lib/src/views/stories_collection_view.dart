@@ -62,7 +62,7 @@ class StoriesCollectionView extends StatefulWidget {
 }
 
 class StoriesCollectionViewState extends State<StoriesCollectionView> {
-  final firestore = Firestore.instance;
+  final firestore = FirebaseFirestore.instance;
 
   PageController pageController;
 

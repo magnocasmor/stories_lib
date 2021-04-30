@@ -142,7 +142,7 @@ class _StoryVideoState extends State<StoryVideo> {
 
   Future<void> initializeController() async {
     try {
-      if (playerController is VideoPlayerController && playerController.value.initialized) return;
+      if (playerController is VideoPlayerController && playerController.value.isInitialized) return;
 
       widget.controller?.pause();
 
