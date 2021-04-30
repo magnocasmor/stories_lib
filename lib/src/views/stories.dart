@@ -319,7 +319,7 @@ class _StoriesState extends State<Stories> {
   }
 
   Stream<List<DocumentSnapshot>> get _storiesStream {
-    var query = Firestore.instance
+    var query = FirebaseFirestore.instance
         .collection(widget.settings.collectionDbPath)
         .where('deleted_at', isNull: true)
         .where(
@@ -353,9 +353,9 @@ class _StoriesState extends State<Stories> {
           final newResults = <DocumentSnapshot>[];
 
           for (var result in results) {
-            for (var document in result.documents) {
+            for (var document in result.docs) {
               final hasDocument = newResults.firstWhere(
-                      (doc) => doc.documentID == document.documentID,
+                      (doc) => doc.id == document.id,
                       orElse: () => null) !=
                   null;
 
@@ -377,7 +377,7 @@ class _StoriesState extends State<Stories> {
       return query
           .orderBy('date', descending: widget.settings.sortByDesc)
           .snapshots()
-          .map((snapshot) => snapshot.documents);
+          .map((snapshot) => snapshot.docs);
     }
   }
 
@@ -386,7 +386,7 @@ class _StoriesState extends State<Stories> {
 
     if (documents == null || documents.isEmpty) return;
 
-    final document = documents.singleWhere((document) => document.documentID == storyId);
+    final document = documents.singleWhere((document) => document.id == storyId);
 
     final data = document.data();
 
@@ -539,7 +539,7 @@ class _MyStoriesState extends State<MyStories> {
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          documents = snapshot.data.documents;
+          documents = snapshot.data.docs;
 
           if (documents.isNotEmpty) {
             final myCollection = parseStoriesPreview(widget.settings.languageCode, documents).first;
@@ -670,7 +670,7 @@ class _MyStoriesState extends State<MyStories> {
   }
 
   Stream<QuerySnapshot> get _storiesStream {
-    return Firestore.instance
+    return FirebaseFirestore.instance
         .collection(widget.settings.collectionDbPath)
         .where(
           'date',
@@ -690,7 +690,7 @@ class _MyStoriesState extends State<MyStories> {
     }
     final story = collection.stories[index];
 
-    final document = documents.singleWhere((doc) => doc.documentID == story.id);
+    final document = documents.singleWhere((doc) => doc.id == story.id);
 
     widget.storyController.pause();
 
@@ -716,7 +716,7 @@ class _MyStoriesState extends State<MyStories> {
   Future<void> _setViewed(String storyId) async {
     if (documents == null || documents.isEmpty) return;
 
-    final document = documents.singleWhere((document) => document.documentID == storyId);
+    final document = documents.singleWhere((document) => document.id == storyId);
 
     final data = document.data();
 

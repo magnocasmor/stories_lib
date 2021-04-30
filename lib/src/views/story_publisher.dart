@@ -99,6 +99,8 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   @override
   void initState() {
+    SystemChrome.setEnabledSystemUIOverlays([]);
+
     widget.publisherController?._attachPublisher(this);
 
     widget.onStoryCollectionOpenned?.call();
@@ -124,6 +126,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
     animationController?.dispose();
     widget.publisherController?._detachPublisher();
     widget.onStoryCollectionClosed?.call();
+    SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
     super.dispose();
   }
 
@@ -147,7 +150,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
                       return Stack(
                         children: <Widget>[
                           FittedContainer(
-                            fit: BoxFit.cover,
+                            fit: BoxFit.fitHeight,
                             width: cameraController.value.previewSize?.height ?? 0,
                             height: cameraController.value.previewSize?.width ?? 0,
                             child: AspectRatio(
@@ -347,7 +350,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
       await videoCtrl.initialize();
 
-      if (videoCtrl.value.initialized) {
+      if (videoCtrl.value.isInitialized) {
         if (videoCtrl.value.duration.inSeconds > videoDuration.inSeconds) {
           throw ExceededDurationException();
         }
@@ -359,6 +362,7 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
 
   void goToStoryResult(FileOrigin origin) async {
     widget.publisherController?._detachPublisher();
+
     await Navigator.push(
       context,
       PageRouteBuilder(
@@ -382,6 +386,9 @@ class _StoryPublisherState extends State<StoryPublisher> with SingleTickerProvid
         },
       ),
     );
+
+    SystemChrome.setEnabledSystemUIOverlays([]);
+
     widget.publisherController?._attachPublisher(this);
   }
 }
@@ -481,7 +488,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: widget.backgroundBetweenStories,
-      resizeToAvoidBottomPadding: false,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         top: widget.topSafeArea,
         bottom: widget.bottomSafeArea,
@@ -731,14 +738,14 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
         .child(widget.settings.userId)
         .child(fileName);
 
-    final StorageUploadTask uploadTask = storageReference.putFile(
+    final UploadTask uploadTask = storageReference.putFile(
       File(path),
-      StorageMetadata(
+      SettableMetadata(
         contentType: widget.type == StoryType.video ? "video/mp4" : "image/$fileExt",
       ),
     );
 
-    final StorageTaskSnapshot downloadUrl = await uploadTask.onComplete;
+    final TaskSnapshot downloadUrl = await uploadTask;
 
     final String url = await downloadUrl.ref.getDownloadURL();
 
@@ -752,7 +759,7 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
     String caption,
     List<dynamic> selectedReleases,
   }) async {
-    final firestore = Firestore.instance;
+    final firestore = FirebaseFirestore.instance;
 
     final publishDate = DateTime.now();
 
@@ -775,11 +782,10 @@ class _StoryPublisherResultState extends State<_StoryPublisherResult> {
       "caption": {widget.settings.languageCode: caption},
     };
 
-    final doc =
-        await firestore.collection(widget.settings.collectionDbPath).document(storyId).get();
+    final doc = await firestore.collection(widget.settings.collectionDbPath).doc(storyId).get();
 
     if (!doc.exists) {
-      await doc.reference.setData(collectionInfo);
+      await doc.reference.set(collectionInfo);
     } else {
       await _dbInput(url, caption: caption, selectedReleases: selectedReleases);
     }
