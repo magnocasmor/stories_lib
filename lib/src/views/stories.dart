@@ -182,8 +182,8 @@ class Stories extends StatefulWidget {
 }
 
 class _StoriesState extends State<Stories> {
-  Stream<List<DocumentSnapshot>> stream;
-  List<DocumentSnapshot> documents;
+  Stream<List<DocumentSnapshot<Map<String, dynamic>>>> stream;
+  List<DocumentSnapshot<Map<String, dynamic>>> documents;
 
   @override
   void initState() {
@@ -201,7 +201,7 @@ class _StoriesState extends State<Stories> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<DocumentSnapshot>>(
+    return StreamBuilder<List<DocumentSnapshot<Map<String, dynamic>>>>(
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -318,7 +318,7 @@ class _StoriesState extends State<Stories> {
     );
   }
 
-  Stream<List<DocumentSnapshot>> get _storiesStream {
+  Stream<List<DocumentSnapshot<Map<String, dynamic>>>> get _storiesStream {
     var query = FirebaseFirestore.instance
         .collection(widget.settings.collectionDbPath)
         .where('deleted_at', isNull: true)
@@ -330,7 +330,7 @@ class _StoriesState extends State<Stories> {
     // Cause Firestore arrayContainsAny limitation of 10 elements, the query with releases checks
     // are splitted in chunks of 10.
     if (widget.settings.releases is List && widget.settings.releases.isNotEmpty) {
-      final querysByRelease = <Stream<QuerySnapshot>>[];
+      final querysByRelease = <Stream<QuerySnapshot<Map<String, dynamic>>>>[];
 
       var i = 0;
       var steps = 10;
@@ -347,17 +347,16 @@ class _StoriesState extends State<Stories> {
         i = i + steps;
       } while (i < widget.settings.releases.length);
 
-      return Rx.combineLatest<QuerySnapshot, List<DocumentSnapshot>>(
+      return Rx.combineLatest<QuerySnapshot<Map<String, dynamic>>,
+          List<DocumentSnapshot<Map<String, dynamic>>>>(
         querysByRelease,
         (results) {
-          final newResults = <DocumentSnapshot>[];
+          final newResults = <DocumentSnapshot<Map<String, dynamic>>>[];
 
           for (var result in results) {
             for (var document in result.docs) {
-              final hasDocument = newResults.firstWhere(
-                      (doc) => doc.id == document.id,
-                      orElse: () => null) !=
-                  null;
+              final hasDocument =
+                  newResults.firstWhere((doc) => doc.id == document.id, orElse: () => null) != null;
 
               if (!hasDocument) {
                 newResults.add(document);
@@ -515,8 +514,8 @@ class MyStories extends StatefulWidget {
 class _MyStoriesState extends State<MyStories> {
   final collectionStream = StreamController<StoriesCollection>.broadcast();
   bool isMyStoriesFinished = true;
-  Stream<QuerySnapshot> stream;
-  List<DocumentSnapshot> documents;
+  Stream<QuerySnapshot<Map<String, dynamic>>> stream;
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> documents;
 
   @override
   void initState() {
@@ -535,7 +534,7 @@ class _MyStoriesState extends State<MyStories> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -669,7 +668,7 @@ class _MyStoriesState extends State<MyStories> {
         });
   }
 
-  Stream<QuerySnapshot> get _storiesStream {
+  Stream<QuerySnapshot<Map<String, dynamic>>> get _storiesStream {
     return FirebaseFirestore.instance
         .collection(widget.settings.collectionDbPath)
         .where(
