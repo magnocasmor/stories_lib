@@ -14,7 +14,7 @@ dependencies:
   uuid: ^3.0.4
   exif: ^2.0.0
   image: ^3.0.2
-  rxdart: ^0.26.0
+  rxdart: ^0.27.1
   provider: ^5.0.0
   equatable: ^2.0.0
   video_player: ^2.0.0
@@ -22,7 +22,7 @@ dependencies:
   firebase_core: ^1.0.4
   video_compress: ^3.0.0
   firebase_storage: ^8.0.4
-  cloud_firestore: ^1.0.6
+  cloud_firestore: ^2.2.1
   cached_network_image: ^3.0.0
   flutter_cache_manager: ^3.0.1
   flutter_image_compress: ^1.0.0

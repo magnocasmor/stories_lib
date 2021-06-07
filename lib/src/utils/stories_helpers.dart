@@ -9,11 +9,11 @@ import '../models/stories_collection.dart';
 import '../models/story.dart';
 import '../views/story_view.dart';
 
-List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSnapshot> documents) {
+List<StoriesCollection> parseStoriesPreview(String languageCode, List<DocumentSnapshot<Map<String, dynamic>>> documents) {
   final _cacheDepth = 10;
   var i = 0;
 
-  final docs = List<DocumentSnapshot>.from(documents);
+  final docs = List<DocumentSnapshot<Map<String,dynamic>>>.from(documents);
 
   /// if [StoriesSettings.sortByDesc] is false then order by last date to get updated owner infos
   if (docs.isNotEmpty)
